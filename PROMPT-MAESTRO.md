@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.6 · Aplicación V GMM 0006 · 28 de julio de 2026**
+**Documento v1.7 · Aplicación V GMM 0007 · 28 de julio de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies/>
 
 ---
@@ -297,9 +297,12 @@ interruptor global (§5.1.1); aquí van tres selectores, en este orden:
 3. Normaliza cada resultado con su tipo antes de pintar (§8).
 ```
 
-Muestra hasta 24 resultados en la misma cuadrícula que el modo trama, con un título que
-resume la selección (p. ej. «Series de drama, de 2020, con nota 6 o más»). Los géneros **no
-se piden a la API**: son una taxonomía estable y se guardan en `GMM.datos`.
+Muestra hasta **`MAX_DESCUBRIR` (250)** resultados en la misma cuadrícula que el modo trama,
+con un título que resume la selección y el conteo (p. ej. «Series de drama · 250 · pulsa…»).
+Como `/discover` devuelve **20 por página**, hay que **encadenar páginas** (pedir la primera
+para saber `total_pages` y traer el resto en lotes de `CONCURRENCIA`) hasta llegar a 250 o
+agotar las que haya. Con una sola página se veían solo 20 aunque existieran cientos. Los
+géneros **no se piden a la API**: son una taxonomía estable y se guardan en `GMM.datos`.
 
 **Cambiar cualquiera de los cuatro controles vuelve a descubrir al instante** si ya hay
 resultados en pantalla, igual que los filtros de plataforma/país/idioma recalculan sin pedir
@@ -682,6 +685,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.7 | V GMM 0007 | 28-07-2026 | Descubrir (§5.4b) **pagina**: encadena páginas de `/discover` hasta `MAX_DESCUBRIR` (250) en lotes, en vez de mostrar solo los 20 de la primera. Muestra el conteo en el título. |
 | 1.6 | V GMM 0006 | 28-07-2026 | Buscador reestructurado (§5.1.1): **interruptor global Película/Serie** —solo tiñe sus acentos, naranja/azul, sin rojo (§6)— y **dos métodos separados**, «buscar una en concreto» (desplegable título/actor/trama) y «descubrir por género». El interruptor manda en las **cuatro búsquedas**: serie por título (`/search/tv`), filmografía en TV (`/person/{id}/tv_credits`) y trama en series (`/discover/tv` con keywords). El selector «Tipo» sale de Descubrir (§5.4b): lo lleva el interruptor. Criterios A25–A28. |
 | 1.5 | V GMM 0005 | 28-07-2026 | Nuevo modo **¿Qué quieres ver?** (§5.4b): descubrir por tipo (película/serie), género, año y nota de TMDB, con `/discover/movie` y `/discover/tv`. Entran las **series**, con la capa de datos normalizada por tipo y las listas/`disponibilidad` indexadas por `tipo:id` (§8). Géneros como taxonomía fija en `GMM.datos`. Cabecera rediseñada como **tira de rollo de película** (§6), solo aspecto. Series de la demo sin carátula, por no poder verificar la imagen. Criterios A20–A24. Se aparcan las puntuaciones de IMDb/Rotten Tomatoes: TMDB no las da y traerlas exigiría OMDb con otra clave. |
 | 1.4 | V GMM 0004 | 28-07-2026 | Publicada en GitHub Pages y verificada contra el sitio real desde un navegador móvil. La clave local se carga solo cuando la app corre en local, para no dejar un 404 en la consola del sitio publicado. |
