@@ -2,9 +2,11 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0003`
-**Próxima versión:** `V GMM 0004`
+**Versión activa:** `V GMM 0004`
+**Próxima versión:** `V GMM 0005`
 **Última actualización:** 2026-07-28
+
+**Publicada en:** <https://alberthoma.github.io/givemymovies/> · GitHub Pages desde `main`, raíz.
 
 > **Después de cualquier cambio, ejecuta el skill `givemymovies-commit`.** Sube la versión,
 > actualiza este archivo y `PROMPT-MAESTRO.md`, y pasa las pruebas. No lo hagas a mano:
@@ -264,6 +266,8 @@ Comprobación manual rápida, si no quieres ejecutar nada:
 | Desplegable sobre el botón | Tapaba *Buscar*. Se cierra también al perder el foco, con 160 ms de margen para que el clic en una sugerencia llegue a registrarse. |
 | Tarjetas de país estiradas | El grid las igualaba a la más alta de la fila y dejaba huecos. `align-items: start` en `.paises`. |
 | Acentos en expresión regular | Las marcas diacríticas sueltas en el código son frágiles ante cambios de codificación. Usar la forma escapada `[\u0300-\u036f]`, como en `GMM.util.normalizar`. |
+| **Editar archivos con PowerShell** | `Get-Content` + `Set-Content -Encoding utf8` **destroza los acentos**: en PowerShell 5.1 la lectura asume ANSI y la escritura vuelca UTF-8, duplicando cada carácter (`película` → `pelÃ­cula`). Ya pasó con `index.html` y `sw.js`. **Usa siempre la herramienta Edit**, o `[System.IO.File]::ReadAllText/WriteAllText` con `UTF8Encoding($false)`. |
+| Dos bloques `<script>` | `pruebas/cargar.js` busca el de la app con `lastIndexOf`, no con `indexOf`: hay un `<script>` anterior —el cargador de la clave local— y empezar por el primero arrastraría el HTML intermedio. El de la app es siempre el último. |
 
 ---
 
@@ -344,4 +348,5 @@ habría que regenerarla al retirarla.
 |---|---|---|
 | V GMM 0001 | 2026-07-27 | Versión inicial. Buscador en tres modos (película, actor, trama), filtros de plataforma/país/idioma, deducción de idioma por mercado con insignias de confianza, fichas con carátula, filmografía con consulta en lote, listas de favoritas y pendientes con exportar/importar, modo demo de 8 películas. Añadidos `CLAUDE.md`, `PROMPT-MAESTRO.md`, carpeta `pruebas/` y el skill `givemymovies-commit`. |
 | V GMM 0002 | 2026-07-27 | Distinguir «no está en ninguna parte» de «está, pero no en la plataforma que filtraste». Antes ambos casos daban el mismo mensaje genérico. Ahora la frase nombra la plataforma que falla y un botón quita el filtro de un clic. Lo destapó una búsqueda real: *Siempre el mismo día* + Netflix, que no existe en Netflix en ningún país aunque sí en 14 mercados hispanohablantes. |
+| V GMM 0004 | 2026-07-28 | Publicada en GitHub Pages. El cargador de la clave local solo se pide cuando la app corre en local, para que el sitio publicado no lance un 404 en la consola de todo el que lo abra. `pruebas/cargar.js` pasa a buscar el bloque `<script>` de la app con `lastIndexOf`, porque ahora hay dos. |
 | V GMM 0003 | 2026-07-28 | Aplicación instalable en el móvil: `manifest.json`, `sw.js`, iconos generados desde `iconos/icono.svg`, botón *Instalar* en la cabecera y bloque JS 10 (`GMM.pwa`). Funciona sin conexión salvo para consultar disponibilidad, que **nunca se cachea** a propósito. Nueva suite `pruebas/pwa.js` con 19 comprobaciones sobre un servidor local. |

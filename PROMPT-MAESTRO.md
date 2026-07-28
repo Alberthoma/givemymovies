@@ -1,6 +1,7 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.3 · Aplicación V GMM 0003 · 28 de julio de 2026**
+**Documento v1.4 · Aplicación V GMM 0004 · 28 de julio de 2026**
+**Publicada en:** <https://alberthoma.github.io/givemymovies/>
 
 ---
 
@@ -595,6 +596,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.4 | V GMM 0004 | 28-07-2026 | Publicada en GitHub Pages y verificada contra el sitio real desde un navegador móvil. La clave local se carga solo cuando la app corre en local, para no dejar un 404 en la consola del sitio publicado. |
 | 1.3 | V GMM 0003 | 28-07-2026 | Nueva §5.7: la app es instalable en el móvil. Manifiesto, service worker con su estrategia de caché razonada, iconos y botón de instalar. R1 gana su única excepción documentada. Criterios A15–A19. La PWA sale de las mejoras propuestas de §13 porque ya está hecha. |
 | 1.2 | V GMM 0002 | 27-07-2026 | §5.2 distingue ahora tres casos sin resultado en lugar de dos: el nuevo es «está disponible, pero no en la plataforma que filtraste», con su contador `descartadosPorPlataforma` y su botón de salida. Criterios A13 y A14. Lo destapó una búsqueda real del usuario. |
 | 1.1 | V GMM 0001 | 27-07-2026 | Reorganización completa del documento a especificación explícita y verificable: algoritmos escritos paso a paso, criterios de aceptación numerados (A1–A12), decisiones con sus alternativas descartadas. Las peticiones literales del usuario bajan al Anexo A como trazabilidad. |

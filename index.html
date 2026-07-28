@@ -737,7 +737,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   <footer class="pie">
     <span>givemymovies · datos de disponibilidad vía TMDB / JustWatch</span>
     <span>Tus listas se guardan solo en este navegador</span>
-    <span id="version-app">V GMM 0003</span>
+    <span id="version-app">V GMM 0004</span>
   </footer>
 </div>
 
@@ -795,11 +795,23 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
 
 <div class="avisos" id="avisos" aria-live="polite"></div>
 
-<!-- Clave de TMDB cargada automáticamente, si existe. El archivo vive en
-     PRIVADO/, excluido por .gitignore, y NO se publica nunca. Sin él, la
-     app arranca en modo demo y la clave se introduce desde el engranaje.
-     Que falte es normal y no rompe nada: solo deja un 404 en la consola. -->
-<script src="PRIVADO/clave-local.js"></script>
+<!-- Clave de TMDB cargada automáticamente. El archivo vive en PRIVADO/,
+     excluido por .gitignore, y NO se publica nunca: en el sitio publicado
+     la clave se introduce desde el engranaje, una vez por dispositivo.
+     Solo se pide cuando la app corre en local, para que la versión
+     publicada no lance una petición condenada al 404. El document.write
+     es deliberado: inserta el script de forma síncrona, antes de que
+     arranque la aplicación y lea la clave. -->
+<script>
+(function () {
+  var enLocal = location.protocol === "file:" ||
+                location.hostname === "localhost" ||
+                location.hostname === "127.0.0.1";
+  if (enLocal) {
+    document.write('<scr' + 'ipt src="PRIVADO/clave-local.js"><\/scr' + 'ipt>');
+  }
+})();
+</script>
 
 <script>
 /* ══════════════════════════════════════════════════════════════════════

@@ -16,13 +16,20 @@ const path = require("path");
 const RAIZ = path.join(__dirname, "..");
 const INDICE = path.join(RAIZ, "index.html");
 
-/** Devuelve el JavaScript embebido en index.html, como texto. */
+/**
+ * Devuelve el JavaScript de la aplicación embebido en index.html.
+ *
+ * Se busca con lastIndexOf, no con indexOf: index.html tiene un bloque
+ * <script> anterior —el cargador de la clave local— y empezar por el
+ * primero arrastraría el HTML intermedio, produciendo código inválido.
+ * El bloque de la app es siempre el último.
+ */
 function extraerJs() {
   const html = fs.readFileSync(INDICE, "utf8");
-  const inicio = html.indexOf("<script>");
   const fin = html.lastIndexOf("</script>");
+  const inicio = html.lastIndexOf("<script>", fin);
   if (inicio === -1 || fin === -1) {
-    throw new Error("No se encontró el bloque <script> en index.html");
+    throw new Error("No se encontró el bloque <script> de la app en index.html");
   }
   return html.substring(inicio + "<script>".length, fin);
 }
