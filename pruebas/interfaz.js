@@ -263,6 +263,23 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   await pagina.screenshot({ path: path.join(CAPTURAS, "06-series.png"), fullPage: true });
 
   /* ---------------------------------------------------------------- */
+  m.titulo("Paginador de Descubrir");
+  /* En demo hay una sola página, así que inyectamos una respuesta con varias
+     para comprobar los controles y el paso de página, sin depender de red. */
+  await pagina.evaluate(() => {
+    const base = GMM.demo.SERIES, items = [];
+    for (let i = 0; i < 20; i++) items.push(Object.assign({}, base[i % base.length], { id: 900000 + i }));
+    GMM.tmdb.descubrir = (tipo, opciones, p) => Promise.resolve({ items, pagina: p || 1, total: 7 });
+  });
+  await pagina.click("#btnBuscar");
+  await pagina.waitForTimeout(300);
+  m.afirmar("aparece el paginador", (await pagina.locator(".paginador").count()) >= 1);
+  m.afirmar("muestra «Página 1 de 7»", (await pagina.textContent(".paginador-info")).includes("1 de 7"));
+  await pagina.click('.paginador [data-ir-pagina="2"] >> nth=0');
+  await pagina.waitForTimeout(300);
+  m.afirmar("Siguiente avanza a la página 2", (await pagina.textContent(".paginador-info")).includes("2 de 7"));
+
+  /* ---------------------------------------------------------------- */
   m.titulo("Móvil, 375 px");
   await pagina.setViewportSize({ width: 375, height: 780 });
   await pagina.click('#metodos [data-metodo="buscar"]');

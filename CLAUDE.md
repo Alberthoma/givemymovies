@@ -2,8 +2,8 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0007`
-**Próxima versión:** `V GMM 0008`
+**Versión activa:** `V GMM 0008`
+**Próxima versión:** `V GMM 0009`
 **Última actualización:** 2026-07-28
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies/> · GitHub Pages desde `main`, raíz.
@@ -38,7 +38,7 @@ nunca te dicen el idioma. Aquí se responde de una vez, en una frase en lenguaje
 | Forma | Cómo | Salida |
 |---|---|---|
 | **Buscar una en concreto** | Desplegable *por título · por actor/actriz · por trama* + campo de texto | Ficha (título), filmografía (actor) o cuadrícula (trama), del tipo elegido |
-| **Descubrir por género** | Género + año (opcional) + nota mínima de TMDB | Cuadrícula de hasta ~250 títulos que encajan (`/discover`, paginado) |
+| **Descubrir por género** | Género + año (opcional) + nota mínima de TMDB | Cuadrícula **paginada** (20 por página, con Anterior/Siguiente) de todo lo que encaja (`/discover`) |
 
 Plataforma y país son **opcionales**; el idioma es el filtro que da sentido a todo.
 
@@ -247,7 +247,7 @@ el `og:image`. Y no cojas el primer `<img>` de la página: suele ser un recomend
 ```bash
 node pruebas/logica.js      # 86 comprobaciones · sin dependencias · instantáneo
 node pruebas/imagenes.js    # 15 comprobaciones · necesita internet · ~30 s
-node pruebas/interfaz.js    # 55 comprobaciones · playwright-core · ~40 s
+node pruebas/interfaz.js    # 58 comprobaciones · playwright-core · ~40 s
 node pruebas/pwa.js         # 19 comprobaciones · playwright-core · ~20 s
 ```
 
@@ -435,7 +435,8 @@ puede ir dentro de `index.html` sin problema.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
-| V GMM 0007 | 2026-07-28 | **Descubrir pagina**: en vez de los 20 de una sola página de `/discover`, encadena páginas (en lotes de 5) hasta `MAX_DESCUBRIR` (250) y muestra el conteo en el título. Antes, buscar «series de drama» daba 20 aunque hubiera cientos. |
+| V GMM 0008 | 2026-07-28 | **Paginador** en Descubrir y Trama: 20 por página con **Anterior / Página X de N / Siguiente**, que recorre todas las páginas de TMDB (`estado.ctxPagina` + `irAPagina`). Sustituye el volcado de 250 de la 0007: en vez de traer muchos de golpe, se pasa de página. |
+| V GMM 0007 | 2026-07-28 | **Descubrir pagina**: en vez de los 20 de una sola página de `/discover`, traía más de una. Sustituido en 0008 por un paginador con controles. |
 | V GMM 0006 | 2026-07-28 | Buscador reestructurado: un **interruptor global Película/Serie** (naranja/azul, solo tiñe sus acentos) y **dos formas de buscar separadas** —«buscar una en concreto» (desplegable título/actor/trama) y «descubrir por género»—, que antes estaban mezcladas en pestañas. El interruptor manda en **las cuatro búsquedas**: se busca una **serie por título** (`/search/tv`), la **filmografía en TV** de un actor (`/person/{id}/tv_credits`) y **tramas en series** (`/discover/tv` con keywords). El «Tipo» que vivía dentro de Descubrir desaparece: lo lleva el interruptor. `logica.js` 82→86, `interfaz.js` 49→55. |
 | V GMM 0005 | 2026-07-28 | Nuevo modo **¿Qué quieres ver?**: se elige tipo (película o serie), género, año (opcional) y nota mínima de TMDB, y sale una cuadrícula con lo que encaja (endpoints `/discover/movie` y `/discover/tv`). Entran las **series** en la app, con la capa de datos hecha «consciente del tipo» (`GMM.util.normalizarMedia`, `disponibilidad` y listas indexadas por `tipo:id`). Géneros como taxonomía fija en `GMM.datos`. Cabecera **rediseñada como tira de rollo de película** (solo aspecto, mismo contenido). Las series de la demo van sin carátula a propósito, porque no había forma de verificar la imagen. Descartadas por ahora las puntuaciones de IMDb/Rotten Tomatoes. `logica.js` pasa de 64 a 82 comprobaciones. |
 | V GMM 0001 | 2026-07-27 | Versión inicial. Buscador en tres modos (película, actor, trama), filtros de plataforma/país/idioma, deducción de idioma por mercado con insignias de confianza, fichas con carátula, filmografía con consulta en lote, listas de favoritas y pendientes con exportar/importar, modo demo de 8 películas. Añadidos `CLAUDE.md`, `PROMPT-MAESTRO.md`, carpeta `pruebas/` y el skill `givemymovies-commit`. |
