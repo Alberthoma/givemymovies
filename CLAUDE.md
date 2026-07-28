@@ -242,7 +242,7 @@ el `og:image`. Y no cojas el primer `<img>` de la página: suele ser un recomend
 
 ```bash
 node pruebas/logica.js      # 82 comprobaciones · sin dependencias · instantáneo
-node pruebas/imagenes.js    # 12 comprobaciones · necesita internet · ~30 s
+node pruebas/imagenes.js    # 15 comprobaciones · necesita internet · ~30 s
 node pruebas/interfaz.js    # 49 comprobaciones · playwright-core · ~40 s
 node pruebas/pwa.js         # 19 comprobaciones · playwright-core · ~20 s
 ```

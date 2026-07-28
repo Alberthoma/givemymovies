@@ -50,6 +50,14 @@ async function descarga(ruta, tamano) {
       "tengo " + p.poster_path + " / oficial " + oficial.ruta);
   }
 
+  m.titulo("¿La carátula pertenece a esa serie?");
+  for (const s of GMM.demo.SERIES) {
+    const oficial = await fichaOficial("tv", s.id);
+    m.afirmar(s.name + "  (ficha " + s.id + " = «" + oficial.titulo + "»)",
+      oficial.ruta === s.poster_path,
+      "tengo " + s.poster_path + " / oficial " + oficial.ruta);
+  }
+
   m.titulo("¿La foto pertenece a esa persona?");
   for (const per of GMM.demo.PERSONAS) {
     const oficial = await fichaOficial("person", per.id);
@@ -63,6 +71,10 @@ async function descarga(ruta, tamano) {
   for (const p of GMM.demo.PELICULAS) {
     if (!(await descarga(p.poster_path, "w342"))) { rotas++; m.nota("404 carátula " + p.title); }
     if (!(await descarga(p.backdrop_path, "w1280"))) { rotas++; m.nota("404 fondo " + p.title); }
+  }
+  for (const s of GMM.demo.SERIES) {
+    if (!(await descarga(s.poster_path, "w342"))) { rotas++; m.nota("404 carátula " + s.name); }
+    if (s.backdrop_path && !(await descarga(s.backdrop_path, "w1280"))) { rotas++; m.nota("404 fondo " + s.name); }
   }
   for (const per of GMM.demo.PERSONAS) {
     if (!(await descarga(per.profile_path, "w342"))) { rotas++; m.nota("404 foto " + per.name); }

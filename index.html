@@ -1232,18 +1232,18 @@ GMM.demo.TRAMAS = {
   "sueños": [27205]
 };
 
-/* Series de ejemplo para la sección Descubrir sin clave. Van SIN carátula a
-   propósito: no hay forma de verificar aquí que una imagen pertenece de
-   verdad a la ficha (ver CLAUDE.md §6, ya falló dos veces), así que la app
-   usa su reserva con el título en vez de arriesgar una imagen equivocada.
-   Se eligen tres idiomas distintos, como en las películas, para que el
-   filtro de idioma se pueda demostrar también con series. */
+/* Series de ejemplo para la sección Descubrir sin clave. Tres idiomas
+   distintos, como en las películas, para poder demostrar el filtro de idioma
+   también con series. Las carátulas, como las de las películas, deben pasar
+   pruebas/imagenes.js: comprueba que cada poster_path pertenece de verdad a
+   esa ficha (og:image en es-ES), no que devuelva 200. */
 GMM.demo.SERIES = [
   {
     id: 71446, name: "La casa de papel", original_name: "La casa de papel",
     original_language: "es", first_air_date: "2017-05-02",
     genre_ids: [80, 18], vote_average: 8.2,
-    poster_path: null, backdrop_path: null,
+    poster_path: "/reEMJA1uzscCbkpeRJeTT2bjqUp.jpg",
+    backdrop_path: "/xGexTKCJDkl12dTW4YCBDXWb1AD.jpg",
     overview: "Un grupo de atracadores toma la Fábrica Nacional de Moneda y Timbre bajo las órdenes de un enigmático cerebro para llevar a cabo el asalto más ambicioso de la historia.",
     proveedores: {
       ES: { flatrate: ["Netflix"] }, AR: { flatrate: ["Netflix"] },
@@ -1255,7 +1255,8 @@ GMM.demo.SERIES = [
     id: 93405, name: "El juego del calamar", original_name: "오징어 게임",
     original_language: "ko", first_air_date: "2021-09-17",
     genre_ids: [18, 9648, 10765], vote_average: 7.8,
-    poster_path: null, backdrop_path: null,
+    poster_path: "/dDlEmu3EZ0Pgg93K2SVNLCjCSvE.jpg",
+    backdrop_path: "/qw3J9cNeLioOLoR68WX7z79aCdK.jpg",
     overview: "Cientos de personas ahogadas por las deudas aceptan una extraña invitación para competir en juegos infantiles, donde un premio millonario y un destino mortal esperan a los perdedores.",
     proveedores: {
       KR: { flatrate: ["Netflix"] }, ES: { flatrate: ["Netflix"] },
@@ -1267,7 +1268,8 @@ GMM.demo.SERIES = [
     id: 1396, name: "Breaking Bad", original_name: "Breaking Bad",
     original_language: "en", first_air_date: "2008-01-20",
     genre_ids: [18, 80], vote_average: 8.9,
-    poster_path: null, backdrop_path: null,
+    poster_path: "/ggFHVNu6YYI5L9pCfOacjizRGt.jpg",
+    backdrop_path: "/tsRy63Mu5cu8etL1X7ZLyf7UP1M.jpg",
     overview: "Un profesor de química con un cáncer terminal se asocia con un antiguo alumno para fabricar y vender metanfetamina y asegurar el futuro de su familia.",
     proveedores: {
       US: { flatrate: ["Netflix"], buy: ["Apple TV"] },

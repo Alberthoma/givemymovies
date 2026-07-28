@@ -234,8 +234,7 @@ m.titulo("Coherencia de las series demo");
 
 m.afirmar("toda serie tiene al menos un género", GMM.demo.SERIES.every((s) => (s.genre_ids || []).length));
 m.afirmar("toda serie declara idioma original", GMM.demo.SERIES.every((s) => s.original_language));
-m.afirmar("las series van sin carátula a propósito (no verificable aquí)",
-  GMM.demo.SERIES.every((s) => !s.poster_path));
+m.afirmar("toda serie tiene carátula", GMM.demo.SERIES.every((s) => s.poster_path));
 m.afirmar("no hay ids de serie repetidos",
   new Set(GMM.demo.SERIES.map((s) => s.id)).size === GMM.demo.SERIES.length);
 
