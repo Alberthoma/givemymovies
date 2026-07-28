@@ -1,0 +1,11 @@
+# La aplicación no tiene dependencias. Esto es solo de las pruebas.
+pruebas/node_modules/
+pruebas/package-lock.json
+
+# Capturas que genera pruebas/interfaz.js
+pruebas/capturas/
+
+# Sistema
+Thumbs.db
+desktop.ini
+.DS_Store

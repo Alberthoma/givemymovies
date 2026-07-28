@@ -1,0 +1,249 @@
+/* ══════════════════════════════════════════════════════════════════════
+   interfaz.js — recorre la app real en Chromium y comprueba que funciona
+
+   Ejecutar:  node pruebas/interfaz.js
+   Requiere:  npm install playwright-core   (dentro de pruebas/)
+
+   Es la ÚNICA parte del proyecto con dependencia externa, y es opcional:
+   la aplicación en sí no necesita npm ni nada instalado. Si falta
+   playwright-core, este script lo dice y sale sin marcar fallo.
+   ══════════════════════════════════════════════════════════════════════ */
+
+const fs = require("fs");
+const path = require("path");
+const { RAIZ, INDICE, crearMarcador } = require("./cargar");
+
+let chromium;
+try {
+  chromium = require("playwright-core").chromium;
+} catch (e) {
+  console.log("\n  playwright-core no está instalado.");
+  console.log("  Para ejecutar estas comprobaciones:\n");
+  console.log("      cd pruebas");
+  console.log("      npm install playwright-core\n");
+  console.log("  Las pruebas de lógica (node pruebas/logica.js) no lo necesitan.");
+  process.exit(0);
+}
+
+/** Busca un Chromium ya descargado en la caché de Playwright. */
+function buscarChromium() {
+  const base = path.join(process.env.LOCALAPPDATA || process.env.HOME || "", "ms-playwright");
+  if (!fs.existsSync(base)) return null;
+  const candidatos = fs.readdirSync(base)
+    .filter((n) => n.startsWith("chromium-"))
+    .sort()
+    .reverse();
+  for (const c of candidatos) {
+    for (const rel of ["chrome-win64/chrome.exe", "chrome-win/chrome.exe",
+                       "chrome-linux/chrome", "chrome-mac/Chromium.app/Contents/MacOS/Chromium"]) {
+      const ruta = path.join(base, c, rel);
+      if (fs.existsSync(ruta)) return ruta;
+    }
+  }
+  return null;
+}
+
+const EXE = buscarChromium();
+if (!EXE) {
+  console.log("\n  No se encontró ningún Chromium descargado.");
+  console.log("  Instálalo con:  npx playwright install chromium\n");
+  process.exit(0);
+}
+
+const PAGINA = "file:///" + INDICE.replace(/\\/g, "/").replace(/ /g, "%20").replace(/\$/g, "%24");
+const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
+
+(async () => {
+  const m = crearMarcador();
+  if (!fs.existsSync(CAPTURAS)) fs.mkdirSync(CAPTURAS, { recursive: true });
+
+  const navegador = await chromium.launch({ executablePath: EXE });
+  const contexto = await navegador.newContext({ viewport: { width: 1280, height: 900 } });
+  const pagina = await contexto.newPage();
+
+  const errores = [];
+  pagina.on("pageerror", (e) => errores.push("pageerror: " + e.message));
+  pagina.on("console", (c) => { if (c.type() === "error") errores.push("console: " + c.text()); });
+
+  await pagina.goto(PAGINA);
+  await pagina.waitForTimeout(600);
+
+  /* ---------------------------------------------------------------- */
+  m.titulo("Arranque");
+  m.afirmar("sin errores de JavaScript", errores.length === 0, errores.join(" | "));
+  m.afirmar("la marca se pinta", (await pagina.textContent(".marca-texto")).includes("givemymovies"));
+  m.afirmar("arranca en modo demo", (await pagina.textContent("#pastillaModo")).trim() === "Modo demo");
+  m.afirmar("el selector de idioma tiene 13 opciones",
+    (await pagina.locator("#selIdioma option").count()) === 13);
+  m.afirmar("el selector de país tiene 6 grupos",
+    (await pagina.locator("#selPais optgroup").count()) === 6);
+  m.afirmar("el selector de plataformas se rellenó",
+    (await pagina.locator("#selPlataforma option").count()) > 5);
+  m.afirmar("idioma por defecto: español", (await pagina.inputValue("#selIdioma")) === "es");
+  m.afirmar("se ve la pantalla de bienvenida",
+    (await pagina.textContent("#resultados")).includes("Empieza por buscar"));
+  m.afirmar("el pie muestra la versión",
+    /^V GMM \d{4}$/.test((await pagina.textContent("#version-app")).trim()),
+    await pagina.textContent("#version-app"));
+
+  /* ---------------------------------------------------------------- */
+  m.titulo("Autocompletado");
+  await pagina.fill("#entrada", "inter");
+  await pagina.waitForTimeout(700);
+  m.afirmar("sugiere al escribir", (await pagina.locator(".sugerencia").count()) >= 1);
+  m.afirmar("la sugerencia es Interestelar",
+    (await pagina.locator(".sugerencia-tit").first().textContent()).includes("Interestelar"));
+
+  /* ---------------------------------------------------------------- */
+  m.titulo("Buscar Interestelar en español");
+  await pagina.click(".sugerencia >> nth=0");
+  await pagina.waitForSelector(".ficha-titulo", { timeout: 5000 });
+
+  m.afirmar("título correcto", (await pagina.textContent(".ficha-titulo")).trim() === "Interestelar");
+  const resumen = (await pagina.textContent(".resumen-txt")).replace(/\s+/g, " ").trim();
+  m.nota("frase: " + resumen);
+  m.afirmar("la frase menciona el idioma", resumen.includes("en español"));
+  m.afirmar("aparece el aviso de estimación", (await pagina.locator(".nota-idioma").count()) === 1);
+  m.afirmar("pinta 6 países", (await pagina.locator(".pais").count()) === 6);
+  m.afirmar("hay botón para ver los ocultos", (await pagina.locator("#btnMostrarTodos").count()) === 1);
+  m.afirmar("hay sellos de confianza", (await pagina.locator(".sello").count()) === 6);
+
+  await pagina.waitForTimeout(2500);   // margen para que bajen las imágenes
+  const poster = await pagina.evaluate(() => {
+    const img = document.querySelector(".ficha-poster img");
+    return img ? { hay: true, ancho: img.naturalWidth } : { hay: false };
+  });
+  m.afirmar("la carátula se descarga de verdad", poster.hay && poster.ancho > 0, JSON.stringify(poster));
+  await pagina.screenshot({ path: path.join(CAPTURAS, "01-pelicula.png"), fullPage: true });
+
+  /* ---------------------------------------------------------------- */
+  m.titulo("Ver todos los países");
+  await pagina.click("#btnMostrarTodos");
+  await pagina.waitForTimeout(300);
+  m.afirmar("ahora se ven los 10", (await pagina.locator(".pais").count()) === 10);
+  await pagina.click("#btnSoloIdioma");
+  await pagina.waitForTimeout(300);
+  m.afirmar("vuelve a 6", (await pagina.locator(".pais").count()) === 6);
+
+  /* ---------------------------------------------------------------- */
+  m.titulo("Filtrar por plataforma sin volver a buscar");
+  await pagina.selectOption("#selPlataforma", "Netflix");
+  await pagina.waitForTimeout(400);
+  m.afirmar("se reduce a 3 países con Netflix", (await pagina.locator(".pais").count()) === 3);
+  m.afirmar("la frase refleja el filtro", (await pagina.textContent(".resumen-txt")).includes("Netflix"));
+  await pagina.selectOption("#selPlataforma", "");
+  await pagina.waitForTimeout(400);
+
+  /* ---------------------------------------------------------------- */
+  m.titulo("Idioma japonés: Japón SÍ debe salir");
+  await pagina.selectOption("#selIdioma", "ja");
+  await pagina.waitForTimeout(400);
+  m.afirmar("solo queda Japón", (await pagina.locator(".pais").count()) === 1);
+  m.afirmar("y es Japón", (await pagina.textContent(".pais-nombre")).includes("Japón"));
+
+  m.titulo("Idioma árabe: ningún mercado lo sirve");
+  await pagina.selectOption("#selIdioma", "ar");
+  await pagina.waitForTimeout(400);
+  m.afirmar("avisa de que no hay nada en ese idioma",
+    (await pagina.textContent("#resultados")).includes("ninguno cuyo catálogo se sirva en árabe"));
+  m.afirmar("ofrece la salida de emergencia", (await pagina.locator("#btnMostrarTodos").count()) === 1);
+  await pagina.screenshot({ path: path.join(CAPTURAS, "02-sin-idioma.png"), fullPage: true });
+  await pagina.selectOption("#selIdioma", "es");
+  await pagina.waitForTimeout(400);
+
+  /* ---------------------------------------------------------------- */
+  m.titulo("Listas");
+  m.afirmar("contador a 0", (await pagina.textContent("#contadorListas")).trim() === "0");
+  await pagina.click(".ficha-acciones .boton-lista.fav");
+  await pagina.waitForTimeout(250);
+  m.afirmar("contador a 1", (await pagina.textContent("#contadorListas")).trim() === "1");
+  m.afirmar("el botón cambia de texto",
+    (await pagina.textContent(".ficha-acciones .boton-lista.fav")).includes("En favoritas"));
+  await pagina.click(".ficha-acciones .boton-lista.pen");
+  await pagina.waitForTimeout(250);
+  m.afirmar("contador a 2", (await pagina.textContent("#contadorListas")).trim() === "2");
+
+  await pagina.click("#btnListas");
+  await pagina.waitForTimeout(400);
+  const textoListas = await pagina.textContent("#resultados");
+  m.afirmar("la vista muestra pendientes", textoListas.includes("Pendientes de ver"));
+  m.afirmar("la vista muestra favoritas", textoListas.includes("Favoritas"));
+  m.afirmar("hay 2 tarjetas", (await pagina.locator(".tarjeta").count()) === 2);
+
+  m.titulo("¿Dónde puedo verlas ahora?");
+  await pagina.click("#btnDondeVerPendientes");
+  await pagina.waitForTimeout(900);
+  m.nota(await pagina.textContent("#textoProgreso"));
+  m.afirmar("informa del resultado", (await pagina.textContent("#textoProgreso")).includes("Listo"));
+  m.afirmar("etiqueta las plataformas", (await pagina.locator(".mini-plataforma").count()) > 0);
+  await pagina.screenshot({ path: path.join(CAPTURAS, "03-listas.png"), fullPage: true });
+
+  /* ---------------------------------------------------------------- */
+  m.titulo("Persistencia tras recargar");
+  await pagina.reload();
+  await pagina.waitForTimeout(600);
+  m.afirmar("el contador sobrevive", (await pagina.textContent("#contadorListas")).trim() === "2");
+  m.afirmar("el idioma elegido sobrevive", (await pagina.inputValue("#selIdioma")) === "es");
+
+  /* ---------------------------------------------------------------- */
+  m.titulo("Modo actor");
+  await pagina.click('[data-modo="person"]');
+  await pagina.fill("#entrada", "Penélope");
+  await pagina.waitForTimeout(700);
+  await pagina.keyboard.press("Escape");
+  await pagina.waitForTimeout(150);
+  m.afirmar("Escape cierra las sugerencias", (await pagina.locator(".sugerencia").count()) === 0);
+  await pagina.click("#btnBuscar");
+  await pagina.waitForSelector(".persona-nombre", { timeout: 5000 });
+  m.afirmar("ficha de la actriz", (await pagina.textContent(".persona-nombre")).includes("Penélope"));
+  m.afirmar("hay filmografía", (await pagina.locator("#rejillaFilmografia .tarjeta").count()) >= 1);
+  await pagina.click("#btnDondeVerTodas");
+  await pagina.waitForTimeout(900);
+  m.afirmar("consulta la disponibilidad de sus pelis",
+    (await pagina.textContent("#textoProgreso")).includes("Listo"));
+  await pagina.screenshot({ path: path.join(CAPTURAS, "04-actor.png"), fullPage: true });
+
+  /* ---------------------------------------------------------------- */
+  m.titulo("Modal de detalle");
+  await pagina.click("#rejillaFilmografia .tarjeta-img >> nth=0");
+  await pagina.waitForTimeout(800);
+  m.afirmar("el modal se abre",
+    !(await pagina.locator("#capaDetalle").getAttribute("class")).includes("oculto"));
+  m.afirmar("el modal trae países", (await pagina.locator("#capaDetalle .pais").count()) > 0);
+  await pagina.keyboard.press("Escape");
+  await pagina.waitForTimeout(300);
+  m.afirmar("Escape lo cierra",
+    (await pagina.locator("#capaDetalle").getAttribute("class")).includes("oculto"));
+
+  /* ---------------------------------------------------------------- */
+  m.titulo("Modo trama");
+  await pagina.click('[data-modo="plot"]');
+  await pagina.fill("#entrada", "viajes en el tiempo");
+  await pagina.click("#btnBuscar");
+  await pagina.waitForTimeout(800);
+  m.afirmar("devuelve una cuadrícula", (await pagina.locator(".rejilla .tarjeta").count()) === 2);
+
+  /* ---------------------------------------------------------------- */
+  m.titulo("Móvil, 375 px");
+  await pagina.setViewportSize({ width: 375, height: 780 });
+  await pagina.click('[data-modo="movie"]');
+  await pagina.fill("#entrada", "Coco");
+  await pagina.click("#btnBuscar");
+  await pagina.waitForSelector(".ficha-titulo", { timeout: 5000 });
+  await pagina.waitForTimeout(900);
+  m.afirmar("el desplegable no reaparece tras buscar",
+    (await pagina.locator(".sugerencia").count()) === 0);
+  m.afirmar("el filtro de plataforma queda visible", await pagina.locator("#selPlataforma").isVisible());
+  const desborde = await pagina.evaluate(() =>
+    document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  m.afirmar("sin desbordamiento horizontal", desborde <= 0, "sobran " + desborde + " px");
+  await pagina.screenshot({ path: path.join(CAPTURAS, "05-movil.png"), fullPage: true });
+
+  /* ---------------------------------------------------------------- */
+  m.titulo("Errores acumulados en toda la sesión");
+  m.afirmar("ninguno", errores.length === 0, errores.slice(0, 4).join(" | "));
+
+  await navegador.close();
+  m.nota("capturas en pruebas/capturas/");
+  process.exit(m.resumir() ? 1 : 0);
+})().catch((e) => { console.error("REVENTÓ:", e); process.exit(1); });
