@@ -8,7 +8,7 @@ herramienta aparte, opcional, para comprobar que un cambio no rompió nada.
 Desde la raíz del proyecto:
 
 ```bash
-node pruebas/logica.js      # 86 comprobaciones · sin dependencias · instantáneo
+node pruebas/logica.js      # 92 comprobaciones · sin dependencias · instantáneo
 node pruebas/imagenes.js    # 15 comprobaciones · necesita internet · ~30 s
 node pruebas/interfaz.js    # 59 comprobaciones · necesita playwright-core · ~40 s
 node pruebas/pwa.js         # 19 comprobaciones · necesita playwright-core · ~20 s

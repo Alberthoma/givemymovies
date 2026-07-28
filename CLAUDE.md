@@ -2,8 +2,8 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0012`
-**Próxima versión:** `V GMM 0013`
+**Versión activa:** `V GMM 0013`
+**Próxima versión:** `V GMM 0014`
 **Última actualización:** 2026-07-28
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies/> · GitHub Pages desde `main`, raíz.
@@ -225,7 +225,8 @@ con ocho películas de ejemplo, para que la app nunca aparezca vacía.
 | Buscar título | `/search/movie` · `/search/tv` (según el interruptor) |
 | Buscar persona | `/search/person` |
 | Filmografía | `/person/{id}/movie_credits` · `/person/{id}/tv_credits` |
-| Ficha película / serie | `/movie/{id}` · `/tv/{id}` |
+| Ficha película / serie | `/movie/{id}` · `/tv/{id}` (con `append_to_response=alternative_titles`) |
+| Títulos alternativos por país | dentro de la ficha (`alternative_titles`); se filtran a mercados en español + inglés en `GMM.util.titulosAlternativos` |
 | **Dónde verla** | `/movie/{id}/watch/providers` · `/tv/{id}/watch/providers` ← el dato central |
 | Trama | `/search/keyword` → `/discover/movie?with_keywords=` · `/discover/tv?with_keywords=` |
 | **Descubrir por género** | `/discover/movie` · `/discover/tv` con `with_genres`, `primary_release_year` / `first_air_date_year`, `vote_average.gte` |
@@ -253,7 +254,7 @@ el `og:image`. Y no cojas el primer `<img>` de la página: suele ser un recomend
 **La aplicación no tiene dependencias.** `pruebas/` es una herramienta aparte y opcional.
 
 ```bash
-node pruebas/logica.js      # 86 comprobaciones · sin dependencias · instantáneo
+node pruebas/logica.js      # 92 comprobaciones · sin dependencias · instantáneo
 node pruebas/imagenes.js    # 15 comprobaciones · necesita internet · ~30 s
 node pruebas/interfaz.js    # 59 comprobaciones · playwright-core · ~40 s
 node pruebas/pwa.js         # 19 comprobaciones · playwright-core · ~20 s
@@ -443,6 +444,7 @@ puede ir dentro de `index.html` sin problema.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| V GMM 0013 | 2026-07-28 | **Títulos alternativos por país** en la ficha: sección «También conocida como» que muestra cómo se llama el título en otros mercados (ej. *Duro de matar* → «La jungla de cristal» en España). Se pide con `append_to_response=alternative_titles` (sin llamada extra) y se filtra a mercados en español + inglés (`GMM.util.titulosAlternativos`). `logica.js` 86→92. |
 | V GMM 0012 | 2026-07-28 | **Header fijo**: `position: sticky; top: 0` (z-index 50, por debajo de modales y avisos), de modo que la cabecera queda pegada arriba al hacer scroll. Su fondo sólido tapa el contenido que pasa por debajo. |
 | V GMM 0011 | 2026-07-28 | Retoques de cabecera y métodos: los dos botones de método van **en una fila** (también en móvil) y el **seleccionado se tiñe con color sólido y un halo** de iluminación. El **punto de estado** queda a la derecha del header, en la misma línea que marca e icono (ya no baja en móvil). El botón **⚙ Ajustes sale del header** a la barra de Mis listas (a su derecha), junto con *Instalar*; así el **header es más bajo**. |
 | V GMM 0010 | 2026-07-28 | Los métodos **«Buscar una en concreto» / «Descubrir por género»** salen de su contenedor (la pastilla segmentada) y quedan como **dos botones sueltos, centrados y debajo** del interruptor Película/Serie. Remata el rediseño de la 0009. |

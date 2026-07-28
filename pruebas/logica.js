@@ -255,6 +255,32 @@ m.afirmar("quitar la peli no toca la serie",
 GMM.listas.quitar("favoritas", 500, "tv");
 
 /* ---------------------------------------------------------------- */
+m.titulo("Títulos alternativos por país");
+
+const altPeli = {
+  title: "Duro de matar", original_title: "Die Hard", original_language: "en",
+  alternative_titles: { titles: [
+    { iso_3166_1: "ES", title: "La jungla de cristal" },
+    { iso_3166_1: "AR", title: "Duro de matar" },   // igual al principal → fuera
+    { iso_3166_1: "US", title: "Die Hard" },         // igual al original → fuera
+    { iso_3166_1: "FR", title: "Piège de cristal" }  // FR no es mercado es/en → fuera
+  ] }
+};
+let alt = GMM.util.titulosAlternativos(altPeli);
+m.afirmar("agrupa un único título alternativo relevante", alt.length === 1, "fueron " + alt.length);
+m.afirmar("es «La jungla de cristal» (España)",
+  alt.length === 1 && alt[0].titulo === "La jungla de cristal" && alt[0].paises.indexOf("ES") !== -1);
+m.afirmar("descarta el principal y el original",
+  !alt.some((a) => /Duro de matar|Die Hard/.test(a.titulo)));
+m.afirmar("descarta países fuera de mercados español/inglés",
+  !alt.some((a) => a.titulo === "Piège de cristal"));
+m.afirmar("funciona con series (clave results)",
+  GMM.util.titulosAlternativos({ name: "X", original_name: "X",
+    alternative_titles: { results: [{ iso_3166_1: "ES", title: "Equis" }] } }).length === 1);
+m.afirmar("sin alternative_titles devuelve vacío",
+  GMM.util.titulosAlternativos({ title: "Y" }).length === 0);
+
+/* ---------------------------------------------------------------- */
 m.titulo("Lotes con concurrencia limitada");
 
 let simultaneas = 0, pico = 0;

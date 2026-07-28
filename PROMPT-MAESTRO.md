@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.12 · Aplicación V GMM 0012 · 28 de julio de 2026**
+**Documento v1.13 · Aplicación V GMM 0013 · 28 de julio de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies/>
 
 ---
@@ -245,7 +245,10 @@ alguna oferta pero la pierden al aplicar el filtro de plataforma. Sin ese contad
 y 3 son indistinguibles.
 
 **2 · Ficha.** Imagen de fondo difuminada, carátula, título, título original si difiere, año,
-duración, nota, idioma original y sinopsis.
+duración, nota, idioma original y sinopsis. Debajo, **«También conocida como»**: los títulos
+alternativos por país (campo `alternative_titles` de TMDB, pedido con `append_to_response`),
+filtrados a los mercados en español más el inglés y agrupados por título distinto
+(`GMM.util.titulosAlternativos`). Ej.: *Duro de matar* muestra «La jungla de cristal (España)».
 
 **3 · Botones de listas.** ♥ Favorita · 🔖 Pendiente de ver.
 
@@ -493,7 +496,7 @@ los bloques en archivos **no exija tocar código**: basta enlazarlos en este ord
 | Buscar título | `/search/movie` · `/search/tv` (según el interruptor) |
 | Buscar persona | `/search/person` |
 | Filmografía | `/person/{id}/movie_credits` · `/person/{id}/tv_credits` |
-| Ficha película / serie | `/movie/{id}` · `/tv/{id}` |
+| Ficha película / serie | `/movie/{id}` · `/tv/{id}` (con `append_to_response=alternative_titles`) |
 | **Dónde verla** | `/movie/{id}/watch/providers` · `/tv/{id}/watch/providers` ← el dato central |
 | Trama | `/search/keyword` → `/discover/movie?with_keywords=` · `/discover/tv?with_keywords=` |
 | Descubrir por género | `/discover/movie` · `/discover/tv` con `with_genres`, `primary_release_year` / `first_air_date_year`, `vote_average.gte` |
@@ -618,6 +621,7 @@ Todos deben pasar:
 | A31 | Modo resultados | Al haber resultados el formulario se oculta y aparece la flecha ←; pulsarla vuelve a la pantalla de búsqueda |
 | A32 | Móvil | El título cabe en una línea; la cuadrícula va a 2 columnas; sin desbordamiento horizontal |
 | A33 | Mis listas | El botón vive en una barra bajo el header (no dentro), y su vista sigue funcionando |
+| A34 | Títulos alternativos | En la ficha, «También conocida como» lista los títulos por país (mercados es + en), sin repetir el título principal ni el original; `GMM.util.titulosAlternativos` los agrupa |
 
 ### Al tocar el catálogo demo, verifica cada imagen
 
@@ -718,6 +722,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.13 | V GMM 0013 | 28-07-2026 | Ficha: sección «También conocida como» con los títulos alternativos por país (§5.2), vía `append_to_response=alternative_titles` y `GMM.util.titulosAlternativos` (mercados es + en). Criterio A34. `logica.js` 86→92. |
 | 1.12 | V GMM 0012 | 28-07-2026 | Header fijo con `position: sticky; top: 0` (z-index 50), pegado arriba al hacer scroll (§6). |
 | 1.11 | V GMM 0011 | 28-07-2026 | Métodos en una fila (también en móvil), con el seleccionado tinte sólido + halo (§5.1.1). El punto de estado en la misma línea que la marca; **⚙ Ajustes** e **Instalar** salen del header a la barra de Mis listas; header más bajo (§6). |
 | 1.10 | V GMM 0010 | 28-07-2026 | Los métodos «Buscar una en concreto» / «Descubrir por género» dejan de ir en un contenedor y quedan como dos botones sueltos, centrados y debajo del interruptor (§5.1.1). |
