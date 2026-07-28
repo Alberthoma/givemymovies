@@ -269,7 +269,47 @@ hexadecimales — no el *Read Access Token*, que empieza por `eyJ` y no sirve aq
 
 ---
 
-## 11. Historial de versiones
+## 11. PENDIENTE — la clave de TMDB en el móvil
+
+**Planteado el 28-07-2026. Sin resolver.**
+
+El usuario quiere abrir la app desde su móvil. Para eso hay que publicarla (GitHub Pages o
+similar), y de ahí su pregunta: si la clave no se sube al repositorio, ¿cómo funciona allí?
+
+### Aclaración que cambia el problema
+
+**La clave no necesita viajar en el repositorio.** La app la lee del `localStorage` del
+navegador donde se abre, no del código. Publicar el código y pegar la clave una vez en el ⚙
+del móvil basta: ese dispositivo la recuerda indefinidamente.
+
+`PRIVADO/clave-local.js` es solo un atajo para el PC del usuario; no es el mecanismo.
+
+### Dato que hay que tener presente antes de decidir
+
+**Un repositorio privado NO da una web privada.** GitHub Pages publica el sitio de forma
+abierta aunque el repositorio sea privado; el control de acceso solo existe en Enterprise.
+Y publicar Pages desde un repositorio privado exige plan de pago. Conviene confirmar las
+condiciones vigentes antes de apostar por esa vía.
+
+### Opciones, de menos a más esfuerzo
+
+| Opción | Cómo funciona | Coste | Riesgo de la clave |
+|---|---|---|---|
+| **A · Pegarla en el móvil** *(recomendada)* | Publicar solo el código. Una vez en el ⚙ del móvil y listo | Cero. Ya está implementado | Ninguno |
+| **B · Clave en el código + Pages** | Hardcodear la clave y publicar | Cero | **Expuesta a todo internet**, y en el historial de git para siempre |
+| **C · Proxy propio** | Función serverless (Cloudflare Workers, Vercel, Netlify) que guarda la clave y reenvía a TMDB. La app llama al proxy | Un servicio más que mantener; hay planes gratuitos | Ninguno: la clave nunca llega al navegador |
+| **D · Publicar fuera de git** | Netlify Drop o variable de entorno inyectada al desplegar | Bajo | Bajo, según el proveedor |
+
+**A resuelve el caso de uso real** —una persona, unos pocos dispositivos— sin infraestructura.
+**C es la respuesta correcta** si algún día la usa alguien más que él, porque cada visitante
+necesitaría su propia clave con la opción A.
+
+**No implementar B.** Si el usuario insiste, avisar de que la clave queda pública y de que
+habría que regenerarla al retirarla.
+
+---
+
+## 12. Historial de versiones
 
 | Versión | Fecha | Cambio |
 |---|---|---|
