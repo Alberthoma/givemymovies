@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.2 · Aplicación V GMM 0002 · 27 de julio de 2026**
+**Documento v1.3 · Aplicación V GMM 0003 · 28 de julio de 2026**
 
 ---
 
@@ -56,7 +56,7 @@ Acordadas explícitamente con el usuario. **No las reinterpretes ni las "mejores
 
 | # | Restricción | Detalle |
 |---|---|---|
-| R1 | **Un único `index.html`** | HTML, CSS y JavaScript en el mismo archivo. Debe abrirse con doble clic, sin servidor, sin build, sin instalación. |
+| R1 | **Un único `index.html`** | HTML, CSS y JavaScript en el mismo archivo. Debe abrirse con doble clic, sin servidor, sin build, sin instalación. **Única excepción:** `manifest.json`, `sw.js` e `iconos/`, que han de ser archivos aparte por definición para que la app sea instalable (§5.8). Ninguna lógica de la app vive en ellos. |
 | R2 | **CSS puro, sin variables** | Prohibidas las propiedades personalizadas: nada de `var(--color)`, `--fuente`, `--espaciado`. Escribe el valor literal cada vez, aunque se repita cincuenta veces. |
 | R3 | **Sin librerías** | Ni frameworks, ni CDNs, ni paquetes npm, ni fuentes externas. JavaScript nativo y tipografía del sistema. |
 | R4 | **Scripts clásicos** | Nunca `type="module"`. Los módulos ES fallan al abrir con `file://`, que es el modo de uso previsto. |
@@ -289,7 +289,39 @@ Modal con:
 La cabecera muestra una pastilla de estado: **«Modo demo»** (naranja) o **«Datos en vivo»**
 (verde).
 
-### 5.7 Estados y errores
+### 5.7 Aplicación instalable en el móvil
+
+La app debe poder instalarse en un teléfono, con su icono y a pantalla completa.
+
+**Archivos** (la excepción a R1):
+
+| Archivo | Contenido |
+|---|---|
+| `manifest.json` | `display: standalone`, colores `#0b0f14`, iconos de 192, 512 y uno *maskable*. **`start_url` y `scope` relativos (`./`)**: en GitHub Pages el sitio cuelga de un subdirectorio, no de la raíz del dominio |
+| `sw.js` | Service worker |
+| `iconos/` | `icono.svg` como origen, los PNG generados y `generar.js` para rehacerlos con Playwright |
+
+**Estrategia de caché. El primer punto no es negociable:**
+
+| Recurso | Estrategia | Razón |
+|---|---|---|
+| `api.themoviedb.org` | **Solo red. Nunca caché** | La disponibilidad cambia. Servirla rancia convertiría la app en un engaño, que es justo lo contrario de lo que define este proyecto (§4.3) |
+| `image.tmdb.org` | Caché primero, tope de 300 | Una carátula nunca cambia para una misma URL |
+| Abrir la app | Red primero, caché de reserva | Las versiones nuevas llegan solas; sin conexión sigue abriendo |
+| Iconos y manifiesto | Caché primero | No cambian entre versiones |
+
+**Al publicar una versión que toque el código, sube `VERSION` en `sw.js`.** Si no, quien ya
+tenga la app cacheada seguirá viendo la vieja indefinidamente.
+
+**Botón *Instalar*** en la cabecera, oculto por defecto. Aparece solo cuando el navegador
+dispara `beforeinstallprompt`, para no prometer lo que no se puede cumplir. Safari en iPhone
+nunca lo dispara: allí se instala desde *Compartir → Añadir a pantalla de inicio*.
+
+**Todo esto exige HTTPS.** Al abrir el archivo con doble clic la app funciona igual de bien,
+simplemente no se instala ni cachea. Detéctalo y no registres nada en ese caso, en vez de
+dejar que falle.
+
+### 5.8 Estados y errores
 
 | Estado | Comportamiento |
 |---|---|
@@ -436,7 +468,12 @@ aparte y opcional, con su propio `package.json`.
 node pruebas/logica.js      # sin dependencias · instantáneo
 node pruebas/imagenes.js    # necesita internet
 node pruebas/interfaz.js    # necesita playwright-core; si falta, avisa y sale sin fallar
+node pruebas/pwa.js         # levanta un servidor local y comprueba la instalabilidad
 ```
+
+`pwa.js` necesita servir la app por HTTP porque los service workers no existen sobre
+`file://`. `localhost` cuenta como origen seguro igual que HTTPS, así que basta un servidor
+mínimo de Node, sin dependencias añadidas.
 
 - `pruebas/cargar.js` extrae el `<script>` de `index.html` y lo ejecuta con
   **`vm.runInThisContext`, nunca `eval`**: el `"use strict"` del script hace que `eval` cree
@@ -464,6 +501,11 @@ Todos deben pasar:
 | A12 | Toda la sesión | **Cero errores de JavaScript en consola** |
 | A13 | Película que existe pero no en la plataforma filtrada | La frase nombra la plataforma que falla y dice en cuántos países **sí** está; botón que quita el filtro |
 | A14 | Sin filtro de plataforma | `descartadosPorPlataforma` vale 0; no se inventa el caso |
+| A15 | Servida por HTTPS o `localhost` | El service worker se registra y queda activo; precachea el esqueleto |
+| A16 | Tras cargar la app | **Ninguna respuesta de `api.themoviedb.org` en la caché** |
+| A17 | Sin conexión | La app sigue abriendo y el buscador se ve |
+| A18 | Manifiesto | `start_url` y `scope` relativos; iconos de 192, 512 y *maskable*, PNG reales |
+| A19 | Abierta con doble clic (`file://`) | No intenta registrar el service worker ni deja errores en consola |
 
 ### Al tocar el catálogo demo, verifica cada imagen
 
@@ -488,7 +530,8 @@ sirve una carátula distinta según el locale.
 | `README.md` | Manual: cómo obtener la clave de TMDB, los tres modos, guía de fraccionamiento, límites |
 | `CLAUDE.md` | Contexto para sesiones futuras. **Fuente de verdad de la versión** |
 | `PROMPT-MAESTRO.md` | Este documento |
-| `pruebas/` | `cargar.js`, `logica.js`, `imagenes.js`, `interfaz.js`, `clave.js`, `LEEME.md` |
+| `manifest.json`, `sw.js`, `iconos/` | Lo que hace la app instalable en el móvil (§5.7) |
+| `pruebas/` | `cargar.js`, `logica.js`, `imagenes.js`, `interfaz.js`, `pwa.js`, `clave.js`, `LEEME.md` |
 | `.gitignore` | Excluye `node_modules` de las pruebas y las capturas |
 
 Más un **skill de cierre de versión** en `~/.claude/skills/givemymovies-commit/SKILL.md`, que
@@ -521,7 +564,7 @@ Hay que **decirlos**, no disimularlos:
 5. **Comparador de países.** Útil para quien usa VPN.
 6. **Sorpréndeme.** Película al azar que cumpla los filtros activos.
 7. **Filtros avanzados.** Género, año, nota mínima, duración.
-8. **PWA instalable.** Icono en el móvil y caché de las últimas búsquedas.
+*(La PWA instalable era la propuesta nº 8 y está hecha desde V GMM 0003: ver §5.7.)*
 
 *Ya incluidas desde la primera versión, por baratas y por lo mucho que cambian la experiencia:*
 autocompletado con carátula, frase en lenguaje natural, enlace directo a cada plataforma,
@@ -552,6 +595,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.3 | V GMM 0003 | 28-07-2026 | Nueva §5.7: la app es instalable en el móvil. Manifiesto, service worker con su estrategia de caché razonada, iconos y botón de instalar. R1 gana su única excepción documentada. Criterios A15–A19. La PWA sale de las mejoras propuestas de §13 porque ya está hecha. |
 | 1.2 | V GMM 0002 | 27-07-2026 | §5.2 distingue ahora tres casos sin resultado en lugar de dos: el nuevo es «está disponible, pero no en la plataforma que filtraste», con su contador `descartadosPorPlataforma` y su botón de salida. Criterios A13 y A14. Lo destapó una búsqueda real del usuario. |
 | 1.1 | V GMM 0001 | 27-07-2026 | Reorganización completa del documento a especificación explícita y verificable: algoritmos escritos paso a paso, criterios de aceptación numerados (A1–A12), decisiones con sus alternativas descartadas. Las peticiones literales del usuario bajan al Anexo A como trazabilidad. |
 | 1.0 | V GMM 0001 | 27-07-2026 | Versión inicial. Buscador en tres modos, filtros de plataforma/país/idioma, deducción de idioma por mercado con insignias de confianza, fichas con carátula, filmografía con consulta en lote, listas de favoritas y pendientes con exportar/importar, modo demo de 8 películas. Añadidos `CLAUDE.md`, este documento, la carpeta `pruebas/` (118 comprobaciones), versión visible en el pie y el skill `givemymovies-commit`. |

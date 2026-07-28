@@ -8,9 +8,10 @@ herramienta aparte, opcional, para comprobar que un cambio no rompió nada.
 Desde la raíz del proyecto:
 
 ```bash
-node pruebas/logica.js      # 57 comprobaciones · sin dependencias · instantáneo
+node pruebas/logica.js      # 64 comprobaciones · sin dependencias · instantáneo
 node pruebas/imagenes.js    # 12 comprobaciones · necesita internet · ~30 s
 node pruebas/interfaz.js    # 49 comprobaciones · necesita playwright-core · ~40 s
+node pruebas/pwa.js         # 19 comprobaciones · necesita playwright-core · ~20 s
 ```
 
 La primera vez, para la de interfaz:
@@ -31,6 +32,12 @@ te indica cómo bajarlo (`npx playwright install chromium`).
 | `logica.js` | Filtrado por idioma, plataforma y país · frase resumen · insignias de confianza · orden por confianza · listas de favoritas y pendientes · exportar/importar · utilidades · coherencia interna del catálogo demo · lotes con concurrencia limitada |
 | `imagenes.js` | Que cada carátula y cada foto del catálogo demo **pertenecen de verdad a esa ficha**, no solo que devuelven 200 |
 | `interfaz.js` | El recorrido real en Chromium: arranque, autocompletado, búsqueda, filtros en caliente, casos de idioma, listas, persistencia tras recargar, modo actor, modal, modo trama y móvil a 375 px |
+| `pwa.js` | Que la app se **instala** de verdad: manifiesto válido, iconos que son PNG reales, service worker activo, funcionamiento sin conexión, y que **ninguna respuesta de la API queda cacheada** |
+
+`pwa.js` levanta un servidor local propio, sin dependencias añadidas, porque los service
+workers no existen sobre `file://`. `localhost` cuenta como origen seguro igual que HTTPS.
+
+`clave.js` comprueba una clave de TMDB sin exponerla: `node pruebas/clave.js TU_CLAVE`.
 
 `cargar.js` es la utilidad compartida: extrae el `<script>` de `index.html`, lo ejecuta con un
 navegador simulado mínimo y devuelve `GMM`.

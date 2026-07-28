@@ -2,9 +2,9 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0002`
-**Próxima versión:** `V GMM 0003`
-**Última actualización:** 2026-07-27
+**Versión activa:** `V GMM 0003`
+**Próxima versión:** `V GMM 0004`
+**Última actualización:** 2026-07-28
 
 > **Después de cualquier cambio, ejecuta el skill `givemymovies-commit`.** Sube la versión,
 > actualiza este archivo y `PROMPT-MAESTRO.md`, y pasa las pruebas. No lo hagas a mano:
@@ -70,7 +70,7 @@ Estas no son sugerencias. Se acordaron explícitamente y hay que respetarlas.
 
 | Preferencia | Detalle |
 |---|---|
-| **Un único `index.html`** | Todo dentro: HTML, CSS y JS. Se abre con doble clic, sin servidor. |
+| **Un único `index.html`** | Todo dentro: HTML, CSS y JS. Se abre con doble clic, sin servidor. **Única excepción:** `manifest.json`, `sw.js` e `iconos/`, que por definición tienen que ser archivos aparte para que la app sea instalable. Nada de lógica de la app vive en ellos. |
 | **Preparado para fraccionar** | Bloques delimitados con banners de comentario que nombran su futuro archivo. |
 | **CSS puro, sin variables** | Nada de `var(--color)`, `--espaciado` ni similares. **Valores literales siempre**, aunque se repitan. Petición textual del usuario. |
 | **Sin librerías** | Ni frameworks, ni CDNs, ni npm. JavaScript a pelo. |
@@ -123,6 +123,30 @@ tocar ni una línea**: basta con enlazarlos en este orden.
 | 7 | `js/listas.js` | `GMM.listas` — favoritas y pendientes |
 | 8 | `js/ui.js` | `GMM.ui` — pintado de componentes, avisos |
 | 9 | `js/app.js` | `GMM.app` — estado, vistas, eventos, arranque |
+| 10 | `js/pwa.js` | `GMM.pwa` — service worker y botón de instalar |
+
+### Aplicación instalable (PWA)
+
+| Archivo | Para qué |
+|---|---|
+| `manifest.json` | Nombre, iconos, colores y `display: standalone`. **Rutas relativas** (`./`): en GitHub Pages el sitio cuelga de `/givemymovies/`, no de la raíz |
+| `sw.js` | Service worker: instalable y utilizable sin conexión |
+| `iconos/` | `icono.svg` (origen), los PNG generados y `generar.js` para rehacerlos |
+
+**Estrategia de caché del service worker**, y el porqué:
+
+| Recurso | Estrategia | Razón |
+|---|---|---|
+| `api.themoviedb.org` | **Solo red, nunca caché** | La disponibilidad cambia. Servirla rancia convertiría la app en un engaño |
+| `image.tmdb.org` | Caché primero, tope de 300 | Una carátula no cambia nunca para una misma URL |
+| Abrir la app | Red primero, caché de reserva | Las versiones nuevas llegan solas; sin conexión sigue abriendo |
+| Iconos y manifiesto | Caché primero | No cambian entre versiones |
+
+**Al publicar una versión que toque el código, sube `VERSION` en `sw.js`.** Si no, quien ya
+tenga la app cacheada seguirá viendo la vieja. Es el mismo problema del `CACHE_NAME` de Foresee.
+
+**Solo funciona sobre HTTPS.** Al abrir el archivo con doble clic la app va igual de bien,
+simplemente no se instala ni cachea: `GMM.pwa.seguro()` lo detecta y no registra nada.
 
 ### Estado
 
@@ -194,10 +218,14 @@ el `og:image`. Y no cojas el primer `<img>` de la página: suele ser un recomend
 node pruebas/logica.js      # 64 comprobaciones · sin dependencias · instantáneo
 node pruebas/imagenes.js    # 12 comprobaciones · necesita internet · ~30 s
 node pruebas/interfaz.js    # 49 comprobaciones · playwright-core · ~40 s
+node pruebas/pwa.js         # 19 comprobaciones · playwright-core · ~20 s
 ```
 
-Última ejecución: **125 comprobaciones, todas correctas**, sin errores de JavaScript
+Última ejecución: **144 comprobaciones, todas correctas**, sin errores de JavaScript
 en consola. Detalle en `pruebas/LEEME.md`.
+
+`pwa.js` levanta un servidor local, porque los service workers no funcionan sobre `file://`
+y `localhost` cuenta como origen seguro igual que HTTPS.
 
 Verificado además **con datos reales** (17 comprobaciones aparte, no versionadas): 130 países
 y 799 plataformas para *Interstellar*, 19 tras filtrar por español; filmografía de Penélope
@@ -205,6 +233,7 @@ Cruz con 98 títulos. La app aguanta el volumen real sin degradarse.
 
 - **Toca `GMM.demo`** → obligatorio `pruebas/imagenes.js` (ver §6).
 - **Toca CSS o el DOM** → obligatorio `pruebas/interfaz.js` y mirar `pruebas/capturas/`.
+- **Toca `sw.js`, `manifest.json` o `iconos/`** → obligatorio `pruebas/pwa.js`.
 - **Cualquier cambio de JS** → `pruebas/logica.js` como mínimo.
 
 Comprobación manual rápida, si no quieres ejecutar nada:
@@ -315,3 +344,4 @@ habría que regenerarla al retirarla.
 |---|---|---|
 | V GMM 0001 | 2026-07-27 | Versión inicial. Buscador en tres modos (película, actor, trama), filtros de plataforma/país/idioma, deducción de idioma por mercado con insignias de confianza, fichas con carátula, filmografía con consulta en lote, listas de favoritas y pendientes con exportar/importar, modo demo de 8 películas. Añadidos `CLAUDE.md`, `PROMPT-MAESTRO.md`, carpeta `pruebas/` y el skill `givemymovies-commit`. |
 | V GMM 0002 | 2026-07-27 | Distinguir «no está en ninguna parte» de «está, pero no en la plataforma que filtraste». Antes ambos casos daban el mismo mensaje genérico. Ahora la frase nombra la plataforma que falla y un botón quita el filtro de un clic. Lo destapó una búsqueda real: *Siempre el mismo día* + Netflix, que no existe en Netflix en ningún país aunque sí en 14 mercados hispanohablantes. |
+| V GMM 0003 | 2026-07-28 | Aplicación instalable en el móvil: `manifest.json`, `sw.js`, iconos generados desde `iconos/icono.svg`, botón *Instalar* en la cabecera y bloque JS 10 (`GMM.pwa`). Funciona sin conexión salvo para consultar disponibilidad, que **nunca se cachea** a propósito. Nueva suite `pruebas/pwa.js` con 19 comprobaciones sobre un servidor local. |

@@ -14,6 +14,24 @@ y en qué países está disponible, con la carátula y un resumen en lenguaje na
 
 Haz doble clic en `index.html`. No hace falta servidor, ni Node, ni instalar nada.
 
+### En el móvil
+
+Una vez publicada la web (GitHub Pages), la app se **instala como una aplicación normal**:
+icono en la pantalla de inicio, pantalla completa, sin barra del navegador.
+
+| Sistema | Cómo |
+|---|---|
+| **Android** | Aparece el botón **Instalar** en la cabecera. También sale solo un aviso del navegador |
+| **iPhone** | Safari no ofrece botón: usa **Compartir → Añadir a pantalla de inicio** |
+
+Una vez instalada funciona **sin conexión** para todo menos consultar dónde ver una película,
+que por definición necesita internet. Los datos de disponibilidad **nunca se guardan**: una
+película que ayer estaba en Netflix hoy puede no estarlo, y enseñarte datos viejos sería
+peor que no enseñarte nada.
+
+En el móvil tendrás que pegar tu clave de TMDB una vez, en el ⚙. Se queda guardada en ese
+teléfono para siempre.
+
 Arranca en **modo demo**, con un catálogo de ocho películas de ejemplo, para que puedas
 probarlo todo desde el primer segundo.
 

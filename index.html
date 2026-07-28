@@ -6,6 +6,17 @@
 <title>givemymovies — ¿dónde puedo verla?</title>
 <meta name="description" content="Busca una película, un actor o una trama y descubre en qué plataforma y en qué país puedes verla en tu idioma.">
 
+<!-- Aplicación instalable. Rutas relativas a propósito: en GitHub Pages
+     el sitio cuelga de /givemymovies/, no de la raíz del dominio. -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b0f14">
+<link rel="icon" type="image/png" sizes="192x192" href="iconos/icono-192.png">
+<link rel="icon" type="image/svg+xml" href="iconos/icono.svg">
+<link rel="apple-touch-icon" href="iconos/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="givemymovies">
+
 <style>
 /* ══════════════════════════════════════════════════════════════════════
    BLOQUE CSS 1 — RESET Y BASE                        → futuro css/base.css
@@ -663,6 +674,9 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
       </div>
     </div>
     <div class="cabecera-acciones">
+      <button class="boton-cabecera oculto" id="btnInstalar" title="Instalar la app en este dispositivo">
+        <span aria-hidden="true">&#11015;</span> Instalar
+      </button>
       <span class="pastilla-modo" id="pastillaModo">Modo demo</span>
       <button class="boton-cabecera" id="btnListas">
         <span aria-hidden="true">&#9733;</span> Mis listas
@@ -723,7 +737,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   <footer class="pie">
     <span>givemymovies · datos de disponibilidad vía TMDB / JustWatch</span>
     <span>Tus listas se guardan solo en este navegador</span>
-    <span id="version-app">V GMM 0002</span>
+    <span id="version-app">V GMM 0003</span>
   </footer>
 </div>
 
@@ -2779,6 +2793,74 @@ GMM.app = (function () {
 })();
 
 document.addEventListener("DOMContentLoaded", GMM.app.iniciar);
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   BLOQUE JS 10 — APLICACIÓN INSTALABLE                   → futuro js/pwa.js
+
+   Registra el service worker y ofrece el botón de instalar. Todo esto
+   solo existe sobre HTTPS: al abrir el archivo con doble clic la app
+   funciona igual, simplemente no se instala.
+   ══════════════════════════════════════════════════════════════════════ */
+
+GMM.pwa = (function () {
+
+  var invitacion = null;   // el evento que el navegador nos guarda
+
+  function seguro() {
+    return location.protocol === "https:" ||
+           location.hostname === "localhost" ||
+           location.hostname === "127.0.0.1";
+  }
+
+  function registrar() {
+    if (!("serviceWorker" in navigator) || !seguro()) return;
+    navigator.serviceWorker.register("sw.js").catch(function (error) {
+      /* Que falle no rompe la app: solo se queda sin funcionar offline. */
+      if (window.console) console.warn("[givemymovies] service worker:", error.message);
+    });
+  }
+
+  function conectarInstalacion() {
+    var boton = document.getElementById("btnInstalar");
+    if (!boton) return;
+
+    /* El navegador avisa cuando la app cumple los requisitos. Hasta
+       entonces el botón no se enseña, para no prometer lo que no hay.
+       Safari en iPhone nunca dispara esto: allí se instala desde
+       Compartir → Añadir a pantalla de inicio. */
+    window.addEventListener("beforeinstallprompt", function (evento) {
+      evento.preventDefault();
+      invitacion = evento;
+      boton.classList.remove("oculto");
+    });
+
+    boton.addEventListener("click", function () {
+      if (!invitacion) return;
+      invitacion.prompt();
+      invitacion.userChoice.then(function (resultado) {
+        if (resultado.outcome === "accepted") {
+          GMM.ui.aviso("givemymovies instalada", "ok");
+        }
+        invitacion = null;
+        boton.classList.add("oculto");
+      });
+    });
+
+    window.addEventListener("appinstalled", function () {
+      boton.classList.add("oculto");
+    });
+  }
+
+  function iniciar() {
+    registrar();
+    conectarInstalacion();
+  }
+
+  return { iniciar: iniciar, seguro: seguro };
+})();
+
+document.addEventListener("DOMContentLoaded", GMM.pwa.iniciar);
 </script>
 
 </body>
