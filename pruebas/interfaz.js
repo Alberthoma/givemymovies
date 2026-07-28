@@ -198,7 +198,7 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
 
   /* ---------------------------------------------------------------- */
   m.titulo("Modo actor");
-  await pagina.click('[data-modo="person"]');
+  await pagina.selectOption("#selBusquedaPor", "actor");
   await pagina.fill("#entrada", "Penélope");
   await pagina.waitForTimeout(700);
   await pagina.keyboard.press("Escape");
@@ -228,16 +228,46 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
 
   /* ---------------------------------------------------------------- */
   m.titulo("Modo trama");
-  await pagina.click('[data-modo="plot"]');
+  await pagina.selectOption("#selBusquedaPor", "trama");
   await pagina.fill("#entrada", "viajes en el tiempo");
   await pagina.click("#btnBuscar");
   await pagina.waitForTimeout(800);
   m.afirmar("devuelve una cuadrícula", (await pagina.locator(".rejilla .tarjeta").count()) === 2);
 
   /* ---------------------------------------------------------------- */
+  m.titulo("Interruptor Película / Serie");
+  await pagina.selectOption("#selBusquedaPor", "titulo");
+  await pagina.click('#tipoSwitch [data-tipo="tv"]');
+  await pagina.waitForTimeout(250);
+  m.afirmar("el buscador marca tipo serie",
+    (await pagina.getAttribute("#buscador", "data-tipo")) === "tv");
+  m.afirmar("Series queda como opción activa",
+    (await pagina.getAttribute('#tipoSwitch [data-tipo="tv"]', "class")).includes("activa"));
+  m.afirmar("el ejemplo del campo cambia a series",
+    (await pagina.getAttribute("#entrada", "placeholder")).includes("Breaking Bad"));
+
+  await pagina.fill("#entrada", "casa");
+  await pagina.click("#btnBuscar");
+  await pagina.waitForSelector(".ficha-titulo", { timeout: 5000 });
+  m.afirmar("encuentra la serie por título",
+    (await pagina.textContent(".ficha-titulo")).includes("La casa de papel"));
+
+  await pagina.click('#metodos [data-metodo="descubrir"]');
+  await pagina.waitForTimeout(200);
+  m.afirmar("Descubrir oculta el campo de texto",
+    !(await pagina.locator("#panelBuscar").isVisible()));
+  await pagina.selectOption("#selGenero", "18");
+  await pagina.click("#btnBuscar");
+  await pagina.waitForTimeout(500);
+  m.afirmar("descubre series de drama", (await pagina.locator(".rejilla .tarjeta").count()) >= 3);
+  await pagina.screenshot({ path: path.join(CAPTURAS, "06-series.png"), fullPage: true });
+
+  /* ---------------------------------------------------------------- */
   m.titulo("Móvil, 375 px");
   await pagina.setViewportSize({ width: 375, height: 780 });
-  await pagina.click('[data-modo="movie"]');
+  await pagina.click('#metodos [data-metodo="buscar"]');
+  await pagina.click('#tipoSwitch [data-tipo="movie"]');
+  await pagina.selectOption("#selBusquedaPor", "titulo");
   await pagina.fill("#entrada", "Coco");
   await pagina.click("#btnBuscar");
   await pagina.waitForSelector(".ficha-titulo", { timeout: 5000 });

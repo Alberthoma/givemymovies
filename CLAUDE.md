@@ -2,8 +2,8 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0005`
-**Próxima versión:** `V GMM 0006`
+**Versión activa:** `V GMM 0006`
+**Próxima versión:** `V GMM 0007`
 **Última actualización:** 2026-07-28
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies/> · GitHub Pages desde `main`, raíz.
@@ -32,22 +32,23 @@ nunca te dicen el idioma. Aquí se responde de una vez, en una frase en lenguaje
 > *Interestelar en español la puedes ver en **Netflix** (Argentina, Chile y México),
 > **Max** (Argentina, Chile y Colombia) y **Movistar Plus+** (España).*
 
-Cuatro formas de entrar a la búsqueda:
+**Un interruptor global Película / Serie** (naranja / azul) manda sobre todo lo demás
+(desde V GMM 0006). Debajo, **dos formas de llegar al mismo resultado —dónde verla—**:
 
-| Modo | Entrada | Salida |
+| Forma | Cómo | Salida |
 |---|---|---|
-| **Película** | Título | Ficha + todos los países donde está |
-| **Actor / Actriz** | Nombre | Filmografía + dónde ver cada título |
-| **Trama / Tema** | Concepto | Cuadrícula de películas que encajan |
-| **¿Qué quieres ver?** | Tipo (peli/serie) + género + año + nota | Cuadrícula de títulos que encajan (endpoint `/discover`) |
+| **Buscar una en concreto** | Desplegable *por título · por actor/actriz · por trama* + campo de texto | Ficha (título), filmografía (actor) o cuadrícula (trama), del tipo elegido |
+| **Descubrir por género** | Género + año (opcional) + nota mínima de TMDB | Cuadrícula de títulos que encajan (`/discover`) |
 
 Plataforma y país son **opcionales**; el idioma es el filtro que da sentido a todo.
 
-**Hay series además de películas** (desde V GMM 0005), pero solo entran por el modo
-**¿Qué quieres ver?**. La búsqueda por título sigue siendo de cine, y la filmografía de un
-actor también. La app es «consciente del tipo»: cada ficha lleva `tipo: "movie" | "tv"` y
-`GMM.util.normalizarMedia` copia los campos de serie (`name`, `first_air_date`,
-`episode_run_time`) a los de película, de modo que el pintado no distingue unos de otras.
+**El interruptor peli/serie afecta a las dos formas y a las tres búsquedas** (título, actor,
+trama): buscar *The Walking Dead*, la filmografía en TV de un actor, o tramas en series, todo
+va según el interruptor. La app es «consciente del tipo»: cada ficha lleva
+`tipo: "movie" | "tv"` y `GMM.util.normalizarMedia` copia los campos de serie (`name`,
+`first_air_date`, `episode_run_time`) a los de película, de modo que el pintado no distingue
+unos de otras. El interruptor solo tiñe **sus propios acentos** (él mismo, el método activo y
+el botón *Buscar*); el resto de la paleta no cambia.
 
 ---
 
@@ -165,9 +166,12 @@ simplemente no se instala ni cachea: `GMM.pwa.seguro()` lo detecta y no registra
 
 ### Estado
 
-`GMM.app` guarda un único objeto `estado` con `modo`, `plataforma`, `pais`, `idioma`,
-`mostrarTodos`, `vista`, `pelicula`, `proveedores`, `persona`, `filmografia`, `disponibilidad`
-y —para el modo **¿Qué quieres ver?**— `tipo`, `genero`, `ano`, `notaMin`.
+`GMM.app` guarda un único objeto `estado`. Los que mandan en la búsqueda: `tipo`
+(`movie`/`tv`, el interruptor), `metodo` (`buscar`/`descubrir`) y `busquedaPor`
+(`titulo`/`actor`/`trama`, el desplegable). Más `plataforma`, `pais`, `idioma`,
+`mostrarTodos`, `vista`, `pelicula`, `proveedores`, `persona`, `filmografia`,
+`disponibilidad` y —para Descubrir— `genero`, `ano`, `notaMin`. `reflejar()` es el único
+sitio que vuelca este estado en la interfaz (interruptor, método, marcador, chips, acentos).
 
 **`disponibilidad` se indexa por `"tipo:id"`, no por id a secas.** Una película y una serie
 pueden compartir id numérico en TMDB, y la lista de pendientes ya puede mezclar ambas: usar
@@ -210,13 +214,13 @@ con ocho películas de ejemplo, para que la app nunca aparezca vacía.
 
 | Uso | Endpoint |
 |---|---|
-| Buscar película | `/search/movie` |
+| Buscar título | `/search/movie` · `/search/tv` (según el interruptor) |
 | Buscar persona | `/search/person` |
-| Filmografía | `/person/{id}/movie_credits` |
+| Filmografía | `/person/{id}/movie_credits` · `/person/{id}/tv_credits` |
 | Ficha película / serie | `/movie/{id}` · `/tv/{id}` |
 | **Dónde verla** | `/movie/{id}/watch/providers` · `/tv/{id}/watch/providers` ← el dato central |
-| Trama | `/search/keyword` → `/discover/movie?with_keywords=` |
-| **¿Qué quieres ver?** | `/discover/movie` · `/discover/tv` con `with_genres`, `primary_release_year` / `first_air_date_year`, `vote_average.gte` |
+| Trama | `/search/keyword` → `/discover/movie?with_keywords=` · `/discover/tv?with_keywords=` |
+| **Descubrir por género** | `/discover/movie` · `/discover/tv` con `with_genres`, `primary_release_year` / `first_air_date_year`, `vote_average.gte` |
 | Catálogo de plataformas | `/watch/providers/movie` |
 
 Los géneros **no** se piden a la API: son una taxonomía estable, viven en
@@ -241,14 +245,15 @@ el `og:image`. Y no cojas el primer `<img>` de la página: suele ser un recomend
 **La aplicación no tiene dependencias.** `pruebas/` es una herramienta aparte y opcional.
 
 ```bash
-node pruebas/logica.js      # 82 comprobaciones · sin dependencias · instantáneo
+node pruebas/logica.js      # 86 comprobaciones · sin dependencias · instantáneo
 node pruebas/imagenes.js    # 15 comprobaciones · necesita internet · ~30 s
-node pruebas/interfaz.js    # 49 comprobaciones · playwright-core · ~40 s
+node pruebas/interfaz.js    # 55 comprobaciones · playwright-core · ~40 s
 node pruebas/pwa.js         # 19 comprobaciones · playwright-core · ~20 s
 ```
 
-Detalle en `pruebas/LEEME.md`. `logica.js` cubre ahora también la normalización de series,
-la sección Descubrir sobre la demo y las listas conscientes del tipo.
+Detalle en `pruebas/LEEME.md`. `logica.js` cubre la normalización de series, Descubrir sobre
+la demo, las listas conscientes del tipo y la búsqueda de series (título y trama). `interfaz.js`
+recorre el interruptor peli/serie, la búsqueda de una serie por título y Descubrir con series.
 
 `pwa.js` levanta un servidor local, porque los service workers no funcionan sobre `file://`
 y `localhost` cuenta como origen seguro igual que HTTPS.
@@ -276,9 +281,8 @@ Comprobación manual rápida, si no quieres ejecutar nada:
 - **Precios** de alquiler y compra: TMDB no los publica; requiere la API de pago de JustWatch.
 - **Búsqueda por trama**: TMDB no busca dentro de la sinopsis. Se usan palabras clave, que
   funcionan con conceptos pero no con frases largas.
-- **Series solo por Descubrir**: hay series desde V GMM 0005, pero se llega a ellas por el
-  modo **¿Qué quieres ver?**. La búsqueda por título y la filmografía de actor siguen siendo
-  de cine. Ampliarlo es la mejora natural siguiente.
+- **Series en las cuatro búsquedas** (desde V GMM 0006): el interruptor peli/serie manda en
+  título, actor, trama y Descubrir. Antes (V GMM 0005) las series solo entraban por Descubrir.
 - **Puntuaciones de otras plataformas** (IMDb, Rotten Tomatoes): descartadas por ahora. La
   calificación de Descubrir es la propia de TMDB (0–10). Traer las demás exigiría OMDb, con
   su segunda clave. Ver el historial del 28-07 y `PROMPT-MAESTRO.md` §13.
@@ -431,6 +435,7 @@ puede ir dentro de `index.html` sin problema.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| V GMM 0006 | 2026-07-28 | Buscador reestructurado: un **interruptor global Película/Serie** (naranja/azul, solo tiñe sus acentos) y **dos formas de buscar separadas** —«buscar una en concreto» (desplegable título/actor/trama) y «descubrir por género»—, que antes estaban mezcladas en pestañas. El interruptor manda en **las cuatro búsquedas**: se busca una **serie por título** (`/search/tv`), la **filmografía en TV** de un actor (`/person/{id}/tv_credits`) y **tramas en series** (`/discover/tv` con keywords). El «Tipo» que vivía dentro de Descubrir desaparece: lo lleva el interruptor. `logica.js` 82→86, `interfaz.js` 49→55. |
 | V GMM 0005 | 2026-07-28 | Nuevo modo **¿Qué quieres ver?**: se elige tipo (película o serie), género, año (opcional) y nota mínima de TMDB, y sale una cuadrícula con lo que encaja (endpoints `/discover/movie` y `/discover/tv`). Entran las **series** en la app, con la capa de datos hecha «consciente del tipo» (`GMM.util.normalizarMedia`, `disponibilidad` y listas indexadas por `tipo:id`). Géneros como taxonomía fija en `GMM.datos`. Cabecera **rediseñada como tira de rollo de película** (solo aspecto, mismo contenido). Las series de la demo van sin carátula a propósito, porque no había forma de verificar la imagen. Descartadas por ahora las puntuaciones de IMDb/Rotten Tomatoes. `logica.js` pasa de 64 a 82 comprobaciones. |
 | V GMM 0001 | 2026-07-27 | Versión inicial. Buscador en tres modos (película, actor, trama), filtros de plataforma/país/idioma, deducción de idioma por mercado con insignias de confianza, fichas con carátula, filmografía con consulta en lote, listas de favoritas y pendientes con exportar/importar, modo demo de 8 películas. Añadidos `CLAUDE.md`, `PROMPT-MAESTRO.md`, carpeta `pruebas/` y el skill `givemymovies-commit`. |
 | V GMM 0002 | 2026-07-27 | Distinguir «no está en ninguna parte» de «está, pero no en la plataforma que filtraste». Antes ambos casos daban el mismo mensaje genérico. Ahora la frase nombra la plataforma que falla y un botón quita el filtro de un clic. Lo destapó una búsqueda real: *Siempre el mismo día* + Netflix, que no existe en Netflix en ningún país aunque sí en 14 mercados hispanohablantes. |

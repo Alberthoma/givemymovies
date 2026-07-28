@@ -181,7 +181,11 @@ m.titulo("Búsqueda en el catálogo demo");
 m.afirmar("busca sin acentos", GMM.demo.buscarPelicula("parasitos").length === 1);
 m.afirmar("busca por título original", GMM.demo.buscarPelicula("Inception").length === 1);
 m.afirmar("busca persona", GMM.demo.buscarPersona("penelope").length === 1);
-m.afirmar("busca trama", GMM.demo.buscarTrama("viajes en el tiempo").length === 2);
+m.afirmar("busca trama (películas)", GMM.demo.buscarTrama("viajes en el tiempo", "movie").length === 2);
+m.afirmar("busca serie por título", GMM.demo.buscarSerie("casa").some((s) => s.id === 71446));
+m.afirmar("busca serie por nombre original", GMM.demo.buscarSerie("오징어").length === 1);
+m.afirmar("busca trama en series", GMM.demo.buscarTrama("atraco", "tv").some((s) => s.id === 71446));
+m.afirmar("trama de película no arrastra series", GMM.demo.buscarTrama("atraco", "movie").every((p) => p.tipo === "movie"));
 
 /* ---------------------------------------------------------------- */
 m.titulo("Coherencia del catálogo demo");

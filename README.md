@@ -53,23 +53,28 @@ La pastilla de la cabecera pasa de *Modo demo* a *Datos en vivo*.
 
 ---
 
-## Los cuatro modos de búsqueda
+## Cómo se busca
 
-| Modo | Qué hace |
+Arriba hay un **interruptor Película / Serie** (naranja / azul) que decide qué estás
+buscando. Debajo, **dos formas de llegar al mismo resultado —dónde verla—**:
+
+**1 · Buscar una en concreto.** Un desplegable elige cómo:
+
+| Por | Qué hace |
 |---|---|
-| **Película** | Busca por título y muestra su ficha con todos los países donde está. |
-| **Actor / Actriz** | Muestra su filmografía; el botón *¿Dónde puedo ver sus películas?* consulta la disponibilidad de los 24 títulos más populares. |
-| **Trama / Tema** | Busca por concepto ("viajes en el tiempo", "atraco") usando las palabras clave de TMDB. |
-| **¿Qué quieres ver?** | No buscas un título: eliges **películas o series**, un **género**, y si quieres un **año** y una **nota mínima**. Ejemplo: *series de drama de 2020 con nota 6 o más*. |
+| **Título** | Busca por nombre y muestra su ficha con todos los países donde está. |
+| **Actor / actriz** | Muestra su filmografía; el botón *¿Dónde puedo ver sus…?* consulta la disponibilidad de los 24 títulos más populares. |
+| **Trama / tema** | Busca por concepto ("viajes en el tiempo", "atraco") con las palabras clave de TMDB. |
+
+**2 · Descubrir por género.** No buscas un título: eliges **género**, y si quieres **año** y
+**nota mínima**. Ejemplo: *series de drama de 2020 con nota 6 o más*.
+
+El interruptor peli/serie afecta a las dos formas y a las tres búsquedas: puedes buscar una
+serie por su nombre, ver la filmografía en TV de un actor o descubrir series por género.
 
 Los filtros de **plataforma** y **país** son opcionales. Al cambiarlos, el resultado se
-recalcula al instante sin volver a consultar la API.
-
-### Películas y series
-
-Hay **series además de películas**, pero se llega a ellas por el modo **¿Qué quieres ver?**.
-La búsqueda por título y la filmografía de un actor siguen siendo de cine. La calificación
-que se usa para filtrar es la de **TMDB** (de 0 a 10), no un promedio de otras webs.
+recalcula al instante sin volver a consultar la API. La calificación con la que se filtra en
+Descubrir es la de **TMDB** (de 0 a 10), no un promedio de otras webs.
 
 ---
 
@@ -148,8 +153,6 @@ Para separarlos: corta cada bloque a su archivo y enlázalos en este orden con e
 - **Precios de alquiler y compra**: TMDB no los publica. Haría falta la API de pago de JustWatch.
 - **Búsqueda por trama**: TMDB no busca dentro del texto de la sinopsis. Se usa su sistema
   de palabras clave, que funciona bien con conceptos pero no con frases largas.
-- **Series solo por «¿Qué quieres ver?»**: ya hay series, pero se llega a ellas por ese modo;
-  la búsqueda por título y la filmografía de actor siguen siendo de cine.
 - **Puntuaciones de IMDb y Rotten Tomatoes**: no están. TMDB no las da y traerlas exigiría
   otra fuente con su propia clave. La nota que se muestra y con la que se filtra es la de TMDB.
 - **Filmografías largas**: se consultan los 24 títulos más populares, para no disparar
@@ -159,17 +162,15 @@ Para separarlos: corta cada bloque a su archivo y enlázalos en este orden con e
 
 ## Ideas para más adelante
 
-1. **Series en todos los modos** — que la búsqueda por título y la filmografía de actor
-   incluyan series, no solo el modo «¿Qué quieres ver?».
-2. **Enlace compartible** — codificar la búsqueda en la URL.
-3. **Avísame cuando llegue** — vigilar un título hasta que aparezca en tu país (necesita servidor).
-4. **Tráiler incrustado** — un clic sin salir de la app.
-5. **Comparador de países** — útil para quien usa VPN.
-6. **Sorpréndeme** — película al azar que cumpla tus filtros.
-7. **Puntuaciones de IMDb y Rotten Tomatoes** — requeriría otra fuente (OMDb) con su clave.
+1. **Enlace compartible** — codificar la búsqueda en la URL.
+2. **Avísame cuando llegue** — vigilar un título hasta que aparezca en tu país (necesita servidor).
+3. **Tráiler incrustado** — un clic sin salir de la app.
+4. **Comparador de países** — útil para quien usa VPN.
+5. **Sorpréndeme** — película o serie al azar que cumpla tus filtros.
+6. **Puntuaciones de IMDb y Rotten Tomatoes** — requeriría otra fuente (OMDb) con su clave.
 
-*Ya hechas: PWA instalable (V GMM 0003), sección «¿Qué quieres ver?» con filtros de género,
-año y nota, y las series (V GMM 0005).*
+*Ya hechas: PWA instalable (V GMM 0003); descubrir por género, año y nota, y las series
+(V GMM 0005); interruptor Película/Serie con series en todas las búsquedas (V GMM 0006).*
 
 ---
 
