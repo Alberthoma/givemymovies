@@ -302,7 +302,12 @@ hexadecimales — no el *Read Access Token*, que empieza por `eyJ` y no sirve aq
 
 ---
 
-## 11. PENDIENTE — la clave de TMDB en el móvil
+## 11. PENDIENTES
+
+Dos temas abiertos, ninguno urgente. **No los abordes por iniciativa propia**: están aquí
+para que la decisión esté preparada cuando el usuario los retome.
+
+### 11.1 — La clave de TMDB en el móvil
 
 **Planteado el 28-07-2026. Sin resolver.**
 
@@ -342,7 +347,57 @@ habría que regenerarla al retirarla.
 
 ---
 
+### 11.2 — Login y sincronización de las listas entre dispositivos
+
+**Planteado el 28-07-2026. Sin resolver.** El usuario apunta a Firebase.
+
+**El problema real.** `gmm_listas` vive en `localStorage`, que es **por navegador y por
+dispositivo**. Lo que guarde en el móvil no aparece en el PC ni al revés: son dos listas
+distintas con el mismo nombre. Además, borrar los datos del sitio se las lleva. Hoy el único
+puente es exportar e importar el JSON a mano desde ⚙.
+
+**Lo que haría falta**, en orden:
+
+1. **Login.** El propio usuario lo dedujo, y es correcto: sin saber quién es, no hay «mis
+   listas» — el servidor no sabría de quién son. Es el primer paso, no un extra.
+   - **Recomendado: acceso con Google.** En un móvil es un toque, sin contraseña que
+     recordar ni que custodiar. Firebase Auth lo da hecho.
+   - *Acceso anónimo* de Firebase: cero fricción, pero la identidad muere si borra los datos
+     del navegador, que es justo el problema que se quiere resolver. **No sirve solo.**
+   - *Correo y contraseña*: implica gestionar recuperación de contraseña y almacenar
+     credenciales. Más trabajo y más responsabilidad, sin ventaja aquí.
+   - Impacto en la interfaz: un botón de acceso en la cabecera y el aviso de que, sin
+     identificarse, las listas siguen siendo solo de ese dispositivo. **La app debe seguir
+     funcionando sin login**, como hoy: iniciar sesión añade sincronización, no la condiciona.
+2. **Almacén.** Un documento por usuario con las dos listas.
+3. **Fusión sensata.** Si añade algo en el móvil sin conexión y algo distinto en el PC, al
+   volver deben quedar las dos cosas, no la última que escriba. Cada entrada ya guarda
+   `anadida`, así que fusionar por `id` conservando la fecha más antigua resuelve el caso.
+4. **Seguir funcionando sin conexión.** `localStorage` pasa a ser la copia local y la nube el
+   espejo, no al revés. Si falla la red, la app no debe romperse.
+
+**Opciones**
+
+| Opción | A favor | En contra |
+|---|---|---|
+| **Firebase (Firestore + Auth)** | El usuario ya lo usa en Foresee: cuenta creada y conceptos conocidos. Plan gratuito de sobra para esto | Ver el choque con R3, abajo |
+| **Supabase** | Equivalente, con API REST muy limpia | Un servicio más que aprender |
+| **Solo exportar/importar** | Ya está hecho, cero infraestructura | Manual, y es fácil olvidarse |
+
+**El choque a resolver antes de empezar:** el SDK de Firebase **es una librería**, y este
+proyecto prohíbe las librerías (§3, R3). Hay salida: Firestore tiene **API REST**, así que se
+puede hablar con él usando `fetch` a pelo y mantener la regla intacta. Es algo más de código,
+pero conserva lo que define al proyecto. **Plantéaselo al usuario antes de meter un SDK.**
+
+**Dato que le tranquilizará:** la configuración web de Firebase (`apiKey`, `projectId`…)
+**está pensada para ser pública** — no es un secreto como la clave de TMDB. La seguridad no
+viene de esconderla, sino de las reglas de Firestore y de la autenticación. O sea: eso sí
+puede ir dentro de `index.html` sin problema.
+
+---
+
 ## 12. Historial de versiones
+
 
 | Versión | Fecha | Cambio |
 |---|---|---|

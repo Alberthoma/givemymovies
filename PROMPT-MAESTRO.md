@@ -559,13 +559,22 @@ Hay que **decirlos**, no disimularlos:
 ## 13. Mejoras futuras, por valor
 
 1. **Series además de películas.** Misma API, duplica el alcance. La más rentable con diferencia.
-2. **Enlace compartible.** Codificar la búsqueda en la URL.
-3. **Avísame cuando llegue.** Vigilar un título hasta que aparezca en tu país. Necesita servidor.
-4. **Tráiler incrustado.** `/movie/{id}/videos`, un clic sin salir de la app.
-5. **Comparador de países.** Útil para quien usa VPN.
-6. **Sorpréndeme.** Película al azar que cumpla los filtros activos.
-7. **Filtros avanzados.** Género, año, nota mínima, duración.
-*(La PWA instalable era la propuesta nº 8 y está hecha desde V GMM 0003: ver §5.7.)*
+2. **Login y sincronización de las listas.** Hoy `gmm_listas` vive en `localStorage`, que es
+   por navegador: la lista del móvil y la del PC son dos listas distintas. Necesita login
+   —acceso con Google es lo más liviano en móvil— y un almacén en la nube. **La app debe
+   seguir funcionando sin identificarse:** iniciar sesión añade sincronización, no la
+   condiciona. **Cuidado con R3:** el SDK de Firebase es una librería; su API REST permite
+   hacerlo con `fetch` a pelo y conservar la regla. Ver `CLAUDE.md` §11.2.
+3. **Enlace compartible.** Codificar la búsqueda en la URL.
+4. **Avísame cuando llegue.** Vigilar un título hasta que aparezca en tu país. Necesita servidor.
+5. **Tráiler incrustado.** `/movie/{id}/videos`, un clic sin salir de la app.
+6. **Precios de alquiler y compra.** TMDB no los publica; requiere la API de pago de JustWatch.
+7. **Comparador de países.** Útil para quien usa VPN.
+8. **Sorpréndeme.** Película al azar que cumpla los filtros activos.
+9. **Filtros avanzados.** Género, año, nota mínima, duración.
+
+*(La PWA instalable era la propuesta nº 8 de la lista original y está hecha desde
+V GMM 0003: ver §5.7. «Mi lista» se implementó en V GMM 0001.)*
 
 *Ya incluidas desde la primera versión, por baratas y por lo mucho que cambian la experiencia:*
 autocompletado con carátula, frase en lenguaje natural, enlace directo a cada plataforma,
