@@ -240,9 +240,14 @@ Comprobación manual rápida, si no quieres ejecutar nada:
 | `pruebas/` | Herramienta de verificación, opcional y con dependencias propias |
 | `.gitignore` | Excluye `node_modules` y capturas |
 
-**Git:** repositorio inicializado, rama `main`, commit inicial `9942194`. Identidad fijada
-**solo en este repo** (`Alberthoma <albertomatosgil@gmail.com>`), porque la global es un
-correo de relleno. **Sin remoto configurado todavía.**
+**Git:** rama `main`, remoto `origin` → <https://github.com/Alberthoma/givemymovies>
+(**repositorio público**). Identidad fijada **solo en este repo**
+(`Alberthoma <albertomatosgil@gmail.com>`), porque la global es un correo de relleno —
+al hacer `git config` en este proyecto, usa siempre el ámbito local, nunca `--global`.
+
+GitHub Pages **no está activado**. Si se activa, la app quedaría accesible por URL, pero
+la clave de TMDB de quien la use seguiría viviendo en su propio navegador: cada visitante
+tendría que poner la suya, o haría falta el servidor intermedio de §8.
 
 **Clave de TMDB:** para comprobar que una clave funciona sin exponerla en una conversación,
 `node pruebas/clave.js TU_CLAVE`. La app usa la **API Key (v3 auth)**, 32 caracteres
