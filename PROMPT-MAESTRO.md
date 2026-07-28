@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.13 · Aplicación V GMM 0013 · 28 de julio de 2026**
+**Documento v1.14 · Aplicación V GMM 0014 · 28 de julio de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies/>
 
 ---
@@ -722,6 +722,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.14 | V GMM 0014 | 28-07-2026 | Arreglo: el modal de detalle se limita a la altura de la pantalla y su cuerpo hace scroll interno (cabecera y pie fijos), para que en móvil el contenido de abajo no quede cortado. |
 | 1.13 | V GMM 0013 | 28-07-2026 | Ficha: sección «También conocida como» con los títulos alternativos por país (§5.2), vía `append_to_response=alternative_titles` y `GMM.util.titulosAlternativos` (mercados es + en). Criterio A34. `logica.js` 86→92. |
 | 1.12 | V GMM 0012 | 28-07-2026 | Header fijo con `position: sticky; top: 0` (z-index 50), pegado arriba al hacer scroll (§6). |
 | 1.11 | V GMM 0011 | 28-07-2026 | Métodos en una fila (también en móvil), con el seleccionado tinte sólido + halo (§5.1.1). El punto de estado en la misma línea que la marca; **⚙ Ajustes** e **Instalar** salen del header a la barra de Mis listas; header más bajo (§6). |

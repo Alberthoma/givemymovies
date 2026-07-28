@@ -2,8 +2,8 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0013`
-**Próxima versión:** `V GMM 0014`
+**Versión activa:** `V GMM 0014`
+**Próxima versión:** `V GMM 0015`
 **Última actualización:** 2026-07-28
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies/> · GitHub Pages desde `main`, raíz.
@@ -310,6 +310,7 @@ Comprobación manual rápida, si no quieres ejecutar nada:
 | Acentos en expresión regular | Las marcas diacríticas sueltas en el código son frágiles ante cambios de codificación. Usar la forma escapada `[\u0300-\u036f]`, como en `GMM.util.normalizar`. |
 | **Editar archivos con PowerShell** | `Get-Content` + `Set-Content -Encoding utf8` **destroza los acentos**: en PowerShell 5.1 la lectura asume ANSI y la escritura vuelca UTF-8, duplicando cada carácter (`película` → `pelÃ­cula`). Ya pasó con `index.html` y `sw.js`. **Usa siempre la herramienta Edit**, o `[System.IO.File]::ReadAllText/WriteAllText` con `UTF8Encoding($false)`. |
 | Dos bloques `<script>` | `pruebas/cargar.js` busca el de la app con `lastIndexOf`, no con `indexOf`: hay un `<script>` anterior —el cargador de la clave local— y empezar por el primero arrastraría el HTML intermedio. El de la app es siempre el último. |
+| Modal sin scroll | Un modal sin `max-height` desborda la pantalla en móvil y el final queda inaccesible. La ficha de detalle limita el modal a la altura de la pantalla y hace scroll en el **cuerpo** (`.modal` en `flex` columna + `.modal-cuerpo` con `min-height: 0; overflow-y: auto`), no en la capa. Cualquier modal nuevo que crezca debe seguir el mismo patrón. |
 
 ---
 
@@ -444,6 +445,7 @@ puede ir dentro de `index.html` sin problema.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| V GMM 0014 | 2026-07-28 | **Arreglo:** el modal de detalle no hacía scroll y en móvil el contenido de abajo (países, botones) quedaba cortado si la ficha era alta. Ahora el modal se limita a la altura de la pantalla (`max-height: calc(100dvh - 40px)`, con `100vh` de reserva) y el **cuerpo hace scroll interno** (`flex`, `min-height: 0`, `overflow-y: auto`), con cabecera y pie fijos. |
 | V GMM 0013 | 2026-07-28 | **Títulos alternativos por país** en la ficha: sección «También conocida como» que muestra cómo se llama el título en otros mercados (ej. *Duro de matar* → «La jungla de cristal» en España). Se pide con `append_to_response=alternative_titles` (sin llamada extra) y se filtra a mercados en español + inglés (`GMM.util.titulosAlternativos`). `logica.js` 86→92. |
 | V GMM 0012 | 2026-07-28 | **Header fijo**: `position: sticky; top: 0` (z-index 50, por debajo de modales y avisos), de modo que la cabecera queda pegada arriba al hacer scroll. Su fondo sólido tapa el contenido que pasa por debajo. |
 | V GMM 0011 | 2026-07-28 | Retoques de cabecera y métodos: los dos botones de método van **en una fila** (también en móvil) y el **seleccionado se tiñe con color sólido y un halo** de iluminación. El **punto de estado** queda a la derecha del header, en la misma línea que marca e icono (ya no baja en móvil). El botón **⚙ Ajustes sale del header** a la barra de Mis listas (a su derecha), junto con *Instalar*; así el **header es más bajo**. |
