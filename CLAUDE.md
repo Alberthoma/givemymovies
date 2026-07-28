@@ -240,8 +240,13 @@ Comprobación manual rápida, si no quieres ejecutar nada:
 | `pruebas/` | Herramienta de verificación, opcional y con dependencias propias |
 | `.gitignore` | Excluye `node_modules` y capturas |
 
-El proyecto **no es un repositorio git** todavía. El skill lo detecta y te ofrece inicializarlo;
-no lo hace por su cuenta.
+**Git:** repositorio inicializado, rama `main`, commit inicial `9942194`. Identidad fijada
+**solo en este repo** (`Alberthoma <albertomatosgil@gmail.com>`), porque la global es un
+correo de relleno. **Sin remoto configurado todavía.**
+
+**Clave de TMDB:** para comprobar que una clave funciona sin exponerla en una conversación,
+`node pruebas/clave.js TU_CLAVE`. La app usa la **API Key (v3 auth)**, 32 caracteres
+hexadecimales — no el *Read Access Token*, que empieza por `eyJ` y no sirve aquí.
 
 ---
 

@@ -480,7 +480,7 @@ sirve una carátula distinta según el locale.
 | `README.md` | Manual: cómo obtener la clave de TMDB, los tres modos, guía de fraccionamiento, límites |
 | `CLAUDE.md` | Contexto para sesiones futuras. **Fuente de verdad de la versión** |
 | `PROMPT-MAESTRO.md` | Este documento |
-| `pruebas/` | `cargar.js`, `logica.js`, `imagenes.js`, `interfaz.js`, `LEEME.md` |
+| `pruebas/` | `cargar.js`, `logica.js`, `imagenes.js`, `interfaz.js`, `clave.js`, `LEEME.md` |
 | `.gitignore` | Excluye `node_modules` de las pruebas y las capturas |
 
 Más un **skill de cierre de versión** en `~/.claude/skills/givemymovies-commit/SKILL.md`, que
