@@ -14,11 +14,6 @@ clave*.txt
 *.key
 *.pem
 
-# Respaldos de cada versión antes de modificarla. Son copias locales:
-# git ya conserva todo el historial, así que versionarlas solo engordaría
-# el repositorio público con duplicados. Viven solo en la máquina.
-respaldos/
-
 # La aplicación no tiene dependencias. Esto es solo de las pruebas.
 pruebas/node_modules/
 pruebas/package-lock.json
