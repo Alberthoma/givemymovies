@@ -79,11 +79,28 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   await pagina.goto(PAGINA);
   await pagina.waitForTimeout(600);
 
+  /* Desde V GMM 0009 los resultados ocultan el formulario y aparece una flecha
+     ← para volver. Estos ayudantes reflejan ese flujo: los filtros se eligen
+     en la pantalla de búsqueda, no sobre el resultado. */
+  async function aBuscar() {
+    if (await pagina.locator("#barraVolver:not(.oculto)").count() > 0) {
+      await pagina.click("#btnVolver");
+      await pagina.waitForTimeout(200);
+    }
+  }
+  async function buscarTitulo(txt) {
+    await aBuscar();
+    await pagina.fill("#entrada", txt);
+    await pagina.click("#btnBuscar");
+    await pagina.waitForTimeout(400);
+  }
+
   /* ---------------------------------------------------------------- */
   m.titulo("Arranque");
   m.afirmar("sin errores de JavaScript", errores.length === 0, errores.join(" | "));
   m.afirmar("la marca se pinta", (await pagina.textContent(".marca-texto")).includes("givemymovies"));
-  m.afirmar("arranca en modo demo", (await pagina.textContent("#pastillaModo")).trim() === "Modo demo");
+  m.afirmar("arranca en modo demo (punto naranja)",
+    (await pagina.getAttribute("#pastillaModo", "title")) === "Modo demo");
   m.afirmar("el selector de idioma tiene 13 opciones",
     (await pagina.locator("#selIdioma option").count()) === 13);
   m.afirmar("el selector de país tiene 6 grupos",
@@ -137,34 +154,41 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   m.afirmar("vuelve a 6", (await pagina.locator(".pais").count()) === 6);
 
   /* ---------------------------------------------------------------- */
-  m.titulo("Filtrar por plataforma sin volver a buscar");
+  m.titulo("Filtrar por plataforma (se elige antes de buscar)");
+  await aBuscar();
   await pagina.selectOption("#selPlataforma", "Netflix");
-  await pagina.waitForTimeout(400);
-  m.afirmar("se reduce a 3 países con Netflix", (await pagina.locator(".pais").count()) === 3);
+  await buscarTitulo("Interestelar");
+  await pagina.waitForSelector(".ficha-titulo", { timeout: 5000 });
+  m.afirmar("con Netflix se reduce a 3 países", (await pagina.locator(".pais").count()) === 3);
   m.afirmar("la frase refleja el filtro", (await pagina.textContent(".resumen-txt")).includes("Netflix"));
+  await aBuscar();
   await pagina.selectOption("#selPlataforma", "");
-  await pagina.waitForTimeout(400);
 
   /* ---------------------------------------------------------------- */
   m.titulo("Idioma japonés: Japón SÍ debe salir");
   await pagina.selectOption("#selIdioma", "ja");
-  await pagina.waitForTimeout(400);
+  await buscarTitulo("Interestelar");
+  await pagina.waitForSelector(".ficha-titulo", { timeout: 5000 });
   m.afirmar("solo queda Japón", (await pagina.locator(".pais").count()) === 1);
   m.afirmar("y es Japón", (await pagina.textContent(".pais-nombre")).includes("Japón"));
 
   m.titulo("Idioma árabe: ningún mercado lo sirve");
+  await aBuscar();
   await pagina.selectOption("#selIdioma", "ar");
-  await pagina.waitForTimeout(400);
+  await buscarTitulo("Interestelar");
   m.afirmar("avisa de que no hay nada en ese idioma",
     (await pagina.textContent("#resultados")).includes("ninguno cuyo catálogo se sirva en árabe"));
   m.afirmar("ofrece la salida de emergencia", (await pagina.locator("#btnMostrarTodos").count()) === 1);
   await pagina.screenshot({ path: path.join(CAPTURAS, "02-sin-idioma.png"), fullPage: true });
+  await aBuscar();
   await pagina.selectOption("#selIdioma", "es");
-  await pagina.waitForTimeout(400);
 
   /* ---------------------------------------------------------------- */
   m.titulo("Listas");
   m.afirmar("contador a 0", (await pagina.textContent("#contadorListas")).trim() === "0");
+  await buscarTitulo("Interestelar");
+  await pagina.waitForSelector(".ficha-acciones .boton-lista.fav", { timeout: 5000 });
+  m.afirmar("pinta 6 países en español", (await pagina.locator(".pais").count()) === 6);
   await pagina.click(".ficha-acciones .boton-lista.fav");
   await pagina.waitForTimeout(250);
   m.afirmar("contador a 1", (await pagina.textContent("#contadorListas")).trim() === "1");
@@ -228,6 +252,7 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
 
   /* ---------------------------------------------------------------- */
   m.titulo("Modo trama");
+  await aBuscar();
   await pagina.selectOption("#selBusquedaPor", "trama");
   await pagina.fill("#entrada", "viajes en el tiempo");
   await pagina.click("#btnBuscar");
@@ -236,6 +261,7 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
 
   /* ---------------------------------------------------------------- */
   m.titulo("Interruptor Película / Serie");
+  await aBuscar();
   await pagina.selectOption("#selBusquedaPor", "titulo");
   await pagina.click('#tipoSwitch [data-tipo="tv"]');
   await pagina.waitForTimeout(250);
@@ -252,6 +278,7 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   m.afirmar("encuentra la serie por título",
     (await pagina.textContent(".ficha-titulo")).includes("La casa de papel"));
 
+  await aBuscar();
   await pagina.click('#metodos [data-metodo="descubrir"]');
   await pagina.waitForTimeout(200);
   m.afirmar("Descubrir oculta el campo de texto",
@@ -266,6 +293,7 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   m.titulo("Paginador de Descubrir");
   /* En demo hay una sola página, así que inyectamos una respuesta con varias
      para comprobar los controles y el paso de página, sin depender de red. */
+  await aBuscar();
   await pagina.evaluate(() => {
     const base = GMM.demo.SERIES, items = [];
     for (let i = 0; i < 20; i++) items.push(Object.assign({}, base[i % base.length], { id: 900000 + i }));
@@ -282,6 +310,7 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   /* ---------------------------------------------------------------- */
   m.titulo("Móvil, 375 px");
   await pagina.setViewportSize({ width: 375, height: 780 });
+  await aBuscar();
   await pagina.click('#metodos [data-metodo="buscar"]');
   await pagina.click('#tipoSwitch [data-tipo="movie"]');
   await pagina.selectOption("#selBusquedaPor", "titulo");
@@ -291,7 +320,8 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   await pagina.waitForTimeout(900);
   m.afirmar("el desplegable no reaparece tras buscar",
     (await pagina.locator(".sugerencia").count()) === 0);
-  m.afirmar("el filtro de plataforma queda visible", await pagina.locator("#selPlataforma").isVisible());
+  m.afirmar("en resultados aparece la flecha de volver",
+    !(await pagina.locator("#barraVolver").getAttribute("class")).includes("oculto"));
   const desborde = await pagina.evaluate(() =>
     document.documentElement.scrollWidth - document.documentElement.clientWidth);
   m.afirmar("sin desbordamiento horizontal", desborde <= 0, "sobran " + desborde + " px");

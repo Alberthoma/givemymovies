@@ -2,8 +2,8 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0008`
-**Próxima versión:** `V GMM 0009`
+**Versión activa:** `V GMM 0009`
+**Próxima versión:** `V GMM 0010`
 **Última actualización:** 2026-07-28
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies/> · GitHub Pages desde `main`, raíz.
@@ -170,8 +170,16 @@ simplemente no se instala ni cachea: `GMM.pwa.seguro()` lo detecta y no registra
 (`movie`/`tv`, el interruptor), `metodo` (`buscar`/`descubrir`) y `busquedaPor`
 (`titulo`/`actor`/`trama`, el desplegable). Más `plataforma`, `pais`, `idioma`,
 `mostrarTodos`, `vista`, `pelicula`, `proveedores`, `persona`, `filmografia`,
-`disponibilidad` y —para Descubrir— `genero`, `ano`, `notaMin`. `reflejar()` es el único
-sitio que vuelca este estado en la interfaz (interruptor, método, marcador, chips, acentos).
+`disponibilidad`, `ctxPagina` (paginación) y —para Descubrir— `genero`, `ano`, `notaMin`.
+`reflejar()` vuelca el formulario (interruptor, método, marcador, chips, acentos).
+
+**Dos pantallas (desde V GMM 0009):** la de búsqueda (formulario visible) y la de resultados
+(formulario **oculto**, con una flecha **←** para volver). Lo alterna `fijarPantalla()` según
+`estado.vista` (`inicio` = búsqueda; cualquier otra = resultados). Los filtros de idioma,
+plataforma y país se eligen **antes** de buscar: al haber resultados no están a la vista, así
+que ya no se refinan en vivo (se cambia con ← y buscar de nuevo). El buscador **no es una
+caja**: son controles sueltos y centrados. El estado de datos es un **punto** en el header
+(verde = en vivo, naranja = demo) y **Mis listas** vive en una barra bajo el header, no dentro.
 
 **`disponibilidad` se indexa por `"tipo:id"`, no por id a secas.** Una película y una serie
 pueden compartir id numérico en TMDB, y la lista de pendientes ya puede mezclar ambas: usar
@@ -247,7 +255,7 @@ el `og:image`. Y no cojas el primer `<img>` de la página: suele ser un recomend
 ```bash
 node pruebas/logica.js      # 86 comprobaciones · sin dependencias · instantáneo
 node pruebas/imagenes.js    # 15 comprobaciones · necesita internet · ~30 s
-node pruebas/interfaz.js    # 58 comprobaciones · playwright-core · ~40 s
+node pruebas/interfaz.js    # 59 comprobaciones · playwright-core · ~40 s
 node pruebas/pwa.js         # 19 comprobaciones · playwright-core · ~20 s
 ```
 
@@ -435,6 +443,7 @@ puede ir dentro de `index.html` sin problema.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| V GMM 0009 | 2026-07-28 | **Rediseño de disposición.** El buscador deja de ser una caja: controles sueltos y **centrados**. La pastilla de modo pasa a ser un **punto** (verde en vivo / naranja demo) y **Mis listas** sale del header a una barra debajo. **Dos pantallas**: al haber resultados el formulario se oculta y aparece una flecha **←** para volver (`fijarPantalla`), de modo que se ven header + flecha + paginador + carátulas sin pasar por el formulario. Cuadrícula a **2 columnas** en móvil, paginador con **Anterior/Siguiente en una fila**, y la frase del título a **una línea** en móvil. Los filtros se eligen antes de buscar (ya no se refinan en vivo). `interfaz.js` 58→59. |
 | V GMM 0008 | 2026-07-28 | **Paginador** en Descubrir y Trama: 20 por página con **Anterior / Página X de N / Siguiente**, que recorre todas las páginas de TMDB (`estado.ctxPagina` + `irAPagina`). Sustituye el volcado de 250 de la 0007: en vez de traer muchos de golpe, se pasa de página. |
 | V GMM 0007 | 2026-07-28 | **Descubrir pagina**: en vez de los 20 de una sola página de `/discover`, traía más de una. Sustituido en 0008 por un paginador con controles. |
 | V GMM 0006 | 2026-07-28 | Buscador reestructurado: un **interruptor global Película/Serie** (naranja/azul, solo tiñe sus acentos) y **dos formas de buscar separadas** —«buscar una en concreto» (desplegable título/actor/trama) y «descubrir por género»—, que antes estaban mezcladas en pestañas. El interruptor manda en **las cuatro búsquedas**: se busca una **serie por título** (`/search/tv`), la **filmografía en TV** de un actor (`/person/{id}/tv_credits`) y **tramas en series** (`/discover/tv` con keywords). El «Tipo» que vivía dentro de Descubrir desaparece: lo lleva el interruptor. `logica.js` 82→86, `interfaz.js` 49→55. |

@@ -72,9 +72,11 @@ buscando. Debajo, **dos formas de llegar al mismo resultado —dónde verla—**
 El interruptor peli/serie afecta a las dos formas y a las tres búsquedas: puedes buscar una
 serie por su nombre, ver la filmografía en TV de un actor o descubrir series por género.
 
-Los filtros de **plataforma** y **país** son opcionales. Al cambiarlos, el resultado se
-recalcula al instante sin volver a consultar la API. La calificación con la que se filtra en
-Descubrir es la de **TMDB** (de 0 a 10), no un promedio de otras webs.
+Arriba, un **interruptor Película / Serie** (naranja / azul) decide qué buscas. Los filtros
+de **idioma**, **plataforma** y **país** se eligen **antes de buscar**; el resultado ya llega
+filtrado. Cuando aparecen resultados, el formulario se oculta para que veas las carátulas sin
+estorbos, y una flecha **←** te devuelve a la búsqueda. La calificación con la que se filtra
+en Descubrir es la de **TMDB** (de 0 a 10), no un promedio de otras webs.
 
 ---
 

@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.8 · Aplicación V GMM 0008 · 28 de julio de 2026**
+**Documento v1.9 · Aplicación V GMM 0009 · 28 de julio de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies/>
 
 ---
@@ -170,6 +170,13 @@ Buscar «dónde la veo» y «descubrir por género» son intenciones distintas y
 mezclarse en una misma fila de pestañas: por eso van en métodos separados, y el tipo
 (peli/serie) es un interruptor aparte que manda sobre los dos.
 
+**Dos pantallas (desde V GMM 0009).** El buscador **no es una caja**: son controles sueltos y
+**centrados**. Hay una pantalla de búsqueda (formulario visible) y una de resultados
+(formulario **oculto**, con una flecha **←** para volver): al buscar se ve header + flecha +
+resultado, sin pasar por el formulario. Los filtros de idioma, plataforma y país se eligen
+**antes** de buscar; al haber resultados no se ven, así que ya no se refinan en vivo (se cambia
+con ← y buscar otra vez). Lo alterna `fijarPantalla()` según `estado.vista`.
+
 **El interruptor peli/serie afecta a las cuatro búsquedas** (título, actor, trama y
 descubrir) y **solo tiñe sus propios acentos**: el propio interruptor (Series azul a la
 izquierda, Películas naranja a la derecha), el método activo y el botón *Buscar*. El resto de
@@ -196,10 +203,12 @@ la paleta —fondo, tarjetas, sellos de confianza— no cambia (§6).
 | País | No | «Todos los países» + países agrupados en 6 regiones, nombres en español |
 | Idioma | Sí | 13 opciones, empezando por «Cualquier idioma». Por defecto **Español** |
 
-**Cambiar cualquier filtro recalcula el resultado al instante, sin volver a llamar a la API.**
-Los datos ya están en memoria; solo hay que volver a filtrar y repintar.
+Los tres filtros se eligen **en la pantalla de búsqueda, antes de buscar** (desde V GMM 0009
+el resultado oculta el formulario, §5.1.1). El resultado ya llega filtrado por ellos; para
+cambiarlos se vuelve con ← y se busca de nuevo. La lógica de filtrado (`GMM.idioma.filtrar`)
+sigue trabajando sobre los datos ya en memoria, sin nuevas llamadas a la API.
 
-**5.1.4 Chips de ejemplo** bajo el campo, distintos según la pestaña. Al pulsarlos, buscan.
+**5.1.4 Chips de ejemplo** bajo el campo, distintos según la forma de búsqueda. Al pulsarlos, buscan.
 
 ### 5.2 Resultado: modo película
 
@@ -405,6 +414,15 @@ Borde claro      #2f4356      Verde ✓  #6ff0c4   Azul ✓ #8fc9ff    Naranja �
   activo y al botón *Buscar* (vía `#buscador[data-tipo="…"]`). El fondo, las tarjetas y los
   sellos de confianza (que usan el verde con su propio significado) no cambian. Nada de rojo:
   se mantiene la paleta de verdes, naranjas y azules.
+- **El estado de datos es un punto**, no una pastilla con texto: verde = datos en vivo,
+  naranja = modo demo, arriba a la derecha del header (con `title`/`aria-label` para leerlo).
+- **El buscador no es un panel con caja**: sin fondo ni borde, controles centrados. El título
+  y el interruptor van centrados; los campos y filtros, en una columna centrada de ancho
+  cómodo. En móvil el título va **a una sola línea** (fuente más pequeña, `white-space: nowrap`).
+- **Al haber resultados el formulario se oculta** y aparece una **flecha ← para volver**;
+  quedan a la vista header + flecha + resultado. La cuadrícula de resultados es de **2 columnas
+  en móvil** y el paginador lleva **Anterior y Siguiente en una fila**.
+- **Mis listas** no vive en el header, sino en una barra justo debajo, alineada a la derecha.
 - **Degradados que mezclan los tres colores** en: marca, botón *Buscar*, pestaña activa y
   barra de progreso.
 - **Fondo** con tres resplandores radiales sutiles, uno por color.
@@ -561,7 +579,7 @@ Todos deben pasar:
 |---|---|---|
 | A1 | `Interestelar` + español, sin más filtros | 6 países; 4 ocultos por idioma; la frase nombra Netflix y Max |
 | A2 | Insignias en A1 | Argentina «Doblada y subtitulada» (alto); Estados Unidos «Idioma cooficial» (medio) |
-| A3 | Añadir plataforma `Netflix` | Se reduce a Argentina, Chile y México, **sin recargar** |
+| A3 | Plataforma `Netflix` elegida antes de buscar | El resultado se reduce a Argentina, Chile y México (los filtros se aplican al buscar, no en vivo, desde V GMM 0009) |
 | A4 | Idioma `japonés` | **Solo Japón** — es su mercado, debe aparecer |
 | A5 | Idioma `árabe` | Ningún país; aviso de que está en 10 pero ninguno lo sirve, con salida |
 | A6 | «Ver todos los países» | Aparecen los 10; el botón inverso vuelve a 6 |
@@ -588,6 +606,10 @@ Todos deben pasar:
 | A27 | Descubrir con Series | En «Descubrir por género» no hay selector de tipo; el interruptor manda, y Drama devuelve las series de drama |
 | A28 | Método «Descubrir» | Oculta el campo de texto y los chips; «Buscar una en concreto» los devuelve |
 | A29 | Paginador (Descubrir/Trama) | Con varias páginas aparece ← Anterior · Página X de N · Siguiente →; *Siguiente* avanza de página y *Anterior* está deshabilitado en la página 1 |
+| A30 | Estado de datos | Es un punto (no texto): naranja en demo, verde con clave; con `title` legible |
+| A31 | Modo resultados | Al haber resultados el formulario se oculta y aparece la flecha ←; pulsarla vuelve a la pantalla de búsqueda |
+| A32 | Móvil | El título cabe en una línea; la cuadrícula va a 2 columnas; sin desbordamiento horizontal |
+| A33 | Mis listas | El botón vive en una barra bajo el header (no dentro), y su vista sigue funcionando |
 
 ### Al tocar el catálogo demo, verifica cada imagen
 
@@ -688,6 +710,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.9 | V GMM 0009 | 28-07-2026 | Rediseño de disposición (§5.1.1, §6): buscador **sin caja y centrado**; estado de datos como **punto** (verde/naranja); **Mis listas** sale del header a una barra debajo; **dos pantallas** (al haber resultados el formulario se oculta y aparece la flecha **←**, `fijarPantalla`); cuadrícula a **2 columnas** en móvil; paginador con **Anterior/Siguiente en una fila**; título a **una línea** en móvil. Los filtros se eligen antes de buscar (§5.1.3, A3). Criterios A30–A33. `interfaz.js` 58→59. |
 | 1.8 | V GMM 0008 | 28-07-2026 | **Paginador** en Descubrir y Trama (§5.4b): 20 por página con controles ← Anterior · Página X de N · Siguiente →, que recorre todas las páginas de TMDB. `descubrir`/`buscarPorTrama` devuelven `{items, pagina, total}`; `estado.ctxPagina` + `irAPagina`. Sustituye el volcado de la 0007. |
 | 1.7 | V GMM 0007 | 28-07-2026 | Descubrir traía más de una página de `/discover` de golpe. Sustituido en 0008 por un paginador con controles. |
 | 1.6 | V GMM 0006 | 28-07-2026 | Buscador reestructurado (§5.1.1): **interruptor global Película/Serie** —solo tiñe sus acentos, naranja/azul, sin rojo (§6)— y **dos métodos separados**, «buscar una en concreto» (desplegable título/actor/trama) y «descubrir por género». El interruptor manda en las **cuatro búsquedas**: serie por título (`/search/tv`), filmografía en TV (`/person/{id}/tv_credits`) y trama en series (`/discover/tv` con keywords). El selector «Tipo» sale de Descubrir (§5.4b): lo lleva el interruptor. Criterios A25–A28. |
