@@ -2,8 +2,8 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0004`
-**Próxima versión:** `V GMM 0005`
+**Versión activa:** `V GMM 0005`
+**Próxima versión:** `V GMM 0006`
 **Última actualización:** 2026-07-28
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies/> · GitHub Pages desde `main`, raíz.
@@ -32,15 +32,22 @@ nunca te dicen el idioma. Aquí se responde de una vez, en una frase en lenguaje
 > *Interestelar en español la puedes ver en **Netflix** (Argentina, Chile y México),
 > **Max** (Argentina, Chile y Colombia) y **Movistar Plus+** (España).*
 
-Tres formas de entrar a la búsqueda:
+Cuatro formas de entrar a la búsqueda:
 
 | Modo | Entrada | Salida |
 |---|---|---|
 | **Película** | Título | Ficha + todos los países donde está |
 | **Actor / Actriz** | Nombre | Filmografía + dónde ver cada título |
 | **Trama / Tema** | Concepto | Cuadrícula de películas que encajan |
+| **¿Qué quieres ver?** | Tipo (peli/serie) + género + año + nota | Cuadrícula de títulos que encajan (endpoint `/discover`) |
 
 Plataforma y país son **opcionales**; el idioma es el filtro que da sentido a todo.
+
+**Hay series además de películas** (desde V GMM 0005), pero solo entran por el modo
+**¿Qué quieres ver?**. La búsqueda por título sigue siendo de cine, y la filmografía de un
+actor también. La app es «consciente del tipo»: cada ficha lleva `tipo: "movie" | "tv"` y
+`GMM.util.normalizarMedia` copia los campos de serie (`name`, `first_air_date`,
+`episode_run_time`) a los de película, de modo que el pintado no distingue unos de otras.
 
 ---
 
@@ -159,7 +166,13 @@ simplemente no se instala ni cachea: `GMM.pwa.seguro()` lo detecta y no registra
 ### Estado
 
 `GMM.app` guarda un único objeto `estado` con `modo`, `plataforma`, `pais`, `idioma`,
-`mostrarTodos`, `vista`, `pelicula`, `proveedores`, `persona`, `filmografia`, `disponibilidad`.
+`mostrarTodos`, `vista`, `pelicula`, `proveedores`, `persona`, `filmografia`, `disponibilidad`
+y —para el modo **¿Qué quieres ver?**— `tipo`, `genero`, `ano`, `notaMin`.
+
+**`disponibilidad` se indexa por `"tipo:id"`, no por id a secas.** Una película y una serie
+pueden compartir id numérico en TMDB, y la lista de pendientes ya puede mezclar ambas: usar
+solo el id haría que una pisara a la otra. Lo mismo vale para las listas (`GMM.listas` casa
+por id **y** tipo).
 
 **Cambiar un filtro no vuelve a llamar a la API**: `repintarVista()` recalcula sobre los
 datos ya en memoria. Mantén esa propiedad, es lo que hace la app ágil.
@@ -200,10 +213,15 @@ con ocho películas de ejemplo, para que la app nunca aparezca vacía.
 | Buscar película | `/search/movie` |
 | Buscar persona | `/search/person` |
 | Filmografía | `/person/{id}/movie_credits` |
-| Ficha | `/movie/{id}` |
-| **Dónde verla** | `/movie/{id}/watch/providers` ← el dato central |
+| Ficha película / serie | `/movie/{id}` · `/tv/{id}` |
+| **Dónde verla** | `/movie/{id}/watch/providers` · `/tv/{id}/watch/providers` ← el dato central |
 | Trama | `/search/keyword` → `/discover/movie?with_keywords=` |
+| **¿Qué quieres ver?** | `/discover/movie` · `/discover/tv` con `with_genres`, `primary_release_year` / `first_air_date_year`, `vote_average.gte` |
 | Catálogo de plataformas | `/watch/providers/movie` |
+
+Los géneros **no** se piden a la API: son una taxonomía estable, viven en
+`GMM.datos.GENEROS_PELICULA` y `GMM.datos.GENEROS_SERIE`. Ahorra una llamada y funciona igual
+en demo que en vivo.
 
 Errores tratados por nombre: `CLAVE_INVALIDA` (401), `DEMASIADAS_PETICIONES` (429).
 
@@ -223,14 +241,14 @@ el `og:image`. Y no cojas el primer `<img>` de la página: suele ser un recomend
 **La aplicación no tiene dependencias.** `pruebas/` es una herramienta aparte y opcional.
 
 ```bash
-node pruebas/logica.js      # 64 comprobaciones · sin dependencias · instantáneo
+node pruebas/logica.js      # 82 comprobaciones · sin dependencias · instantáneo
 node pruebas/imagenes.js    # 12 comprobaciones · necesita internet · ~30 s
 node pruebas/interfaz.js    # 49 comprobaciones · playwright-core · ~40 s
 node pruebas/pwa.js         # 19 comprobaciones · playwright-core · ~20 s
 ```
 
-Última ejecución: **144 comprobaciones, todas correctas**, sin errores de JavaScript
-en consola. Detalle en `pruebas/LEEME.md`.
+Detalle en `pruebas/LEEME.md`. `logica.js` cubre ahora también la normalización de series,
+la sección Descubrir sobre la demo y las listas conscientes del tipo.
 
 `pwa.js` levanta un servidor local, porque los service workers no funcionan sobre `file://`
 y `localhost` cuenta como origen seguro igual que HTTPS.
@@ -258,7 +276,12 @@ Comprobación manual rápida, si no quieres ejecutar nada:
 - **Precios** de alquiler y compra: TMDB no los publica; requiere la API de pago de JustWatch.
 - **Búsqueda por trama**: TMDB no busca dentro de la sinopsis. Se usan palabras clave, que
   funcionan con conceptos pero no con frases largas.
-- **Solo películas**: sin series todavía. Es la mejora nº 1 recomendada.
+- **Series solo por Descubrir**: hay series desde V GMM 0005, pero se llega a ellas por el
+  modo **¿Qué quieres ver?**. La búsqueda por título y la filmografía de actor siguen siendo
+  de cine. Ampliarlo es la mejora natural siguiente.
+- **Puntuaciones de otras plataformas** (IMDb, Rotten Tomatoes): descartadas por ahora. La
+  calificación de Descubrir es la propia de TMDB (0–10). Traer las demás exigiría OMDb, con
+  su segunda clave. Ver el historial del 28-07 y `PROMPT-MAESTRO.md` §13.
 - **Filmografías**: se consultan los 24 títulos más populares, con 5 peticiones simultáneas.
 - **La clave viaja al navegador**: para publicar en internet haría falta un servidor intermedio.
 
@@ -408,6 +431,7 @@ puede ir dentro de `index.html` sin problema.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| V GMM 0005 | 2026-07-28 | Nuevo modo **¿Qué quieres ver?**: se elige tipo (película o serie), género, año (opcional) y nota mínima de TMDB, y sale una cuadrícula con lo que encaja (endpoints `/discover/movie` y `/discover/tv`). Entran las **series** en la app, con la capa de datos hecha «consciente del tipo» (`GMM.util.normalizarMedia`, `disponibilidad` y listas indexadas por `tipo:id`). Géneros como taxonomía fija en `GMM.datos`. Cabecera **rediseñada como tira de rollo de película** (solo aspecto, mismo contenido). Las series de la demo van sin carátula a propósito, porque no había forma de verificar la imagen. Descartadas por ahora las puntuaciones de IMDb/Rotten Tomatoes. `logica.js` pasa de 64 a 82 comprobaciones. |
 | V GMM 0001 | 2026-07-27 | Versión inicial. Buscador en tres modos (película, actor, trama), filtros de plataforma/país/idioma, deducción de idioma por mercado con insignias de confianza, fichas con carátula, filmografía con consulta en lote, listas de favoritas y pendientes con exportar/importar, modo demo de 8 películas. Añadidos `CLAUDE.md`, `PROMPT-MAESTRO.md`, carpeta `pruebas/` y el skill `givemymovies-commit`. |
 | V GMM 0002 | 2026-07-27 | Distinguir «no está en ninguna parte» de «está, pero no en la plataforma que filtraste». Antes ambos casos daban el mismo mensaje genérico. Ahora la frase nombra la plataforma que falla y un botón quita el filtro de un clic. Lo destapó una búsqueda real: *Siempre el mismo día* + Netflix, que no existe en Netflix en ningún país aunque sí en 14 mercados hispanohablantes. |
 | V GMM 0004 | 2026-07-28 | Publicada en GitHub Pages. El cargador de la clave local solo se pide cuando la app corre en local, para que el sitio publicado no lance un 404 en la consola de todo el que lo abra. `pruebas/cargar.js` pasa a buscar el bloque `<script>` de la app con `lastIndexOf`, porque ahora hay dos. |

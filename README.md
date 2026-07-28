@@ -53,16 +53,23 @@ La pastilla de la cabecera pasa de *Modo demo* a *Datos en vivo*.
 
 ---
 
-## Los tres modos de búsqueda
+## Los cuatro modos de búsqueda
 
 | Modo | Qué hace |
 |---|---|
 | **Película** | Busca por título y muestra su ficha con todos los países donde está. |
 | **Actor / Actriz** | Muestra su filmografía; el botón *¿Dónde puedo ver sus películas?* consulta la disponibilidad de los 24 títulos más populares. |
 | **Trama / Tema** | Busca por concepto ("viajes en el tiempo", "atraco") usando las palabras clave de TMDB. |
+| **¿Qué quieres ver?** | No buscas un título: eliges **películas o series**, un **género**, y si quieres un **año** y una **nota mínima**. Ejemplo: *series de drama de 2020 con nota 6 o más*. |
 
 Los filtros de **plataforma** y **país** son opcionales. Al cambiarlos, el resultado se
 recalcula al instante sin volver a consultar la API.
+
+### Películas y series
+
+Hay **series además de películas**, pero se llega a ellas por el modo **¿Qué quieres ver?**.
+La búsqueda por título y la filmografía de un actor siguen siendo de cine. La calificación
+que se usa para filtrar es la de **TMDB** (de 0 a 10), no un promedio de otras webs.
 
 ---
 
@@ -141,7 +148,10 @@ Para separarlos: corta cada bloque a su archivo y enlázalos en este orden con e
 - **Precios de alquiler y compra**: TMDB no los publica. Haría falta la API de pago de JustWatch.
 - **Búsqueda por trama**: TMDB no busca dentro del texto de la sinopsis. Se usa su sistema
   de palabras clave, que funciona bien con conceptos pero no con frases largas.
-- **Solo películas**: las series aún no están (es la primera mejora de la lista).
+- **Series solo por «¿Qué quieres ver?»**: ya hay series, pero se llega a ellas por ese modo;
+  la búsqueda por título y la filmografía de actor siguen siendo de cine.
+- **Puntuaciones de IMDb y Rotten Tomatoes**: no están. TMDB no las da y traerlas exigiría
+  otra fuente con su propia clave. La nota que se muestra y con la que se filtra es la de TMDB.
 - **Filmografías largas**: se consultan los 24 títulos más populares, para no disparar
   cientos de peticiones.
 
@@ -149,14 +159,17 @@ Para separarlos: corta cada bloque a su archivo y enlázalos en este orden con e
 
 ## Ideas para más adelante
 
-1. **Series además de películas** — misma API, duplica el alcance. La más rentable.
+1. **Series en todos los modos** — que la búsqueda por título y la filmografía de actor
+   incluyan series, no solo el modo «¿Qué quieres ver?».
 2. **Enlace compartible** — codificar la búsqueda en la URL.
 3. **Avísame cuando llegue** — vigilar un título hasta que aparezca en tu país (necesita servidor).
 4. **Tráiler incrustado** — un clic sin salir de la app.
 5. **Comparador de países** — útil para quien usa VPN.
 6. **Sorpréndeme** — película al azar que cumpla tus filtros.
-7. **Filtros avanzados** — género, año, nota mínima, duración.
-8. **PWA instalable** — icono en el móvil y caché de las últimas búsquedas.
+7. **Puntuaciones de IMDb y Rotten Tomatoes** — requeriría otra fuente (OMDb) con su clave.
+
+*Ya hechas: PWA instalable (V GMM 0003), sección «¿Qué quieres ver?» con filtros de género,
+año y nota, y las series (V GMM 0005).*
 
 ---
 

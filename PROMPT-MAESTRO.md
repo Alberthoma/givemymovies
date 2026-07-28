@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.4 · Aplicación V GMM 0004 · 28 de julio de 2026**
+**Documento v1.5 · Aplicación V GMM 0005 · 28 de julio de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies/>
 
 ---
@@ -157,9 +157,10 @@ Para cada país con oferta, con `idiomaBuscado` e `idiomaOriginal` de la pelícu
 
 ### 5.1 Buscador
 
-**5.1.1 Tres modos**, en pestañas: `Película` · `Actor / Actriz` · `Trama / Tema`.
-Cambiar de pestaña cambia el texto de ejemplo del campo, los chips sugeridos, y limpia el
-campo y los resultados.
+**5.1.1 Cuatro modos**, en pestañas: `Película` · `Actor / Actriz` · `Trama / Tema` ·
+`¿Qué quieres ver?`. Cambiar de pestaña cambia el texto de ejemplo del campo, los chips
+sugeridos, y limpia el campo y los resultados. En el modo `¿Qué quieres ver?` **se oculta el
+campo de texto y los chips** y aparecen sus propios controles (§5.4b).
 
 **5.1.2 Campo de texto con autocompletado.**
 
@@ -264,6 +265,34 @@ palabras clave. Por tanto:
 
 Muestra hasta 24 resultados en cuadrícula.
 
+### 5.4b Resultado: modo «¿Qué quieres ver?»
+
+No se busca un título: se **descubre por criterios**. En vez del campo de texto, cuatro
+selectores, en este orden:
+
+| Control | Obligatorio | Contenido |
+|---|---|---|
+| **Tipo** | Sí | `Películas` o `Series`. Decide el endpoint (`/discover/movie` o `/discover/tv`) |
+| **Género** | No | «Cualquier género» + la taxonomía de TMDB. **Depende del tipo**: cine y series usan listas distintas (`GMM.datos.GENEROS_PELICULA` / `GENEROS_SERIE`), así que al cambiar el tipo hay que reconstruir el desplegable |
+| **Año** | No | «Cualquier año» + años de hoy hacia atrás |
+| **Calificación** | No | «Cualquier nota» + `N o más`, con la nota de TMDB (0–10) |
+
+```
+1. Con clave: /discover/movie o /discover/tv, con
+   with_genres, primary_release_year | first_air_date_year, vote_average.gte,
+   sort_by=popularity.desc, vote_count.gte=40 (evita rarezas de una sola votación).
+2. Sin clave (demo): filtra el catálogo de ejemplo por género, año y nota.
+3. Normaliza cada resultado con su tipo antes de pintar (§8).
+```
+
+Muestra hasta 24 resultados en la misma cuadrícula que el modo trama, con un título que
+resume la selección (p. ej. «Series de drama, de 2020, con nota 6 o más»). Los géneros **no
+se piden a la API**: son una taxonomía estable y se guardan en `GMM.datos`.
+
+**Cambiar cualquiera de los cuatro controles vuelve a descubrir al instante** si ya hay
+resultados en pantalla, igual que los filtros de plataforma/país/idioma recalculan sin pedir
+de nuevo. La primera búsqueda la lanza el botón *Buscar*.
+
 ### 5.5 Mis listas
 
 - **Dos listas independientes:** ♥ **Favoritas** y 🔖 **Pendientes de ver**. Un título puede
@@ -350,6 +379,10 @@ Borde claro      #2f4356      Verde ✓  #6ff0c4   Azul ✓ #8fc9ff    Naranja �
 
 **Reglas:**
 
+- **La cabecera es una tira de rollo de película**: cuerpo oscuro con bordes redondeados y
+  dos bandas de perforaciones (arriba y abajo), dibujadas con un SVG en línea repetido en
+  `::before` / `::after` —sin imágenes externas—. Es solo el envoltorio: dentro va el mismo
+  contenido de siempre (marca, pastilla de modo, contador de listas, *Instalar*, ajustes).
 - **Degradados que mezclan los tres colores** en: marca, botón *Buscar*, pestaña activa y
   barra de progreso.
 - **Fondo** con tres resplandores radiales sutiles, uno por color.
@@ -412,12 +445,24 @@ los bloques en archivos **no exija tocar código**: basta enlazarlos en este ord
 | Buscar película | `/search/movie` |
 | Buscar persona | `/search/person` |
 | Filmografía | `/person/{id}/movie_credits` |
-| Ficha | `/movie/{id}` |
-| **Dónde verla** | `/movie/{id}/watch/providers` ← el dato central |
+| Ficha película / serie | `/movie/{id}` · `/tv/{id}` |
+| **Dónde verla** | `/movie/{id}/watch/providers` · `/tv/{id}/watch/providers` ← el dato central |
 | Trama | `/search/keyword` → `/discover/movie?with_keywords=` |
+| ¿Qué quieres ver? | `/discover/movie` · `/discover/tv` con `with_genres`, `primary_release_year` / `first_air_date_year`, `vote_average.gte` |
 | Catálogo de plataformas | `/watch/providers/movie` |
 
 Todas con `language=es-ES`. Caché en memoria por ruta + parámetros.
+
+**Normaliza películas y series a una forma común.** TMDB usa `name` / `first_air_date` /
+`episode_run_time` para series y `title` / `release_date` / `runtime` para películas.
+`GMM.util.normalizarMedia(item, tipo)` copia los campos de serie a los de película y marca
+`tipo: "movie" | "tv"`, de modo que el resto del código no distingue unos de otras. **Indexa
+la caché de disponibilidad y las listas por `"tipo:id"`**, no por id: una peli y una serie
+pueden compartir id numérico y una lista de pendientes puede mezclar ambas.
+
+**Géneros como taxonomía fija.** Son estables; guárdalos en `GMM.datos.GENEROS_PELICULA` y
+`GMM.datos.GENEROS_SERIE` en vez de pedirlos a `/genre`. Ahorra una llamada y funciona igual
+en demo que en vivo.
 
 **Persistencia en `localStorage`:**
 
@@ -437,7 +482,11 @@ rastro: `Max` ↔ `HBO Max`, `Prime Video` ↔ `Amazon Prime Video`, `Disney+` �
 
 **Catálogo demo.** Ocho películas con proveedores por país, y tres intérpretes. Elige títulos
 que **demuestren el filtro de idioma**: alguno disponible en países hispanohablantes y en
-otros que no lo son, y alguno cuyo idioma original no sea el inglés.
+otros que no lo son, y alguno cuyo idioma original no sea el inglés. Cada película lleva
+`genre_ids` para que Descubrir funcione sin clave. **Añade también unas pocas series de
+ejemplo** (tres, con idiomas distintos) para poder demostrar Descubrir con series. Van **sin
+carátula** a propósito: no siempre se puede verificar que una imagen pertenece de verdad a la
+ficha (§10), y es preferible la reserva con el título a arriesgar una imagen equivocada.
 
 ---
 
@@ -507,6 +556,11 @@ Todos deben pasar:
 | A17 | Sin conexión | La app sigue abriendo y el buscador se ve |
 | A18 | Manifiesto | `start_url` y `scope` relativos; iconos de 192, 512 y *maskable*, PNG reales |
 | A19 | Abierta con doble clic (`file://`) | No intenta registrar el service worker ni deja errores en consola |
+| A20 | Modo `¿Qué quieres ver?` | Se oculta el campo de texto y los chips; aparecen tipo, género, año y calificación |
+| A21 | Series · Drama · nota 6 o más (demo) | Cuadrícula con las series de drama de nota ≥ 6, ordenadas por nota |
+| A22 | Cambiar el tipo de Películas a Series | El desplegable de género se reconstruye con la taxonomía de series |
+| A23 | Normalización | Una serie cruda (`name`/`first_air_date`/`episode_run_time`) queda con `title`/`release_date`/`runtime` y `tipo:"tv"`, sin mutar el original |
+| A24 | Peli y serie con el mismo id en listas | Guardar una no borra la otra; quitar una deja la otra (listas y `disponibilidad` indexan por `tipo:id`) |
 
 ### Al tocar el catálogo demo, verifica cada imagen
 
@@ -549,7 +603,10 @@ Hay que **decirlos**, no disimularlos:
 - **Precios de alquiler y compra**: TMDB no los publica. Requeriría la API de pago de JustWatch.
 - **Búsqueda por trama**: usa palabras clave, no el texto de la sinopsis. Funciona con
   conceptos, no con frases largas.
-- **Solo películas**: aún no hay series.
+- **Series solo por «¿Qué quieres ver?»**: la búsqueda por título y la filmografía de actor
+  siguen siendo de cine.
+- **Puntuaciones de IMDb y Rotten Tomatoes**: no están. TMDB no las publica; traerlas
+  exigiría OMDb con su propia clave. La calificación de Descubrir es la de TMDB.
 - **Filmografías**: se consultan los 24 títulos más populares, no la obra completa.
 - **La clave viaja al navegador**: publicar la web exigiría un servidor intermedio.
 - **El idioma es una estimación**, nunca un dato confirmado (§4.3).
@@ -558,23 +615,27 @@ Hay que **decirlos**, no disimularlos:
 
 ## 13. Mejoras futuras, por valor
 
-1. **Series además de películas.** Misma API, duplica el alcance. La más rentable con diferencia.
+1. **Series en todos los modos.** Hoy las series solo entran por «¿Qué quieres ver?». El
+   siguiente paso es que la búsqueda por título y la filmografía de actor también las incluyan
+   (`/search/tv`, `/person/{id}/tv_credits`). La capa de datos ya es consciente del tipo.
 2. **Login y sincronización de las listas.** Hoy `gmm_listas` vive en `localStorage`, que es
    por navegador: la lista del móvil y la del PC son dos listas distintas. Necesita login
    —acceso con Google es lo más liviano en móvil— y un almacén en la nube. **La app debe
    seguir funcionando sin identificarse:** iniciar sesión añade sincronización, no la
    condiciona. **Cuidado con R3:** el SDK de Firebase es una librería; su API REST permite
    hacerlo con `fetch` a pelo y conservar la regla. Ver `CLAUDE.md` §11.2.
-3. **Enlace compartible.** Codificar la búsqueda en la URL.
-4. **Avísame cuando llegue.** Vigilar un título hasta que aparezca en tu país. Necesita servidor.
-5. **Tráiler incrustado.** `/movie/{id}/videos`, un clic sin salir de la app.
-6. **Precios de alquiler y compra.** TMDB no los publica; requiere la API de pago de JustWatch.
-7. **Comparador de países.** Útil para quien usa VPN.
-8. **Sorpréndeme.** Película al azar que cumpla los filtros activos.
-9. **Filtros avanzados.** Género, año, nota mínima, duración.
+3. **Puntuaciones de IMDb y Rotten Tomatoes.** TMDB no las da; requeriría OMDb con su propia
+   clave. Se planteó y se aparcó (ver §15 y `CLAUDE.md`).
+4. **Enlace compartible.** Codificar la búsqueda en la URL.
+5. **Avísame cuando llegue.** Vigilar un título hasta que aparezca en tu país. Necesita servidor.
+6. **Tráiler incrustado.** `/movie/{id}/videos`, un clic sin salir de la app.
+7. **Precios de alquiler y compra.** TMDB no los publica; requiere la API de pago de JustWatch.
+8. **Comparador de países.** Útil para quien usa VPN.
+9. **Sorpréndeme.** Película o serie al azar que cumpla los filtros activos.
 
-*(La PWA instalable era la propuesta nº 8 de la lista original y está hecha desde
-V GMM 0003: ver §5.7. «Mi lista» se implementó en V GMM 0001.)*
+*(La PWA instalable está hecha desde V GMM 0003 (§5.7). «Mi lista» se implementó en
+V GMM 0001. Los **filtros de género, año y nota** y las **series** llegaron en V GMM 0005,
+como el modo «¿Qué quieres ver?» (§5.4b).)*
 
 *Ya incluidas desde la primera versión, por baratas y por lo mucho que cambian la experiencia:*
 autocompletado con carátula, frase en lenguaje natural, enlace directo a cada plataforma,
@@ -605,6 +666,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.5 | V GMM 0005 | 28-07-2026 | Nuevo modo **¿Qué quieres ver?** (§5.4b): descubrir por tipo (película/serie), género, año y nota de TMDB, con `/discover/movie` y `/discover/tv`. Entran las **series**, con la capa de datos normalizada por tipo y las listas/`disponibilidad` indexadas por `tipo:id` (§8). Géneros como taxonomía fija en `GMM.datos`. Cabecera rediseñada como **tira de rollo de película** (§6), solo aspecto. Series de la demo sin carátula, por no poder verificar la imagen. Criterios A20–A24. Se aparcan las puntuaciones de IMDb/Rotten Tomatoes: TMDB no las da y traerlas exigiría OMDb con otra clave. |
 | 1.4 | V GMM 0004 | 28-07-2026 | Publicada en GitHub Pages y verificada contra el sitio real desde un navegador móvil. La clave local se carga solo cuando la app corre en local, para no dejar un 404 en la consola del sitio publicado. |
 | 1.3 | V GMM 0003 | 28-07-2026 | Nueva §5.7: la app es instalable en el móvil. Manifiesto, service worker con su estrategia de caché razonada, iconos y botón de instalar. R1 gana su única excepción documentada. Criterios A15–A19. La PWA sale de las mejoras propuestas de §13 porque ya está hecha. |
 | 1.2 | V GMM 0002 | 27-07-2026 | §5.2 distingue ahora tres casos sin resultado en lugar de dos: el nuevo es «está disponible, pero no en la plataforma que filtraste», con su contador `descartadosPorPlataforma` y su botón de salida. Criterios A13 y A14. Lo destapó una búsqueda real del usuario. |

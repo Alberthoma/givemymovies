@@ -195,6 +195,63 @@ m.afirmar("toda trama apunta a películas existentes",
   Object.values(GMM.demo.TRAMAS).every((ids) => ids.every((id) => GMM.demo.porId(id))));
 
 /* ---------------------------------------------------------------- */
+m.titulo("Normalización de series");
+
+const serieCruda = { id: 1, name: "X", original_name: "X", first_air_date: "2020-03-01", episode_run_time: [48] };
+const norm = GMM.util.normalizarMedia(serieCruda, "tv");
+m.afirmar("marca el tipo tv", norm.tipo === "tv");
+m.afirmar("name pasa a title", norm.title === "X");
+m.afirmar("first_air_date pasa a release_date", norm.release_date === "2020-03-01");
+m.afirmar("episode_run_time pasa a runtime", norm.runtime === 48);
+m.afirmar("no muta el objeto original", serieCruda.tipo === undefined);
+const normPeli = GMM.util.normalizarMedia({ id: 2, title: "P" }, "movie");
+m.afirmar("una película conserva su title", normPeli.title === "P" && normPeli.tipo === "movie");
+
+/* ---------------------------------------------------------------- */
+m.titulo("Sección Descubrir sobre el catálogo demo");
+
+m.afirmar("series de drama incluyen Breaking Bad",
+  GMM.demo.descubrir("tv", { genero: 18 }).some((s) => s.id === 1396));
+m.afirmar("series de drama con nota >= 8 dejan fuera El juego del calamar",
+  !GMM.demo.descubrir("tv", { genero: 18, notaMin: 8 }).some((s) => s.id === 93405));
+m.afirmar("pelis de ciencia ficción incluyen Interestelar y Matrix", (() => {
+  const r = GMM.demo.descubrir("movie", { genero: 878 }).map((p) => p.id);
+  return r.includes(157336) && r.includes(603);
+})());
+m.afirmar("filtrar por año exacto",
+  GMM.demo.descubrir("movie", { ano: "1999" }).every((p) => GMM.util.ano(p.release_date) === "1999"));
+m.afirmar("ordena por nota descendente", (() => {
+  const r = GMM.demo.descubrir("tv", {});
+  for (let i = 1; i < r.length; i++) if (r[i - 1].vote_average < r[i].vote_average) return false;
+  return true;
+})());
+m.afirmar("los géneros de serie difieren de los de película",
+  GMM.datos.generos("tv") !== GMM.datos.generos("movie") &&
+  GMM.datos.generos("tv").some((g) => g.id === 10765));
+
+/* ---------------------------------------------------------------- */
+m.titulo("Coherencia de las series demo");
+
+m.afirmar("toda serie tiene al menos un género", GMM.demo.SERIES.every((s) => (s.genre_ids || []).length));
+m.afirmar("toda serie declara idioma original", GMM.demo.SERIES.every((s) => s.original_language));
+m.afirmar("las series van sin carátula a propósito (no verificable aquí)",
+  GMM.demo.SERIES.every((s) => !s.poster_path));
+m.afirmar("no hay ids de serie repetidos",
+  new Set(GMM.demo.SERIES.map((s) => s.id)).size === GMM.demo.SERIES.length);
+
+/* ---------------------------------------------------------------- */
+m.titulo("Listas conscientes del tipo (peli y serie con el mismo id)");
+
+GMM.listas.alternar("favoritas", { id: 500, tipo: "movie", title: "Peli" });
+GMM.listas.alternar("favoritas", { id: 500, tipo: "tv", title: "Serie" });
+m.afirmar("guarda peli y serie del mismo id sin pisarse",
+  GMM.listas.tiene("favoritas", 500, "movie") && GMM.listas.tiene("favoritas", 500, "tv"));
+GMM.listas.quitar("favoritas", 500, "movie");
+m.afirmar("quitar la peli no toca la serie",
+  !GMM.listas.tiene("favoritas", 500, "movie") && GMM.listas.tiene("favoritas", 500, "tv"));
+GMM.listas.quitar("favoritas", 500, "tv");
+
+/* ---------------------------------------------------------------- */
 m.titulo("Lotes con concurrencia limitada");
 
 let simultaneas = 0, pico = 0;
