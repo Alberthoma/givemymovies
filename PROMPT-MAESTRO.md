@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.9 · Aplicación V GMM 0009 · 28 de julio de 2026**
+**Documento v1.10 · Aplicación V GMM 0010 · 28 de julio de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies/>
 
 ---
@@ -160,6 +160,9 @@ Para cada país con oferta, con `idiomaBuscado` e `idiomaOriginal` de la pelícu
 **5.1.1 Un interruptor y dos formas de buscar.** Arriba, un **interruptor global
 Película / Serie** decide el tipo de todo lo que se busca. Debajo, un selector de **método**
 con dos opciones:
+
+Los dos métodos son **dos botones sueltos, centrados y debajo** del interruptor (sin caja ni
+pastilla segmentada que los envuelva); el activo se tiñe con el color del tipo.
 
 - **Buscar una en concreto:** un **desplegable** elige *por título · por actor/actriz · por
   trama*, con el campo de texto y el autocompletado. Cambiar la forma limpia el campo y los
@@ -710,6 +713,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.10 | V GMM 0010 | 28-07-2026 | Los métodos «Buscar una en concreto» / «Descubrir por género» dejan de ir en un contenedor y quedan como dos botones sueltos, centrados y debajo del interruptor (§5.1.1). |
 | 1.9 | V GMM 0009 | 28-07-2026 | Rediseño de disposición (§5.1.1, §6): buscador **sin caja y centrado**; estado de datos como **punto** (verde/naranja); **Mis listas** sale del header a una barra debajo; **dos pantallas** (al haber resultados el formulario se oculta y aparece la flecha **←**, `fijarPantalla`); cuadrícula a **2 columnas** en móvil; paginador con **Anterior/Siguiente en una fila**; título a **una línea** en móvil. Los filtros se eligen antes de buscar (§5.1.3, A3). Criterios A30–A33. `interfaz.js` 58→59. |
 | 1.8 | V GMM 0008 | 28-07-2026 | **Paginador** en Descubrir y Trama (§5.4b): 20 por página con controles ← Anterior · Página X de N · Siguiente →, que recorre todas las páginas de TMDB. `descubrir`/`buscarPorTrama` devuelven `{items, pagina, total}`; `estado.ctxPagina` + `irAPagina`. Sustituye el volcado de la 0007. |
 | 1.7 | V GMM 0007 | 28-07-2026 | Descubrir traía más de una página de `/discover` de golpe. Sustituido en 0008 por un paginador con controles. |
