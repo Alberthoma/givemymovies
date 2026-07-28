@@ -2,8 +2,8 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0010`
-**Próxima versión:** `V GMM 0011`
+**Versión activa:** `V GMM 0011`
+**Próxima versión:** `V GMM 0012`
 **Última actualización:** 2026-07-28
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies/> · GitHub Pages desde `main`, raíz.
@@ -443,6 +443,7 @@ puede ir dentro de `index.html` sin problema.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| V GMM 0011 | 2026-07-28 | Retoques de cabecera y métodos: los dos botones de método van **en una fila** (también en móvil) y el **seleccionado se tiñe con color sólido y un halo** de iluminación. El **punto de estado** queda a la derecha del header, en la misma línea que marca e icono (ya no baja en móvil). El botón **⚙ Ajustes sale del header** a la barra de Mis listas (a su derecha), junto con *Instalar*; así el **header es más bajo**. |
 | V GMM 0010 | 2026-07-28 | Los métodos **«Buscar una en concreto» / «Descubrir por género»** salen de su contenedor (la pastilla segmentada) y quedan como **dos botones sueltos, centrados y debajo** del interruptor Película/Serie. Remata el rediseño de la 0009. |
 | V GMM 0009 | 2026-07-28 | **Rediseño de disposición.** El buscador deja de ser una caja: controles sueltos y **centrados**. La pastilla de modo pasa a ser un **punto** (verde en vivo / naranja demo) y **Mis listas** sale del header a una barra debajo. **Dos pantallas**: al haber resultados el formulario se oculta y aparece una flecha **←** para volver (`fijarPantalla`), de modo que se ven header + flecha + paginador + carátulas sin pasar por el formulario. Cuadrícula a **2 columnas** en móvil, paginador con **Anterior/Siguiente en una fila**, y la frase del título a **una línea** en móvil. Los filtros se eligen antes de buscar (ya no se refinan en vivo). `interfaz.js` 58→59. |
 | V GMM 0008 | 2026-07-28 | **Paginador** en Descubrir y Trama: 20 por página con **Anterior / Página X de N / Siguiente**, que recorre todas las páginas de TMDB (`estado.ctxPagina` + `irAPagina`). Sustituye el volcado de 250 de la 0007: en vez de traer muchos de golpe, se pasa de página. |

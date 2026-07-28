@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.10 · Aplicación V GMM 0010 · 28 de julio de 2026**
+**Documento v1.11 · Aplicación V GMM 0011 · 28 de julio de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies/>
 
 ---
@@ -161,8 +161,9 @@ Para cada país con oferta, con `idiomaBuscado` e `idiomaOriginal` de la pelícu
 Película / Serie** decide el tipo de todo lo que se busca. Debajo, un selector de **método**
 con dos opciones:
 
-Los dos métodos son **dos botones sueltos, centrados y debajo** del interruptor (sin caja ni
-pastilla segmentada que los envuelva); el activo se tiñe con el color del tipo.
+Los dos métodos son **dos botones sueltos, en una misma fila, centrados y debajo** del
+interruptor (sin caja ni pastilla segmentada que los envuelva). El **seleccionado se tiñe con
+el color sólido del tipo y lleva un halo** de iluminación alrededor (box-shadow del color).
 
 - **Buscar una en concreto:** un **desplegable** elige *por título · por actor/actriz · por
   trama*, con el campo de texto y el autocompletado. Cambiar la forma limpia el campo y los
@@ -425,7 +426,9 @@ Borde claro      #2f4356      Verde ✓  #6ff0c4   Azul ✓ #8fc9ff    Naranja �
 - **Al haber resultados el formulario se oculta** y aparece una **flecha ← para volver**;
   quedan a la vista header + flecha + resultado. La cuadrícula de resultados es de **2 columnas
   en móvil** y el paginador lleva **Anterior y Siguiente en una fila**.
-- **Mis listas** no vive en el header, sino en una barra justo debajo, alineada a la derecha.
+- **El header es bajo**: solo la marca (icono + texto) a la izquierda y el punto de estado a
+  la derecha, en la misma línea. **Mis listas**, **Instalar** y **⚙ Ajustes** no van en el
+  header, sino en una barra justo debajo, alineada a la derecha (el ⚙ a la derecha de Mis listas).
 - **Degradados que mezclan los tres colores** en: marca, botón *Buscar*, pestaña activa y
   barra de progreso.
 - **Fondo** con tres resplandores radiales sutiles, uno por color.
@@ -713,6 +716,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.11 | V GMM 0011 | 28-07-2026 | Métodos en una fila (también en móvil), con el seleccionado tinte sólido + halo (§5.1.1). El punto de estado en la misma línea que la marca; **⚙ Ajustes** e **Instalar** salen del header a la barra de Mis listas; header más bajo (§6). |
 | 1.10 | V GMM 0010 | 28-07-2026 | Los métodos «Buscar una en concreto» / «Descubrir por género» dejan de ir en un contenedor y quedan como dos botones sueltos, centrados y debajo del interruptor (§5.1.1). |
 | 1.9 | V GMM 0009 | 28-07-2026 | Rediseño de disposición (§5.1.1, §6): buscador **sin caja y centrado**; estado de datos como **punto** (verde/naranja); **Mis listas** sale del header a una barra debajo; **dos pantallas** (al haber resultados el formulario se oculta y aparece la flecha **←**, `fijarPantalla`); cuadrícula a **2 columnas** en móvil; paginador con **Anterior/Siguiente en una fila**; título a **una línea** en móvil. Los filtros se eligen antes de buscar (§5.1.3, A3). Criterios A30–A33. `interfaz.js` 58→59. |
 | 1.8 | V GMM 0008 | 28-07-2026 | **Paginador** en Descubrir y Trama (§5.4b): 20 por página con controles ← Anterior · Página X de N · Siguiente →, que recorre todas las páginas de TMDB. `descubrir`/`buscarPorTrama` devuelven `{items, pagina, total}`; `estado.ctxPagina` + `irAPagina`. Sustituye el volcado de la 0007. |
