@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.1 · Aplicación V GMM 0001 · 27 de julio de 2026**
+**Documento v1.2 · Aplicación V GMM 0002 · 27 de julio de 2026**
 
 ---
 
@@ -203,12 +203,18 @@ Pinta en este orden exacto:
 Resultado:  "{Título} en {idioma} la puedes ver en {Plataforma} ({países}), … ."
 ```
 
-Casos sin resultado:
+**Casos sin resultado. Distínguelos: decir *por qué* no hay nada es la mitad del valor de la
+app.** Un «sin resultados» a secas es cierto e inútil. Se comprueban en este orden:
 
-| Situación | Texto |
-|---|---|
-| Está en otros países, pero ninguno sirve ese idioma | «*{Título}* está disponible en N países, pero en ninguno cuyo catálogo se sirva en {idioma}.» |
-| No está en ninguna parte con esos filtros | «No encontramos *{Título}* en {idioma} en ninguna plataforma con estos filtros.» |
+| # | Situación | Texto | Salida ofrecida |
+|---|---|---|---|
+| 1 | Está disponible, pero **no en la plataforma filtrada** | «*{Título}* sí está disponible en N países, pero **no en {plataforma}**. Quita el filtro de plataforma para ver dónde.» | Botón *Ver todas las plataformas* |
+| 2 | Está en otros países, pero **ninguno sirve ese idioma** | «*{Título}* está disponible en N países, pero en ninguno cuyo catálogo se sirva en {idioma}.» | Botón *Ver los N países igualmente* |
+| 3 | **No está en ninguna parte** con esos filtros | «No encontramos *{Título}* en {idioma} en ninguna plataforma con estos filtros.» | — |
+
+Para el caso 1, `filtrar()` debe devolver **`descartadosPorPlataforma`**: los países que tienen
+alguna oferta pero la pierden al aplicar el filtro de plataforma. Sin ese contador, los casos 1
+y 3 son indistinguibles.
 
 **2 · Ficha.** Imagen de fondo difuminada, carátula, título, título original si difiere, año,
 duración, nota, idioma original y sinopsis.
@@ -456,6 +462,8 @@ Todos deben pasar:
 | A10 | Autocompletado tras buscar | **No reaparece** encima de los filtros |
 | A11 | Ancho de 375 px | Cero desbordamiento horizontal |
 | A12 | Toda la sesión | **Cero errores de JavaScript en consola** |
+| A13 | Película que existe pero no en la plataforma filtrada | La frase nombra la plataforma que falla y dice en cuántos países **sí** está; botón que quita el filtro |
+| A14 | Sin filtro de plataforma | `descartadosPorPlataforma` vale 0; no se inventa el caso |
 
 ### Al tocar el catálogo demo, verifica cada imagen
 
@@ -544,6 +552,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.2 | V GMM 0002 | 27-07-2026 | §5.2 distingue ahora tres casos sin resultado en lugar de dos: el nuevo es «está disponible, pero no en la plataforma que filtraste», con su contador `descartadosPorPlataforma` y su botón de salida. Criterios A13 y A14. Lo destapó una búsqueda real del usuario. |
 | 1.1 | V GMM 0001 | 27-07-2026 | Reorganización completa del documento a especificación explícita y verificable: algoritmos escritos paso a paso, criterios de aceptación numerados (A1–A12), decisiones con sus alternativas descartadas. Las peticiones literales del usuario bajan al Anexo A como trazabilidad. |
 | 1.0 | V GMM 0001 | 27-07-2026 | Versión inicial. Buscador en tres modos, filtros de plataforma/país/idioma, deducción de idioma por mercado con insignias de confianza, fichas con carátula, filmografía con consulta en lote, listas de favoritas y pendientes con exportar/importar, modo demo de 8 películas. Añadidos `CLAUDE.md`, este documento, la carpeta `pruebas/` (118 comprobaciones), versión visible en el pie y el skill `givemymovies-commit`. |
 

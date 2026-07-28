@@ -2,8 +2,8 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0001`
-**Próxima versión:** `V GMM 0002`
+**Versión activa:** `V GMM 0002`
+**Próxima versión:** `V GMM 0003`
 **Última actualización:** 2026-07-27
 
 > **Después de cualquier cambio, ejecuta el skill `givemymovies-commit`.** Sube la versión,
@@ -53,6 +53,11 @@ La app lo resuelve deduciéndolo del mercado del país, y **lo declara abiertame
 | **Poco probable en este idioma** | No encaja; se oculta, con botón de escape | `bajo` |
 
 Vive en el bloque JS 6 (`GMM.idioma`), y el mapa está en `GMM.datos.IDIOMAS_PAIS`.
+
+**El mismo principio rige el «sin resultados».** `filtrar()` devuelve `descartadosPorPlataforma`:
+los países que sí tienen oferta pero la pierden por el filtro de plataforma. Permite responder
+«está en 14 países, **pero no en Netflix**» en vez de un «no hay resultados» que es cierto e
+inútil. Mantén esa distinción: decir *por qué* no hay nada es la mitad del valor de la app.
 
 **Nunca elimines el aviso de "estimación por mercado" de la interfaz.** Fue una condición
 acordada: es preferible ser honesto sobre el límite que aparentar un dato que no tenemos.
@@ -186,13 +191,17 @@ el `og:image`. Y no cojas el primer `<img>` de la página: suele ser un recomend
 **La aplicación no tiene dependencias.** `pruebas/` es una herramienta aparte y opcional.
 
 ```bash
-node pruebas/logica.js      # 57 comprobaciones · sin dependencias · instantáneo
+node pruebas/logica.js      # 64 comprobaciones · sin dependencias · instantáneo
 node pruebas/imagenes.js    # 12 comprobaciones · necesita internet · ~30 s
 node pruebas/interfaz.js    # 49 comprobaciones · playwright-core · ~40 s
 ```
 
-Última ejecución: **118 comprobaciones, todas correctas**, sin errores de JavaScript
+Última ejecución: **125 comprobaciones, todas correctas**, sin errores de JavaScript
 en consola. Detalle en `pruebas/LEEME.md`.
+
+Verificado además **con datos reales** (17 comprobaciones aparte, no versionadas): 130 países
+y 799 plataformas para *Interstellar*, 19 tras filtrar por español; filmografía de Penélope
+Cruz con 98 títulos. La app aguanta el volumen real sin degradarse.
 
 - **Toca `GMM.demo`** → obligatorio `pruebas/imagenes.js` (ver §6).
 - **Toca CSS o el DOM** → obligatorio `pruebas/interfaz.js` y mirar `pruebas/capturas/`.
@@ -265,3 +274,4 @@ hexadecimales — no el *Read Access Token*, que empieza por `eyJ` y no sirve aq
 | Versión | Fecha | Cambio |
 |---|---|---|
 | V GMM 0001 | 2026-07-27 | Versión inicial. Buscador en tres modos (película, actor, trama), filtros de plataforma/país/idioma, deducción de idioma por mercado con insignias de confianza, fichas con carátula, filmografía con consulta en lote, listas de favoritas y pendientes con exportar/importar, modo demo de 8 películas. Añadidos `CLAUDE.md`, `PROMPT-MAESTRO.md`, carpeta `pruebas/` y el skill `givemymovies-commit`. |
+| V GMM 0002 | 2026-07-27 | Distinguir «no está en ninguna parte» de «está, pero no en la plataforma que filtraste». Antes ambos casos daban el mismo mensaje genérico. Ahora la frase nombra la plataforma que falla y un botón quita el filtro de un clic. Lo destapó una búsqueda real: *Siempre el mismo día* + Netflix, que no existe en Netflix en ningún país aunque sí en 14 mercados hispanohablantes. |

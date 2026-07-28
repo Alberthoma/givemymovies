@@ -56,6 +56,33 @@ m.afirmar("Max desaparece al filtrar por Netflix",
   !r.paises.some((p) => p.grupos.some((g) => g.plataformas.some((x) => x.provider_name === "Max"))));
 
 /* ---------------------------------------------------------------- */
+m.titulo("Disponible, pero no en esa plataforma");
+
+/* El caso real que motivó esta distinción: 'Siempre el mismo día' está
+   en 14 países hispanohablantes pero en ninguno la tiene Netflix.
+   Decir "sin resultados" sería técnicamente cierto e inútil. */
+const coco = GMM.demo.porId(354912);            // solo está en Disney Plus
+r = GMM.idioma.filtrar(GMM.demo.proveedoresComoTmdb(coco),
+  { plataforma: "Netflix", pais: "", idioma: "es", mostrarTodos: false }, coco.original_language);
+m.afirmar("ningún país con Netflix", r.paises.length === 0);
+m.afirmar("pero cuenta los que sí tienen oferta", r.descartadosPorPlataforma > 0,
+  "fueron " + r.descartadosPorPlataforma);
+
+frase = GMM.idioma.frase(coco.title, r, { plataforma: "Netflix", idioma: "es" });
+m.nota(frase.html.replace(/<[^>]+>/g, ""));
+m.afirmar("la frase nombra la plataforma que falla", frase.html.includes("no en Netflix"));
+m.afirmar("y aclara que sí está disponible", frase.html.includes("sí está disponible"));
+
+r = GMM.idioma.filtrar(GMM.demo.proveedoresComoTmdb(coco),
+  { plataforma: "Disney Plus", pais: "", idioma: "es", mostrarTodos: false }, coco.original_language);
+m.afirmar("con la plataforma correcta sí hay países", r.paises.length > 0);
+m.afirmar("y no descarta ninguno", r.descartadosPorPlataforma === 0);
+
+r = GMM.idioma.filtrar(provInter,
+  { plataforma: "", pais: "", idioma: "es", mostrarTodos: false }, "en");
+m.afirmar("sin filtro de plataforma, no se descarta nada", r.descartadosPorPlataforma === 0);
+
+/* ---------------------------------------------------------------- */
 m.titulo("Alias de plataforma: 'Max' debe capturar 'HBO Max'");
 
 m.afirmar("Max coincide con HBO Max", GMM.idioma.coincidePlataforma("HBO Max", "Max"));

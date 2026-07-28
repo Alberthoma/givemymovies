@@ -61,9 +61,20 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   const contexto = await navegador.newContext({ viewport: { width: 1280, height: 900 } });
   const pagina = await contexto.newPage();
 
+  /* Estas comprobaciones esperan el catálogo de demo, que es estable.
+     Si existe PRIVADO/clave-local.js, la app arrancaría en vivo y los
+     números cambiarían cada día; la bandera le dice que no cargue. */
+  await pagina.addInitScript(() => { window.__GMM_FORZAR_DEMO = true; });
+
   const errores = [];
   pagina.on("pageerror", (e) => errores.push("pageerror: " + e.message));
-  pagina.on("console", (c) => { if (c.type() === "error") errores.push("console: " + c.text()); });
+  pagina.on("console", (c) => {
+    if (c.type() !== "error") return;
+    /* Que falte PRIVADO/clave-local.js es lo normal en un clon del
+       repositorio: la app cae a modo demo y no se rompe nada. */
+    if (/clave-local\.js/.test(c.text())) return;
+    errores.push("console: " + c.text());
+  });
 
   await pagina.goto(PAGINA);
   await pagina.waitForTimeout(600);

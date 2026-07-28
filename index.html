@@ -723,7 +723,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   <footer class="pie">
     <span>givemymovies · datos de disponibilidad vía TMDB / JustWatch</span>
     <span>Tus listas se guardan solo en este navegador</span>
-    <span id="version-app">V GMM 0001</span>
+    <span id="version-app">V GMM 0002</span>
   </footer>
 </div>
 
@@ -780,6 +780,12 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
 </div>
 
 <div class="avisos" id="avisos" aria-live="polite"></div>
+
+<!-- Clave de TMDB cargada automáticamente, si existe. El archivo vive en
+     PRIVADO/, excluido por .gitignore, y NO se publica nunca. Sin él, la
+     app arranca en modo demo y la clave se introduce desde el engranaje.
+     Que falte es normal y no rompe nada: solo deja un 404 en la consola. -->
+<script src="PRIVADO/clave-local.js"></script>
 
 <script>
 /* ══════════════════════════════════════════════════════════════════════
@@ -1457,6 +1463,10 @@ GMM.idioma.coincidePlataforma = function (nombreProveedor, filtro) {
  */
 GMM.idioma.filtrar = function (proveedoresPorPais, filtros, idiomaOriginal) {
   var salida = [], ocultos = 0, total = 0, codigo;
+  /* Países que sí tienen oferta pero la pierden por el filtro de
+     plataforma. Sin este dato solo podríamos decir "no hay resultados",
+     cuando lo útil es "está en 14 países, pero no en Netflix". */
+  var descartadosPorPlataforma = 0;
 
   for (codigo in proveedoresPorPais) {
     if (!Object.prototype.hasOwnProperty.call(proveedoresPorPais, codigo)) continue;
@@ -1464,11 +1474,12 @@ GMM.idioma.filtrar = function (proveedoresPorPais, filtros, idiomaOriginal) {
     if (filtros.pais && codigo !== filtros.pais) continue;
 
     var bruto = proveedoresPorPais[codigo];
-    var grupos = [], hayAlgo = false;
+    var grupos = [], hayAlgo = false, hayOfertaSinFiltrar = false;
 
     GMM.config.OFERTAS.forEach(function (oferta) {
       var lista = bruto[oferta.clave];
       if (!lista || !lista.length) return;
+      hayOfertaSinFiltrar = true;
       var filtrada = lista.filter(function (p) {
         return GMM.idioma.coincidePlataforma(p.provider_name, filtros.plataforma);
       });
@@ -1477,7 +1488,10 @@ GMM.idioma.filtrar = function (proveedoresPorPais, filtros, idiomaOriginal) {
       grupos.push({ tipo: oferta, plataformas: filtrada });
     });
 
-    if (!hayAlgo) continue;
+    if (!hayAlgo) {
+      if (hayOfertaSinFiltrar && filtros.plataforma) descartadosPorPlataforma++;
+      continue;
+    }
     total++;
 
     var confianza = GMM.idioma.evaluar(codigo, filtros.idioma, idiomaOriginal);
@@ -1502,7 +1516,12 @@ GMM.idioma.filtrar = function (proveedoresPorPais, filtros, idiomaOriginal) {
     return d !== 0 ? d : a.nombre.localeCompare(b.nombre, "es");
   });
 
-  return { paises: salida, ocultosPorIdioma: ocultos, totalPaises: total };
+  return {
+    paises: salida,
+    ocultosPorIdioma: ocultos,
+    totalPaises: total,
+    descartadosPorPlataforma: descartadosPorPlataforma
+  };
 };
 
 /* Construye la frase en lenguaje natural del resumen. */
@@ -1510,6 +1529,18 @@ GMM.idioma.frase = function (titulo, resultado, filtros) {
   var idiomaTxt = filtros.idioma ? " en " + GMM.datos.nombreIdioma(filtros.idioma) : "";
 
   if (!resultado.paises.length) {
+    /* Está disponible, pero no en la plataforma elegida. Es el caso más
+       frecuente y el más confuso si se responde con un "no hay nada". */
+    if (resultado.descartadosPorPlataforma > 0) {
+      return {
+        vacia: true,
+        html: "<strong>" + GMM.util.esc(titulo) + "</strong> sí está disponible en " +
+              resultado.descartadosPorPlataforma + " " +
+              (resultado.descartadosPorPlataforma === 1 ? "país" : "países") +
+              ", pero <strong>no en " + GMM.util.esc(filtros.plataforma) + "</strong>. " +
+              "Quita el filtro de plataforma para ver dónde."
+      };
+    }
     if (resultado.ocultosPorIdioma > 0) {
       return {
         vacia: true,
@@ -2069,15 +2100,26 @@ GMM.app = (function () {
       '</div>';
       html += '<div class="paises">' + resultado.paises.map(GMM.ui.tarjetaPais).join("") + '</div>';
     } else {
+      var hayOtraPlataforma = resultado.descartadosPorPlataforma > 0;
       html += '<div class="estado">' +
-        '<div class="estado-icono">&#128269;</div>' +
-        '<div class="estado-tit">Sin resultados con estos filtros</div>' +
+        '<div class="estado-icono">' + (hayOtraPlataforma ? "&#128533;" : "&#128269;") + '</div>' +
+        '<div class="estado-tit">' +
+          (hayOtraPlataforma
+            ? "En " + GMM.util.esc(estado.plataforma) + " no está"
+            : "Sin resultados con estos filtros") +
+        '</div>' +
         '<p class="estado-txt">' +
-          (resultado.ocultosPorIdioma > 0
-            ? "La película sí está disponible, pero en países cuyo catálogo no se sirve en el idioma que has elegido."
-            : "Prueba a quitar el filtro de plataforma o de país.") +
+          (hayOtraPlataforma
+            ? "Pero sí en otras plataformas, en " + resultado.descartadosPorPlataforma + " " +
+              (resultado.descartadosPorPlataforma === 1 ? "país" : "países") + "."
+            : resultado.ocultosPorIdioma > 0
+              ? "La película sí está disponible, pero en países cuyo catálogo no se sirve en el idioma que has elegido."
+              : "Prueba a quitar el filtro de plataforma o de país.") +
         '</p>' +
-        (resultado.ocultosPorIdioma > 0
+        (hayOtraPlataforma
+          ? '<button class="boton-sec acento" id="btnQuitarPlataforma">Ver todas las plataformas</button>'
+          : "") +
+        (!hayOtraPlataforma && resultado.ocultosPorIdioma > 0
           ? '<button class="boton-sec acento" id="btnMostrarTodos">Ver los ' + resultado.ocultosPorIdioma + ' países igualmente</button>'
           : "") +
       '</div>';
@@ -2557,6 +2599,15 @@ GMM.app = (function () {
 
       if (e.target.closest("#btnMostrarTodos")) { estado.mostrarTodos = true; pintarPelicula(); return; }
       if (e.target.closest("#btnSoloIdioma")) { estado.mostrarTodos = false; pintarPelicula(); return; }
+
+      if (e.target.closest("#btnQuitarPlataforma")) {
+        estado.plataforma = "";
+        $("selPlataforma").value = "";
+        guardarPrefs();
+        pintarPelicula();
+        GMM.ui.aviso("Filtro de plataforma quitado", "info");
+        return;
+      }
 
       if (e.target.closest("#btnDondeVerTodas")) {
         e.target.closest("#btnDondeVerTodas").disabled = true;
