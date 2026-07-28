@@ -6,19 +6,23 @@ depender de git.
 
 ## Qué hay en cada carpeta
 
-Una carpeta por versión, con nombre `V-GMM-XXXX`. Dentro, lo que hace falta para que esa
-versión **abra y funcione con doble clic**, igual que la app real de entonces:
+Una carpeta por versión, con nombre `V-GMM-XXXX`. Dentro, lo que cambia de una versión a
+otra:
 
 ```
 V-GMM-XXXX/
 ├── index.html      · la aplicación completa
 ├── sw.js           · service worker
-├── manifest.json   · manifiesto de la PWA
-└── iconos/         · icono.svg, los PNG generados y generar.js
+└── manifest.json   · manifiesto de la PWA
 ```
 
-No se guardan los documentos (`CLAUDE.md`, `PROMPT-MAESTRO.md`, `README.md`) ni la carpeta
-`pruebas/`: eso ya lo conserva git y no es lo que se quiere poder abrir de un doble clic.
+**No se guardan los iconos** (`iconos/`): son la parte pesada y apenas cambian entre
+versiones, así que duplicarlos en cada respaldo solo engordaría el repositorio. Están en
+`iconos/` en la raíz, versionados como cualquier otro archivo; si alguna vez hiciera falta
+reconstruir una versión antigua al pie de la letra, se recuperan del historial de git.
+
+Tampoco se guardan los documentos (`CLAUDE.md`, `PROMPT-MAESTRO.md`, `README.md`) ni la
+carpeta `pruebas/`: eso ya lo conserva git.
 
 ## Cuándo se crea uno
 

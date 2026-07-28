@@ -8,11 +8,11 @@
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies/> · GitHub Pages desde `main`, raíz.
 
-> **Antes de tocar el código de una versión publicada, respáldala.** Copia la app completa
-> (`index.html`, `sw.js`, `manifest.json`, `iconos/`) a `respaldos/V-GMM-XXXX/` y **commitéalo**:
-> los respaldos se versionan en git a propósito, para que la copia sobreviva a un cambio que
-> salga mal se trabaje desde donde se trabaje, también desde un entorno remoto y efímero.
-> Detalle en `respaldos/LEEME.md`.
+> **Antes de tocar el código de una versión publicada, respáldala.** Copia `index.html`,
+> `sw.js` y `manifest.json` a `respaldos/V-GMM-XXXX/` y **commitéalo** (los iconos no: apenas
+> cambian y ya los conserva git en `iconos/`). Los respaldos se versionan en git a propósito,
+> para que la copia sobreviva a un cambio que salga mal se trabaje desde donde se trabaje,
+> también desde un entorno remoto y efímero. Detalle en `respaldos/LEEME.md`.
 
 > **Después de cualquier cambio, ejecuta el skill `givemymovies-commit`.** Sube la versión,
 > actualiza este archivo y `PROMPT-MAESTRO.md`, y pasa las pruebas. No lo hagas a mano:
