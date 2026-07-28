@@ -8,6 +8,11 @@
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies/> · GitHub Pages desde `main`, raíz.
 
+> **Antes de tocar el código de una versión publicada, respáldala.** Copia la app completa
+> (`index.html`, `sw.js`, `manifest.json`, `iconos/`) a `respaldos/V-GMM-XXXX/`. Es una copia
+> local —está en `.gitignore`— para poder volver atrás y abrir la versión anterior de un doble
+> clic. Detalle en `respaldos/LEEME.md`.
+
 > **Después de cualquier cambio, ejecuta el skill `givemymovies-commit`.** Sube la versión,
 > actualiza este archivo y `PROMPT-MAESTRO.md`, y pasa las pruebas. No lo hagas a mano:
 > el protocolo tiene pasos que es fácil olvidar.
@@ -280,8 +285,9 @@ Comprobación manual rápida, si no quieres ejecutar nada:
 | `CLAUDE.md` | Este archivo |
 | `PROMPT-MAESTRO.md` | Prompt que reconstruye el proyecto entero. **Actualízalo con cada cambio.** |
 | `pruebas/` | Herramienta de verificación, opcional y con dependencias propias |
-| `.gitignore` | Excluye `node_modules`, capturas y **`PRIVADO/`** |
+| `.gitignore` | Excluye `node_modules`, capturas, **`PRIVADO/`** y **`respaldos/`** |
 | `PRIVADO/` | **Solo local, jamás versionado.** Credenciales y clave de TMDB |
+| `respaldos/` | **Solo local, jamás versionado.** Copia de la app completa por versión, hecha antes de modificarla. Ver `respaldos/LEEME.md` |
 
 **Nunca escribas secretos fuera de `PRIVADO/`.** El repositorio es público y git conserva
 para siempre lo que se commitea, aunque después se borre. Si añades otro archivo con datos
