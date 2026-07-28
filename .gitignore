@@ -1,3 +1,19 @@
+# ═══════════════════════════════════════════════════════════════
+#  NUNCA PUBLICAR — datos privados
+#  El repositorio es PÚBLICO. Todo lo de aquí abajo se queda en
+#  local. Si alguna vez editas este archivo, no toques este bloque.
+# ═══════════════════════════════════════════════════════════════
+PRIVADO/
+*.local
+*.local.*
+.env
+.env.*
+secretos*
+credenciales*
+clave*.txt
+*.key
+*.pem
+
 # La aplicación no tiene dependencias. Esto es solo de las pruebas.
 pruebas/node_modules/
 pruebas/package-lock.json

@@ -238,7 +238,12 @@ Comprobación manual rápida, si no quieres ejecutar nada:
 | `CLAUDE.md` | Este archivo |
 | `PROMPT-MAESTRO.md` | Prompt que reconstruye el proyecto entero. **Actualízalo con cada cambio.** |
 | `pruebas/` | Herramienta de verificación, opcional y con dependencias propias |
-| `.gitignore` | Excluye `node_modules` y capturas |
+| `.gitignore` | Excluye `node_modules`, capturas y **`PRIVADO/`** |
+| `PRIVADO/` | **Solo local, jamás versionado.** Credenciales y clave de TMDB |
+
+**Nunca escribas secretos fuera de `PRIVADO/`.** El repositorio es público y git conserva
+para siempre lo que se commitea, aunque después se borre. Si añades otro archivo con datos
+sensibles, comprueba antes que está excluido: `git check-ignore -v ruta/al/archivo`.
 
 **Git:** rama `main`, remoto `origin` → <https://github.com/Alberthoma/givemymovies>
 (**repositorio público**). Identidad fijada **solo en este repo**
