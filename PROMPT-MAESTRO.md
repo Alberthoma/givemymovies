@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.14 · Aplicación V GMM 0014 · 28 de julio de 2026**
+**Documento v1.15 · Aplicación V GMM 0015 · 28 de julio de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies/>
 
 ---
@@ -297,34 +297,79 @@ Muestra hasta 24 resultados en cuadrícula.
 ### 5.4b Método: «Descubrir por género»
 
 No se busca un título: se **descubre por criterios**. El tipo (peli/serie) lo manda el
-interruptor global (§5.1.1); aquí van tres selectores, en este orden:
+interruptor global (§5.1.1); aquí van cuatro selectores y una fila de orden:
 
 | Control | Obligatorio | Contenido |
 |---|---|---|
 | **Género** | No | «Cualquier género» + la taxonomía de TMDB. **Depende del interruptor**: cine y series usan listas distintas (`GMM.datos.GENEROS_PELICULA` / `GENEROS_SERIE`), así que al cambiar el tipo hay que reconstruir el desplegable |
-| **Año** | No | «Cualquier año» + años de hoy hacia atrás |
+| **Desde** | No | «Cualquier año» + años de hoy hacia atrás |
+| **Hasta** | No | Ídem. Los dos forman un **intervalo**; si se eligen del revés, **enderézalo solo** y avisa, en vez de devolver una lista vacía sin explicación |
 | **Calificación** | No | «Cualquier nota» + `N o más`, con la nota de TMDB (0–10) |
+
+**Ordenar por** — tres interruptores que se encienden y apagan, no un desplegable:
+
+| Interruptor | Regla |
+|---|---|
+| **Más recientes** | Excluyente con *Más antiguas*: una lista no puede ir en los dos sentidos |
+| **Más antiguas** | Ídem |
+| **Mayor puntuación** | **Se combina** con cualquiera de los dos, o va sola |
+
+Con ninguno encendido, el orden es por popularidad. Volver a pulsar el que ya está encendido
+lo apaga.
 
 ```
 1. Con clave: /discover/movie o /discover/tv, con
-   with_genres, primary_release_year | first_air_date_year, vote_average.gte,
-   sort_by=popularity.desc, vote_count.gte=40 (evita rarezas de una sola votación).
-2. Sin clave (demo): filtra el catálogo de ejemplo por género, año y nota.
+   with_genres, vote_average.gte, sort_by (según el orden), y el intervalo por
+   primary_release_date.gte/.lte (first_air_date.* en series).
+   vote_count.gte = 40 normal, 300 al ordenar por nota.
+2. Sin clave (demo): filtra el catálogo de ejemplo por género, intervalo y nota,
+   y lo ordena con el mismo criterio, combinación incluida.
 3. Normaliza cada resultado con su tipo antes de pintar (§8).
 ```
+
+**Corta siempre en la fecha de hoy** (`…date.lte`). Sin ese corte, ordenar por fecha
+descendente llena la primera página de películas **sin estrenar**: no hay dónde verlas, que
+es justo la pregunta que responde la app.
+
+**Ordenar por fecha y por nota a la vez.** `sort_by` de TMDB admite **una sola clave**, así
+que la combinación no se resuelve con una consulta. Tampoco vale reordenar por nota la página
+ya traída: esos 20 títulos son solo los 20 primeros según *un* criterio, y reordenarlos
+produce una lista que **parece** lo pedido sin serlo —los mejores del año pueden estar en la
+página 8—. Recorre los años uno a uno y pídele a cada año su propia lista ordenada por nota:
+
+```
+reciente + nota → año 2026 ordenado por nota, luego 2025 por nota, luego 2024…
+antigua  + nota → igual, empezando por el año más antiguo del intervalo.
+```
+
+Sigue costando **una petición por página**, porque los años se piden según se avanza. Los
+años sin resultados se saltan solos, con un tope de años vacíos consecutivos
+(`MAX_ANOS_VACIOS`) para no encadenar peticiones inútiles; **sin clave ese tope no aplica**,
+porque el catálogo de ejemplo se filtra en memoria.
 
 Muestra los resultados en la misma cuadrícula que el modo trama, **paginada**: `/discover`
 devuelve **20 por página**, y debajo (y encima) de la rejilla va un paginador
 **← Anterior · Página X de N · Siguiente →** que recorre todas las páginas que tenga TMDB
 (`total_pages`, topado a `MAX_PAGINAS` = 500). `descubrir(tipo, opciones, pagina)` y
 `buscarPorTrama(texto, tipo, pagina)` devuelven `{ items, pagina, total }`; la app recuerda
-el contexto en `estado.ctxPagina` y `irAPagina(n)` rehace solo esa página. Cambiar género,
-año o nota vuelve a la página 1. Los géneros **no se piden a la API**: son una taxonomía
-estable y se guardan en `GMM.datos`.
+el contexto en `estado.ctxPagina` y `irAPagina(n)` rehace solo esa página.
 
-**Cambiar cualquiera de los cuatro controles vuelve a descubrir al instante** si ya hay
-resultados en pantalla, igual que los filtros de plataforma/país/idioma recalculan sin pedir
-de nuevo. La primera búsqueda la lanza el botón *Buscar*.
+**En el recorrido por años el paginador cambia**, porque no existe un total global: en vez de
+«Página 3 de 40» dice **«2026 · página 3 de 5»**, y *Siguiente* salta al año siguiente con
+resultados cuando se agota el actual. Solo se puede ir a una página ya vista o a la
+inmediatamente siguiente. Cuando se acaba el intervalo, dilo («no hay más resultados») y
+quédate donde estabas, no vacíes la pantalla.
+
+Cambiar cualquier criterio vuelve a la página 1 y reinicia el recorrido. Los géneros **no se
+piden a la API**: son una taxonomía estable y se guardan en `GMM.datos`.
+
+**El subtítulo del resultado dice siempre cómo está ordenada la lista** («año a año, del más
+reciente, y las mejor puntuadas de cada año primero»). Nadie debería tener que adivinar por
+qué esa película va la primera.
+
+**Cambiar cualquiera de los controles vuelve a descubrir al instante** si ya hay resultados en
+pantalla, igual que los filtros de plataforma/país/idioma recalculan sin pedir de nuevo. La
+primera búsqueda la lanza el botón *Buscar*.
 
 ### 5.5 Mis listas
 
@@ -622,6 +667,12 @@ Todos deben pasar:
 | A32 | Móvil | El título cabe en una línea; la cuadrícula va a 2 columnas; sin desbordamiento horizontal |
 | A33 | Mis listas | El botón vive en una barra bajo el header (no dentro), y su vista sigue funcionando |
 | A34 | Títulos alternativos | En la ficha, «También conocida como» lista los títulos por país (mercados es + en), sin repetir el título principal ni el original; `GMM.util.titulosAlternativos` los agrupa |
+| A35 | Interruptores de orden | Arrancan apagados; *Más antiguas* apaga a *Más recientes* y viceversa; *Mayor puntuación* se suma sin sustituir; volver a pulsar el encendido lo apaga |
+| A36 | Intervalo del revés | Elegir *Desde* 2021 y *Hasta* 2015 lo endereza solo a 2015–2021 y lo avisa; el título del resultado dice «de 2015 a 2021» |
+| A37 | Año y nota a la vez | El paginador dice «AAAA · página X de N»; *Siguiente* salta a un año **anterior** (o posterior, si es *Más antiguas*) con resultados, y el subtítulo explica «año a año…» |
+| A38 | Orden por fecha descendente | Ningún resultado con fecha de estreno **posterior a hoy** |
+| A39 | Orden por nota (datos reales) | La cabeza de la lista de drama son títulos conocidos (*Cadena perpetua*, *El padrino*), no un 9,9 con 143 votos: `vote_count.gte` = 300 al ordenar por nota |
+| A40 | Sin orden elegido | Se comporta exactamente como antes de la 0015: por popularidad |
 
 ### Al tocar el catálogo demo, verifica cada imagen
 
@@ -691,7 +742,8 @@ Hay que **decirlos**, no disimularlos:
 
 *(La PWA instalable está hecha desde V GMM 0003 (§5.7). «Mi lista» se implementó en
 V GMM 0001. Los filtros de género, año y nota y las series llegaron en V GMM 0005; el
-interruptor Película/Serie con series en **todas** las búsquedas, en V GMM 0006 (§5.1.1).)*
+interruptor Película/Serie con series en **todas** las búsquedas, en V GMM 0006 (§5.1.1);
+el **orden** de Descubrir y el **intervalo de años**, en V GMM 0015 (§5.4b).)*
 
 *Ya incluidas desde la primera versión, por baratas y por lo mucho que cambian la experiencia:*
 autocompletado con carátula, frase en lenguaje natural, enlace directo a cada plataforma,
@@ -722,6 +774,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.15 | V GMM 0015 | 28-07-2026 | Descubrir se ordena (§5.4b): tres interruptores —*Más recientes*, *Más antiguas* (excluyentes) y *Mayor puntuación* (combinable)— y el «Año» exacto pasa a **intervalo desde–hasta**, que se endereza solo si se elige del revés. Como `sort_by` de TMDB admite una sola clave, **año + nota se resuelve recorriendo los años uno a uno**, a una petición por página, y el paginador pasa a decir «AAAA · página X de N». Todas las consultas cortan en la fecha de hoy (fuera estrenos futuros) y ordenar por nota exige `vote_count.gte` = 300, medido contra la API real. Criterios A35–A40. `logica.js` 92→106, `interfaz.js` 59→72. |
 | 1.14 | V GMM 0014 | 28-07-2026 | Arreglo: el modal de detalle se limita a la altura de la pantalla y su cuerpo hace scroll interno (cabecera y pie fijos), para que en móvil el contenido de abajo no quede cortado. |
 | 1.13 | V GMM 0013 | 28-07-2026 | Ficha: sección «También conocida como» con los títulos alternativos por país (§5.2), vía `append_to_response=alternative_titles` y `GMM.util.titulosAlternativos` (mercados es + en). Criterio A34. `logica.js` 86→92. |
 | 1.12 | V GMM 0012 | 28-07-2026 | Header fijo con `position: sticky; top: 0` (z-index 50), pegado arriba al hacer scroll (§6). |

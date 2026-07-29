@@ -66,8 +66,19 @@ buscando. Debajo, **dos formas de llegar al mismo resultado —dónde verla—**
 | **Actor / actriz** | Muestra su filmografía; el botón *¿Dónde puedo ver sus…?* consulta la disponibilidad de los 24 títulos más populares. |
 | **Trama / tema** | Busca por concepto ("viajes en el tiempo", "atraco") con las palabras clave de TMDB. |
 
-**2 · Descubrir por género.** No buscas un título: eliges **género**, y si quieres **año** y
-**nota mínima**. Ejemplo: *series de drama de 2020 con nota 6 o más*.
+**2 · Descubrir por género.** No buscas un título: eliges **género**, y si quieres un
+**intervalo de años** (de 2015 a 2025, por ejemplo) y una **nota mínima**. Ejemplo: *series
+de drama de 2020 con nota 6 o más*.
+
+Y decides **cómo ordenarlo**, con tres interruptores: **más recientes**, **más antiguas** y
+**mayor puntuación**. Los dos primeros se excluyen —una lista no puede ir en los dos sentidos
+a la vez—, pero el de puntuación **se combina** con cualquiera de ellos. Al encender *más
+recientes* **y** *mayor puntuación* a la vez, la lista va año por año, del más nuevo al más
+viejo, y **dentro de cada año salen primero las mejor puntuadas**. En ese caso el paginador
+te dice en qué año estás («2026 · página 2 de 5») y al terminar un año salta al siguiente.
+
+Sin encender ninguno, salen las más populares, como siempre. El texto bajo el título del
+resultado te recuerda siempre cómo está ordenada la lista.
 
 El interruptor peli/serie afecta a las dos formas y a las tres búsquedas: puedes buscar una
 serie por su nombre, ver la filmografía en TV de un actor o descubrir series por género.
@@ -172,7 +183,8 @@ Para separarlos: corta cada bloque a su archivo y enlázalos en este orden con e
 6. **Puntuaciones de IMDb y Rotten Tomatoes** — requeriría otra fuente (OMDb) con su clave.
 
 *Ya hechas: PWA instalable (V GMM 0003); descubrir por género, año y nota, y las series
-(V GMM 0005); interruptor Película/Serie con series en todas las búsquedas (V GMM 0006).*
+(V GMM 0005); interruptor Película/Serie con series en todas las búsquedas (V GMM 0006);
+orden e intervalo de años en Descubrir (V GMM 0015).*
 
 ---
 

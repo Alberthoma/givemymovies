@@ -290,6 +290,80 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   await pagina.screenshot({ path: path.join(CAPTURAS, "06-series.png"), fullPage: true });
 
   /* ---------------------------------------------------------------- */
+  m.titulo("Orden e intervalo de años en Descubrir");
+  await aBuscar();
+  m.afirmar("el intervalo tiene dos extremos",
+    (await pagina.locator("#selAnoDesde").count()) === 1 &&
+    (await pagina.locator("#selAnoHasta").count()) === 1);
+  m.afirmar("los tres interruptores de orden arrancan apagados",
+    (await pagina.locator(".orden-op.activa").count()) === 0);
+
+  await pagina.click("#ordenReciente");
+  await pagina.waitForTimeout(200);
+  m.afirmar("«Más recientes» se enciende",
+    (await pagina.getAttribute("#ordenReciente", "class")).includes("activa"));
+
+  await pagina.click("#ordenAntigua");
+  await pagina.waitForTimeout(200);
+  m.afirmar("«Más antiguas» apaga a «Más recientes»: se excluyen",
+    (await pagina.getAttribute("#ordenAntigua", "class")).includes("activa") &&
+    !(await pagina.getAttribute("#ordenReciente", "class")).includes("activa"));
+
+  await pagina.click("#ordenNota");
+  await pagina.waitForTimeout(200);
+  m.afirmar("«Mayor puntuación» se suma en vez de sustituir",
+    (await pagina.locator(".orden-op.activa").count()) === 2);
+
+  await pagina.click("#ordenAntigua");
+  await pagina.waitForTimeout(200);
+  m.afirmar("volver a pulsar el que está activo lo apaga",
+    (await pagina.locator(".orden-op.activa").count()) === 1);
+  await pagina.screenshot({ path: path.join(CAPTURAS, "07-descubrir-orden.png"), fullPage: true });
+
+  /* Con año y nota a la vez la lista se arma año por año, y el paginador pasa
+     a decir en qué año estás, porque el total global no existe. */
+  await pagina.click("#ordenReciente");
+  await pagina.waitForTimeout(200);
+  await pagina.click("#btnBuscar");
+  await pagina.waitForTimeout(900);
+  const infoAnio = (await pagina.textContent(".paginador-info")).trim();
+  m.afirmar("el paginador nombra el año en curso", /^\d{4} · página \d+ de \d+$/.test(infoAnio), infoAnio);
+  m.afirmar("el subtítulo explica cómo está ordenado",
+    (await pagina.textContent(".seccion-tit small")).includes("año a año"));
+
+  await pagina.click('.paginador [data-ir-pagina="2"] >> nth=0');
+  await pagina.waitForTimeout(900);
+  const infoAnio2 = (await pagina.textContent(".paginador-info")).trim();
+  m.afirmar("Siguiente salta al año anterior que tenga resultados",
+    /^\d{4} · página/.test(infoAnio2) && Number(infoAnio2.slice(0, 4)) < Number(infoAnio.slice(0, 4)),
+    infoAnio + " → " + infoAnio2);
+
+  await aBuscar();
+  await pagina.selectOption("#selAnoDesde", "2021");
+  await pagina.waitForTimeout(500);
+  await pagina.selectOption("#selAnoHasta", "2015");
+  await pagina.waitForTimeout(700);
+  m.afirmar("un intervalo del revés se endereza solo",
+    (await pagina.inputValue("#selAnoDesde")) === "2015" &&
+    (await pagina.inputValue("#selAnoHasta")) === "2021");
+
+  await pagina.click("#btnBuscar");
+  await pagina.waitForSelector(".seccion-tit", { timeout: 5000 });
+  await pagina.waitForTimeout(400);
+  m.afirmar("el título dice el intervalo",
+    (await pagina.textContent(".seccion-tit")).includes("de 2015 a 2021"));
+
+  /* Se dejan los interruptores como estaban, que lo que sigue no los espera. */
+  await aBuscar();
+  await pagina.click("#ordenReciente");
+  await pagina.click("#ordenNota");
+  await pagina.selectOption("#selAnoDesde", "");
+  await pagina.selectOption("#selAnoHasta", "");
+  await pagina.waitForTimeout(400);
+  m.afirmar("se puede volver al orden por popularidad",
+    (await pagina.locator(".orden-op.activa").count()) === 0);
+
+  /* ---------------------------------------------------------------- */
   m.titulo("Paginador de Descubrir");
   /* En demo hay una sola página, así que inyectamos una respuesta con varias
      para comprobar los controles y el paso de página, sin depender de red. */
@@ -326,6 +400,16 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
     document.documentElement.scrollWidth - document.documentElement.clientWidth);
   m.afirmar("sin desbordamiento horizontal", desborde <= 0, "sobran " + desborde + " px");
   await pagina.screenshot({ path: path.join(CAPTURAS, "05-movil.png"), fullPage: true });
+
+  /* La fila de orden es nueva y se envuelve: hay que verla también aquí. */
+  await aBuscar();
+  await pagina.click('#metodos [data-metodo="descubrir"]');
+  await pagina.waitForTimeout(300);
+  const desbordeDescubrir = await pagina.evaluate(() =>
+    document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  m.afirmar("Descubrir tampoco desborda en el móvil", desbordeDescubrir <= 0,
+    "sobran " + desbordeDescubrir + " px");
+  await pagina.screenshot({ path: path.join(CAPTURAS, "08-descubrir-movil.png"), fullPage: true });
 
   /* ---------------------------------------------------------------- */
   m.titulo("Errores acumulados en toda la sesión");

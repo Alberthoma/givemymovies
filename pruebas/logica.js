@@ -234,6 +234,64 @@ m.afirmar("los géneros de serie difieren de los de película",
   GMM.datos.generos("tv").some((g) => g.id === 10765));
 
 /* ---------------------------------------------------------------- */
+m.titulo("Descubrir: intervalo de años");
+
+const anosDe = (r) => r.map((p) => Number(GMM.util.ano(p.release_date || p.first_air_date)));
+
+m.afirmar("el intervalo deja fuera lo anterior y lo posterior", (() => {
+  const a = anosDe(GMM.demo.descubrir("movie", { anoDesde: "2010", anoHasta: "2019" }));
+  return a.length > 1 && a.every((n) => n >= 2010 && n <= 2019);
+})());
+m.afirmar("solo 'desde' no pone techo",
+  anosDe(GMM.demo.descubrir("movie", { anoDesde: "2010" })).every((n) => n >= 2010));
+m.afirmar("solo 'hasta' no pone suelo",
+  anosDe(GMM.demo.descubrir("movie", { anoHasta: "2001" })).every((n) => n <= 2001));
+m.afirmar("un intervalo de un solo año equivale al año exacto", (() => {
+  const uno = GMM.demo.descubrir("movie", { anoDesde: "1999", anoHasta: "1999" }).map((p) => p.id);
+  const exacto = GMM.demo.descubrir("movie", { ano: "1999" }).map((p) => p.id);
+  return uno.length === 1 && uno.join() === exacto.join();
+})());
+m.afirmar("el año exacto manda sobre el intervalo, como en el recorrido año a año",
+  GMM.demo.descubrir("movie", { ano: "1999", anoDesde: "2010", anoHasta: "2019" }).length === 0);
+
+/* ---------------------------------------------------------------- */
+m.titulo("Descubrir: orden");
+
+m.afirmar("hay una clave de TMDB para cada orden, en cine y en series",
+  ["popular", "reciente", "antigua", "nota"].every((k) =>
+    GMM.config.ORDENES[k] && GMM.config.ORDENES[k].movie && GMM.config.ORDENES[k].tv));
+m.afirmar("cine y series nombran distinto el orden por fecha",
+  GMM.config.ORDENES.reciente.movie === "primary_release_date.desc" &&
+  GMM.config.ORDENES.reciente.tv === "first_air_date.desc");
+m.afirmar("ordenar por nota exige más votos que el resto",
+  GMM.config.VOTOS_MIN_NOTA > GMM.config.VOTOS_MIN);
+
+const ordenado = (a, sentido) => {
+  for (let i = 1; i < a.length; i++) {
+    if (sentido === "desc" ? a[i - 1] < a[i] : a[i - 1] > a[i]) return false;
+  }
+  return true;
+};
+
+m.afirmar("'más recientes' ordena de año mayor a menor",
+  ordenado(anosDe(GMM.demo.descubrir("movie", { orden: "reciente" })), "desc"));
+m.afirmar("'más antiguas' ordena de año menor a mayor",
+  ordenado(anosDe(GMM.demo.descubrir("movie", { orden: "antigua" })), "asc"));
+m.afirmar("'mayor puntuación' sola ordena por nota, no por año",
+  ordenado(GMM.demo.descubrir("movie", { porNota: true }).map((p) => p.vote_average), "desc"));
+m.afirmar("sin orden pedido no se altera el comportamiento de siempre",
+  GMM.demo.descubrir("tv", {}).map((s) => s.id).join() ===
+  GMM.demo.descubrir("tv", { orden: "popular" }).map((s) => s.id).join());
+m.afirmar("año y nota a la vez: el año sigue mandando", (() => {
+  const a = anosDe(GMM.demo.descubrir("movie", { orden: "reciente", porNota: true }));
+  return a.length > 1 && ordenado(a, "desc");
+})());
+m.afirmar("año y nota a la vez, hacia atrás: el año sigue mandando", (() => {
+  const a = anosDe(GMM.demo.descubrir("movie", { orden: "antigua", porNota: true }));
+  return a.length > 1 && ordenado(a, "asc");
+})());
+
+/* ---------------------------------------------------------------- */
 m.titulo("Coherencia de las series demo");
 
 m.afirmar("toda serie tiene al menos un género", GMM.demo.SERIES.every((s) => (s.genre_ids || []).length));

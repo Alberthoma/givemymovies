@@ -2,8 +2,8 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0014`
-**Próxima versión:** `V GMM 0015`
+**Versión activa:** `V GMM 0015`
+**Próxima versión:** `V GMM 0016`
 **Última actualización:** 2026-07-28
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies/> · GitHub Pages desde `main`, raíz.
@@ -38,7 +38,7 @@ nunca te dicen el idioma. Aquí se responde de una vez, en una frase en lenguaje
 | Forma | Cómo | Salida |
 |---|---|---|
 | **Buscar una en concreto** | Desplegable *por título · por actor/actriz · por trama* + campo de texto | Ficha (título), filmografía (actor) o cuadrícula (trama), del tipo elegido |
-| **Descubrir por género** | Género + año (opcional) + nota mínima de TMDB | Cuadrícula **paginada** (20 por página, con Anterior/Siguiente) de todo lo que encaja (`/discover`) |
+| **Descubrir por género** | Género + **intervalo de años** (desde–hasta, opcional) + nota mínima + **orden** | Cuadrícula **paginada** (20 por página, con Anterior/Siguiente) de todo lo que encaja (`/discover`) |
 
 Plataforma y país son **opcionales**; el idioma es el filtro que da sentido a todo.
 
@@ -170,8 +170,10 @@ simplemente no se instala ni cachea: `GMM.pwa.seguro()` lo detecta y no registra
 (`movie`/`tv`, el interruptor), `metodo` (`buscar`/`descubrir`) y `busquedaPor`
 (`titulo`/`actor`/`trama`, el desplegable). Más `plataforma`, `pais`, `idioma`,
 `mostrarTodos`, `vista`, `pelicula`, `proveedores`, `persona`, `filmografia`,
-`disponibilidad`, `ctxPagina` (paginación) y —para Descubrir— `genero`, `ano`, `notaMin`.
-`reflejar()` vuelca el formulario (interruptor, método, marcador, chips, acentos).
+`disponibilidad`, `ctxPagina` (paginación) y —para Descubrir— `genero`, `anoDesde`,
+`anoHasta`, `notaMin`, `orden` (`popular`/`reciente`/`antigua`), `porNota`, y el par
+`anios`/`recorrido` del recorrido año por año.
+`reflejar()` vuelca el formulario (interruptor, método, marcador, chips, acentos, orden).
 
 **Dos pantallas (desde V GMM 0009):** la de búsqueda (formulario visible) y la de resultados
 (formulario **oculto**, con una flecha **←** para volver). Lo alterna `fijarPantalla()` según
@@ -189,12 +191,33 @@ por id **y** tipo).
 **Cambiar un filtro no vuelve a llamar a la API**: `repintarVista()` recalcula sobre los
 datos ya en memoria. Mantén esa propiedad, es lo que hace la app ágil.
 
+### El recorrido año por año (desde V GMM 0015)
+
+Ordenar **por fecha y por nota a la vez** no cabe en una consulta de TMDB: `sort_by` admite
+**una sola clave**. Cuando están encendidos «más recientes» (o «más antiguas») **y** «mayor
+puntuación», la lista se arma visitando los años uno a uno y pidiéndole a cada año su propia
+lista ordenada por nota. Da exactamente lo pedido —2026 primero, y dentro de 2026 las mejor
+puntuadas— y **sigue costando una petición por página**, porque los años se piden según se
+avanza, nunca de golpe.
+
+Lo llevan `esPorAnios()`, `aniosDelIntervalo()`, `buscarDesdeAnio()` y `cargarAnio()`, con
+`estado.recorrido` como lista de cursores ya vistos (`{ iAnio, ano, pag, total }`).
+
+**Consecuencia visible: el paginador cambia.** No hay total global que mostrar, así que en vez
+de «Página 3 de 40» dice **«2026 · página 3 de 5»**, y al agotar un año salta al siguiente con
+resultados, saltándose los vacíos. Por eso `paginadorHtml()` recibe un objeto y acepta
+`etiqueta`, `hayPrev` y `hayNext` además del clásico `pagina`/`total`.
+
+`MAX_ANOS_VACIOS` (25) corta el recorrido si se encadenan demasiados años sin nada, para no
+disparar una ráfaga de peticiones inútiles. **Sin clave no se aplica**: el catálogo de ejemplo
+se filtra en memoria y ahí no hay peticiones que ahorrar.
+
 ### Persistencia (`localStorage`)
 
 | Clave | Contenido |
 |---|---|
 | `gmm_tmdb_key` | Clave de la API de TMDB |
-| `gmm_prefs` | Modo, plataforma, país e idioma |
+| `gmm_prefs` | Modo, plataforma, país, idioma y los criterios de Descubrir (género, intervalo de años, nota, orden) |
 | `gmm_listas` | `{ favoritas: [], pendientes: [] }` |
 
 ---
@@ -229,7 +252,7 @@ con ocho películas de ejemplo, para que la app nunca aparezca vacía.
 | Títulos alternativos por país | dentro de la ficha (`alternative_titles`); se filtran a mercados en español + inglés en `GMM.util.titulosAlternativos` |
 | **Dónde verla** | `/movie/{id}/watch/providers` · `/tv/{id}/watch/providers` ← el dato central |
 | Trama | `/search/keyword` → `/discover/movie?with_keywords=` · `/discover/tv?with_keywords=` |
-| **Descubrir por género** | `/discover/movie` · `/discover/tv` con `with_genres`, `primary_release_year` / `first_air_date_year`, `vote_average.gte` |
+| **Descubrir por género** | `/discover/movie` · `/discover/tv` con `with_genres`, `vote_average.gte`, `sort_by`, y el intervalo por `primary_release_date.gte/.lte` (o `first_air_date.*`). El recorrido año por año usa además `primary_release_year` / `first_air_date_year` |
 | Catálogo de plataformas | `/watch/providers/movie` |
 
 Los géneros **no** se piden a la API: son una taxonomía estable, viven en
@@ -254,15 +277,20 @@ el `og:image`. Y no cojas el primer `<img>` de la página: suele ser un recomend
 **La aplicación no tiene dependencias.** `pruebas/` es una herramienta aparte y opcional.
 
 ```bash
-node pruebas/logica.js      # 92 comprobaciones · sin dependencias · instantáneo
-node pruebas/imagenes.js    # 15 comprobaciones · necesita internet · ~30 s
-node pruebas/interfaz.js    # 59 comprobaciones · playwright-core · ~40 s
-node pruebas/pwa.js         # 19 comprobaciones · playwright-core · ~20 s
+node pruebas/logica.js      # 106 comprobaciones · sin dependencias · instantáneo
+node pruebas/imagenes.js    #  15 comprobaciones · necesita internet · ~30 s
+node pruebas/interfaz.js    #  72 comprobaciones · playwright-core · ~50 s
+node pruebas/pwa.js         #  19 comprobaciones · playwright-core · ~20 s
 ```
 
+Última ejecución: **212 comprobaciones, todas correctas**, sin errores de JavaScript en
+consola.
+
 Detalle en `pruebas/LEEME.md`. `logica.js` cubre la normalización de series, Descubrir sobre
-la demo, las listas conscientes del tipo y la búsqueda de series (título y trama). `interfaz.js`
-recorre el interruptor peli/serie, la búsqueda de una serie por título y Descubrir con series.
+la demo, las listas conscientes del tipo, la búsqueda de series (título y trama) y —desde la
+0015— el intervalo de años y las combinaciones de orden. `interfaz.js` recorre el interruptor
+peli/serie, la búsqueda de una serie por título, Descubrir con series y los interruptores de
+orden con su paginador por años.
 
 `pwa.js` levanta un servidor local, porque los service workers no funcionan sobre `file://`
 y `localhost` cuenta como origen seguro igual que HTTPS.
@@ -270,6 +298,13 @@ y `localhost` cuenta como origen seguro igual que HTTPS.
 Verificado además **con datos reales** (17 comprobaciones aparte, no versionadas): 130 países
 y 799 plataformas para *Interstellar*, 19 tras filtrar por español; filmografía de Penélope
 Cruz con 98 títulos. La app aguanta el volumen real sin degradarse.
+
+**Los umbrales de voto están medidos, no supuestos** (V GMM 0015). Contra la API real, el
+drama mejor puntuado con `vote_count.gte=100` era un desconocido con 9,9 de 143 votos; con
+300 salen *Cadena perpetua*, *El padrino* y *La lista de Schindler*. Subir de 300 no cambia
+la cabeza de la lista y sí adelgaza los años antiguos, que es justo lo que recorre el orden
+por año y nota: con 300 votos, 1975 conserva 13 dramas y 1960, 15. De ahí `VOTOS_MIN_NOTA`.
+**Si cambias ese número, vuelve a medirlo**; no lo ajustes a ojo.
 
 - **Toca `GMM.demo`** → obligatorio `pruebas/imagenes.js` (ver §6).
 - **Toca CSS o el DOM** → obligatorio `pruebas/interfaz.js` y mirar `pruebas/capturas/`.
@@ -311,6 +346,9 @@ Comprobación manual rápida, si no quieres ejecutar nada:
 | **Editar archivos con PowerShell** | `Get-Content` + `Set-Content -Encoding utf8` **destroza los acentos**: en PowerShell 5.1 la lectura asume ANSI y la escritura vuelca UTF-8, duplicando cada carácter (`película` → `pelÃ­cula`). Ya pasó con `index.html` y `sw.js`. **Usa siempre la herramienta Edit**, o `[System.IO.File]::ReadAllText/WriteAllText` con `UTF8Encoding($false)`. |
 | Dos bloques `<script>` | `pruebas/cargar.js` busca el de la app con `lastIndexOf`, no con `indexOf`: hay un `<script>` anterior —el cargador de la clave local— y empezar por el primero arrastraría el HTML intermedio. El de la app es siempre el último. |
 | Modal sin scroll | Un modal sin `max-height` desborda la pantalla en móvil y el final queda inaccesible. La ficha de detalle limita el modal a la altura de la pantalla y hace scroll en el **cuerpo** (`.modal` en `flex` columna + `.modal-cuerpo` con `min-height: 0; overflow-y: auto`), no en la capa. Cualquier modal nuevo que crezca debe seguir el mismo patrón. |
+| **Un solo `sort_by` por consulta** | TMDB no ordena por dos criterios. «Año y luego nota» **no** se resuelve reordenando la página ya traída: los 20 títulos de la página son solo los 20 primeros según *un* criterio, y reordenarlos por otro da una lista que parece lo pedido sin serlo —los mejores del año pueden estar en la página 8—. Por eso se recorre año por año. Si algún día se añade otro orden combinado, mismo camino. |
+| Estrenos futuros en `/discover` | Ordenar por fecha descendente llena la primera página de películas **sin estrenar**, que es lo contrario de lo que responde la app. Todas las consultas de Descubrir cortan en la fecha de hoy (`primary_release_date.lte` / `first_air_date.lte`). |
+| Carátulas de la demo que caducan | TMDB cambia la carátula principal de un título con el tiempo, y `pruebas/imagenes.js` compara contra la oficial del momento. Tres series fallaron sin que nadie tocara el código. **No es una imagen rota: es que se movió.** Se arregla copiando el `poster_path` que el propio test reporta como oficial. |
 
 ---
 
@@ -445,6 +483,7 @@ puede ir dentro de `index.html` sin problema.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| V GMM 0015 | 2026-07-28 | **Descubrir se ordena, y por dos criterios a la vez.** Tres interruptores —*Más recientes*, *Más antiguas*, *Mayor puntuación*—: los dos de fecha se excluyen, el de nota se combina con cualquiera. El «Año» exacto pasa a ser un **intervalo desde–hasta**, que es lo que permite pedir «las mejor puntuadas de los últimos años». Como `sort_by` de TMDB admite **una sola clave**, la combinación año + nota se resuelve **recorriendo los años uno a uno** y pidiéndole a cada uno su lista por nota: sale 2026 primero y, dentro de 2026, las mejor puntuadas, sin coste extra —una petición por página—. El paginador pasa de «Página 3 de 40» a **«2026 · página 3 de 5»** y salta solo los años vacíos. Además: las consultas cortan en la fecha de hoy (ordenar por fecha descendente llenaba la primera página de **estrenos futuros**) y ordenar por nota exige **300 votos**, medido contra la API real. `logica.js` 92→106, `interfaz.js` 59→72. |
 | V GMM 0014 | 2026-07-28 | **Arreglo:** el modal de detalle no hacía scroll y en móvil el contenido de abajo (países, botones) quedaba cortado si la ficha era alta. Ahora el modal se limita a la altura de la pantalla (`max-height: calc(100dvh - 40px)`, con `100vh` de reserva) y el **cuerpo hace scroll interno** (`flex`, `min-height: 0`, `overflow-y: auto`), con cabecera y pie fijos. |
 | V GMM 0013 | 2026-07-28 | **Títulos alternativos por país** en la ficha: sección «También conocida como» que muestra cómo se llama el título en otros mercados (ej. *Duro de matar* → «La jungla de cristal» en España). Se pide con `append_to_response=alternative_titles` (sin llamada extra) y se filtra a mercados en español + inglés (`GMM.util.titulosAlternativos`). `logica.js` 86→92. |
 | V GMM 0012 | 2026-07-28 | **Header fijo**: `position: sticky; top: 0` (z-index 50, por debajo de modales y avisos), de modo que la cabecera queda pegada arriba al hacer scroll. Su fondo sólido tapa el contenido que pasa por debajo. |
