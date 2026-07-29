@@ -249,6 +249,9 @@ ordena ni filtra por IMDb (ni trae `imdb_id`), cada categoría de ranking se arm
 `tipo:categoria`**: (1) candidatos de `GMM.tmdb.descubrir` por nota de TMDB; (2) su `imdb_id` vía
 `GMM.tmdb.ficha` en lotes de 5; (3) su nota de IMDb vía `GMM.omdb.notas` en lotes de 5. Luego
 `GMM.util.mejoresPorImdb` (pura y testable) filtra IMDb > `IMDB_MIN` (6), ordena y corta a 10.
+Las tarjetas de ranking **muestran esa nota de IMDb en la esquina** (`GMM.ui.tarjeta` pinta la
+insignia `.tarjeta-imdb` solo si el ítem trae `imdbNota`; Tendencia, Favoritas y las cuadrículas
+normales no la llevan, así que no aparece).
 **Sin clave de OMDb —o si OMDb no devuelve nada— cae a los primeros por nota de TMDB**, de modo
 que el carrusel sigue funcionando sin OMDb. Las categorías y sus rangos viven en
 `GMM.config.CATEGORIAS_SUGERENCIA`. Lo orquesta `GMM.app` (`cargarCarrusel`, `cargarRanking`,
