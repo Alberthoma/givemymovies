@@ -82,7 +82,14 @@ despliega cinco categorías:
 Las tres de «las 10 mejores» se ordenan por **nota real de IMDb** (mayor de 6), para lo que usa
 tu clave de OMDb; sin ella, se ordenan por la nota de TMDB. El carrusel **respeta el interruptor
 Película / Serie**, y al tocar una carátula se abre su ficha de dónde verla. Desliza con el dedo
-en el móvil o con las flechas ‹ › en el ordenador.
+en el móvil o con las flechas ‹ › en el ordenador, que son **infinitas**: al llegar al final
+vuelven al principio, y al revés.
+
+En «Las 10 de siempre», «Nunca es tarde» y «Clásicos» aparece además un botón **«Ver más»**:
+abre una **cuadrícula paginada año por año** con las **10 mejores de cada año** del intervalo
+(por nota de TMDB de 6 o más), de la más antigua a la más reciente. Ejemplo, en Clásicos: las 10
+mejores de 1950, luego las de 1951, y así hasta 1979; si un año solo tiene 6 que llegan a la nota,
+muestra esas 6.
 
 ---
 
@@ -216,7 +223,8 @@ Para separarlos: corta cada bloque a su archivo y enlázalos en este orden con e
 4. **Comparador de países** — útil para quien usa VPN.
 5. **Sorpréndeme** — película o serie al azar que cumpla tus filtros.
 
-*Ya hechas: carrusel de sugerencias en el inicio, con «top 10» por IMDb (V GMM 0017);
+*Ya hechas: carrusel de sugerencias en el inicio, con «top 10» por IMDb, infinito y con «Ver más»
+año por año (V GMM 0017–0019);
 puntuaciones de IMDb / Rotten Tomatoes / Metacritic vía OMDb (V GMM 0016);
 PWA instalable (V GMM 0003); descubrir por género, año y nota, y las series
 (V GMM 0005); interruptor Película/Serie con series en todas las búsquedas (V GMM 0006);

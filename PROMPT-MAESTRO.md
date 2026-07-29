@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.18 · Aplicación V GMM 0018 · 29 de julio de 2026**
+**Documento v1.19 · Aplicación V GMM 0019 · 29 de julio de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies/>
 
 ---
@@ -588,7 +588,11 @@ Tendencia, Las 10 de siempre (2000→hoy), Nunca es tarde (1980–2000), Clásic
 prefieres (favoritas por tipo). Respeta el interruptor peli/serie y las tarjetas (`GMM.ui.tarjeta`)
 abren la **ficha completa** (`abrirFicha`, como buscar por título; V GMM 0018). Como la
 delegación de clic de `#resultados` no alcanza a `#descubrimiento`, `#carrusel` tiene su propio
-listener: `[data-abrir]` → `abrirFicha` y `[data-lista]` → `alternarLista`. **El «top 10» se rankea por nota real de IMDb** porque `/discover` no ordena por
+listener: `[data-abrir]` → `abrirFicha` y `[data-lista]` → `alternarLista`. Las flechas ‹ › son
+**infinitas** (`desplazarCarrusel`: al llegar a un extremo saltan al otro, sin clonar). En las tres
+categorías con intervalo, un botón **«Ver más»** (`verMasCategoria`) abre la cuadrícula paginada
+año por año con las **10 mejores de cada año** por **nota de TMDB ≥ 6**, reutilizando el recorrido
+de la 0015 con `estado.topAnio` = 10 (corta cada año a 10 y avanza de año en año). **El «top 10» se rankea por nota real de IMDb** porque `/discover` no ordena por
 IMDb: candidatos por nota de TMDB → `imdb_id` con `GMM.tmdb.ficha` (lotes de 5, `GMM.util.enLotes`)
 → nota con `GMM.omdb.notas` (lotes de 5) → `GMM.util.mejoresPorImdb` filtra `> 6`, ordena y corta a
 10. Perezoso (solo al abrir la categoría; Tendencia y Favoritas no gastan OMDb) y cacheado en
@@ -800,6 +804,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.19 | V GMM 0019 | 29-07-2026 | **Carrusel infinito** (las flechas ‹ › dan la vuelta al llegar a un extremo, `desplazarCarrusel`, sin clonar) y botón **«Ver más»** en las tres categorías con intervalo (de siempre / nunca es tarde / clásicos): abre la cuadrícula paginada año por año con las **10 mejores de cada año** por nota de TMDB ≥ 6, reutilizando el recorrido de la 0015 con `estado.topAnio` = 10. `sw.js` 16→17. |
 | 1.18 | V GMM 0018 | 29-07-2026 | **Las tarjetas del carrusel abren la ficha completa** (`abrirFicha`, como buscar por título), no el modal. Arregla que en la 0017 el clic en el carrusel no respondía: la delegación de `[data-abrir]`/`[data-lista]` estaba solo en `#resultados`, que no alcanza a `#descubrimiento`; ahora `#carrusel` tiene su propio listener. `sw.js` 15→16. |
 | 1.17 | V GMM 0017 | 29-07-2026 | **Carrusel de sugerencias en el inicio** (sección `#descubrimiento`, bajo el header y encima del buscador; solo visible en el inicio vía `fijarPantalla`). Por defecto **Tendencia** (`/trending/{movie\|tv}/week`, endpoint nuevo `GMM.tmdb.tendencia`); el botón «Dame sugerencias» despliega 5 categorías (Tendencia, Las 10 de siempre 2000→hoy, Nunca es tarde 1980–2000, Clásicos 1950–1979, Lo que prefieres = favoritas). El «top 10» se rankea por **nota real de IMDb > 6**: candidatos de TMDB → `imdb_id` (`ficha`) → nota (`omdb.notas`), en lotes de 5, y `GMM.util.mejoresPorImdb` (pura) filtra/ordena/corta; perezoso, cacheado por `tipo:categoria`, y sin clave de OMDb cae a la nota de TMDB. Respeta el interruptor; las tarjetas abren el detalle. `sw.js` 14→15, `logica.js` 115→120. *(Entorno remoto sin npm: `interfaz.js`/`pwa.js` no ejecutadas; pasar en local.)* |
 | 1.16 | V GMM 0016 | 29-07-2026 | **Notas de IMDb, Rotten Tomatoes y Metacritic** en la ficha y en el modal de detalle, vía **OMDb** como fuente secundaria y **opcional** (módulo `GMM.omdb`, bloque JS 5b). Se cruza por el `imdb_id` de TMDB (en series, con `append_to_response=…,external_ids`). Segunda clave opcional en ⚙ (`gmm_omdb_key`): sin ella la app funciona igual. Solo se consulta en la ficha, no en las cuadrículas (tope de 1.000/día). `sw.js`: `omdbapi.com` a solo red. `logica.js` 106→115 (parseo de OMDb). *(Entorno remoto sin npm: `interfaz.js`/`pwa.js` no ejecutadas allí; pasar en local.)* |

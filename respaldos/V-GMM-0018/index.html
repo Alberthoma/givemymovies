@@ -601,9 +601,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
 .carrusel::-webkit-scrollbar { display: none; }
 .carrusel .tarjeta { flex: 0 0 150px; scroll-snap-align: start; }
 .carrusel-vacio { color: #8ba0b6; font-size: 14px; padding: 20px 4px; }
-.carrusel-acciones { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 4px; }
-.btn-vermas { border-color: rgba(74, 168, 255, 0.5); color: #8fc9ff; }
-.btn-vermas:hover { border-color: #4aa8ff; background: rgba(74, 168, 255, 0.1); }
+.btn-sugerencias { margin-top: 4px; }
 .sugerencias-cats { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 14px; }
 .cat {
   padding: 8px 15px; border-radius: 999px; white-space: nowrap;
@@ -949,10 +947,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
       </div>
     </div>
     <div class="carrusel" id="carrusel"></div>
-    <div class="carrusel-acciones">
-      <button class="boton-sec btn-vermas oculto" id="btnVerMas">Ver m&aacute;s &#8594;</button>
-      <button class="boton-sec btn-sugerencias" id="btnSugerencias">&#10024; Dame sugerencias</button>
-    </div>
+    <button class="boton-sec btn-sugerencias" id="btnSugerencias">&#10024; Dame sugerencias</button>
     <div class="sugerencias-cats oculto" id="sugerenciasCats" role="group" aria-label="Categorías de sugerencias">
       <button class="cat activa" data-cat="tendencia">Tendencia</button>
       <button class="cat" data-cat="siempre">Las 10 de siempre</button>
@@ -1055,7 +1050,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   <footer class="pie">
     <span>givemymovies · datos de disponibilidad vía TMDB / JustWatch</span>
     <span>Tus listas se guardan solo en este navegador</span>
-    <span id="version-app">V GMM 0019</span>
+    <span id="version-app">V GMM 0018</span>
   </footer>
 </div>
 
@@ -2804,8 +2799,7 @@ GMM.app = (function () {
     /* Paginación de las cuadrículas (Descubrir y Trama) */
     ctxPagina: null,      // { clase, titulo, texto, pagina, total }
     /* Carrusel de sugerencias del inicio */
-    categoria: "tendencia", // "tendencia" | "siempre" | "tarde" | "clasicos" | "favoritas"
-    topAnio: 0              // "Ver más": nº de títulos por año (0 = Descubrir normal)
+    categoria: "tendencia" // "tendencia" | "siempre" | "tarde" | "clasicos" | "favoritas"
   };
 
   /* Caché en memoria del carrusel, por "tipo:categoria": volver a una categoría
@@ -3629,12 +3623,10 @@ GMM.app = (function () {
     } else if (indice === 0) {
       promesa = buscarDesdeAnio(0, 1, 0);
     } else if (previo) {
-      /* "Ver más" (topAnio): un solo bloque de 10 por año, así que siempre se
-         salta al año siguiente. Descubrir normal: se sigue dentro del mismo año
-         mientras le queden páginas. */
-      promesa = (estado.topAnio || previo.pag >= previo.total)
-        ? buscarDesdeAnio(previo.iAnio + 1, 1, 0)
-        : buscarDesdeAnio(previo.iAnio, previo.pag + 1, 0);
+      /* Se sigue dentro del mismo año mientras le queden páginas. */
+      promesa = previo.pag < previo.total
+        ? buscarDesdeAnio(previo.iAnio, previo.pag + 1, 0)
+        : buscarDesdeAnio(previo.iAnio + 1, 1, 0);
     } else {
       return Promise.resolve();
     }
@@ -3656,23 +3648,11 @@ GMM.app = (function () {
         iAnio: cursor.iAnio, ano: cursor.ano, pag: cursor.pag, total: cursor.total
       };
       estado.ctxPagina = { clase: "anios", titulo: titulo, texto: "", pagina: indice + 1, total: 0 };
-
-      /* Con "Ver más" cada año aporta como mucho topAnio títulos (las 10
-         mejores; menos si el año no llega), y el paginador avanza de año en
-         año. Descubrir normal pagina dentro del año, como siempre. */
-      var items = estado.topAnio ? cursor.items.slice(0, estado.topAnio) : cursor.items;
-      var etiqueta = estado.topAnio
-        ? cursor.ano + " · " + items.length + (items.length === 1 ? " título" : " mejores")
-        : cursor.ano + " · página " + cursor.pag + " de " + cursor.total;
-      var hayNext = estado.topAnio
-        ? cursor.iAnio < estado.anios.length - 1
-        : (cursor.pag < cursor.total || cursor.iAnio < estado.anios.length - 1);
-
-      pintarRejilla(items, titulo, subtituloDescubrir(), {
+      pintarRejilla(cursor.items, titulo, subtituloDescubrir(), {
         pagina: indice + 1,
-        etiqueta: etiqueta,
+        etiqueta: cursor.ano + " · página " + cursor.pag + " de " + cursor.total,
         hayPrev: indice > 0,
-        hayNext: hayNext
+        hayNext: cursor.pag < cursor.total || cursor.iAnio < estado.anios.length - 1
       });
     });
   }
@@ -3736,8 +3716,6 @@ GMM.app = (function () {
   }
 
   function buscar() {
-    /* Buscar a mano es Descubrir normal: se sale del modo "Ver más" (10/año). */
-    estado.topAnio = 0;
     if (estado.metodo === "descubrir") { hacerDescubrir(); return; }
 
     var texto = $("entrada").value.trim();
@@ -3852,12 +3830,15 @@ GMM.app = (function () {
     });
 
     /* --- carrusel de sugerencias del inicio --- */
-    $("carruselPrev").addEventListener("click", function () { desplazarCarrusel(-1); });
-    $("carruselNext").addEventListener("click", function () { desplazarCarrusel(1); });
+    $("carruselPrev").addEventListener("click", function () {
+      $("carrusel").scrollBy({ left: -$("carrusel").clientWidth * 0.85, behavior: "smooth" });
+    });
+    $("carruselNext").addEventListener("click", function () {
+      $("carrusel").scrollBy({ left: $("carrusel").clientWidth * 0.85, behavior: "smooth" });
+    });
     $("btnSugerencias").addEventListener("click", function () {
       $("sugerenciasCats").classList.toggle("oculto");
     });
-    $("btnVerMas").addEventListener("click", verMasCategoria);
     $("sugerenciasCats").addEventListener("click", function (e) {
       var boton = e.target.closest("[data-cat]");
       if (!boton) return;
@@ -3907,7 +3888,6 @@ GMM.app = (function () {
     /* Cambiar un criterio rehace la búsqueda si ya hay una cuadrícula
        delante, y el recorrido empieza de cero: lo pedido es otra cosa. */
     function alCambiarCriterio() {
-      estado.topAnio = 0;   // tocar un criterio a mano vuelve a Descubrir normal
       guardarPrefs();
       if (estado.vista === "rejilla") hacerDescubrir();
     }
@@ -4286,8 +4266,6 @@ GMM.app = (function () {
     Array.prototype.forEach.call($("sugerenciasCats").children, function (b) {
       b.classList.toggle("activa", b.getAttribute("data-cat") === clave);
     });
-    /* "Ver más" solo tiene sentido en las categorías con intervalo de años. */
-    $("btnVerMas").classList.toggle("oculto", !categoriaDef(clave).anoDesde);
 
     var cacheKey = estado.tipo + ":" + clave;
     if (cacheCarrusel[cacheKey]) { pintarCarrusel(cacheCarrusel[cacheKey], vacioDe(clave)); return; }
@@ -4307,46 +4285,6 @@ GMM.app = (function () {
 
   /* Recarga el carrusel de la categoría actual (p. ej. al cambiar el tipo). */
   function refrescarCarrusel() { cargarCarrusel(estado.categoria); }
-
-  /* Desplaza el carrusel un paso. Es "infinito": al llegar a un extremo, la
-     flecha da la vuelta al otro (derecha en el final -> principio, y viceversa). */
-  function desplazarCarrusel(dir) {
-    var c = $("carrusel");
-    var paso = c.clientWidth * 0.85;
-    var enFinal = c.scrollLeft + c.clientWidth >= c.scrollWidth - 4;
-    var enInicio = c.scrollLeft <= 4;
-    if (dir > 0) {
-      c.scrollTo({ left: enFinal ? 0 : c.scrollLeft + paso, behavior: "smooth" });
-    } else {
-      c.scrollTo({ left: enInicio ? c.scrollWidth : c.scrollLeft - paso, behavior: "smooth" });
-    }
-  }
-
-  /* "Ver más" de una categoría con intervalo (de siempre / nunca es tarde /
-     clásicos): abre la cuadrícula paginada año por año, con las 10 mejores de
-     cada año (nota de TMDB >= 6), del más antiguo al más reciente. Reutiliza la
-     maquinaria de Descubrir; estado.topAnio hace que corte cada año a 10. */
-  function verMasCategoria() {
-    var def = categoriaDef(estado.categoria);
-    if (!def.anoDesde) return;
-    estado.metodo = "descubrir";
-    estado.genero = "";
-    estado.anoDesde = String(def.anoDesde);
-    estado.anoHasta = String(def.anoHasta || new Date().getFullYear());
-    estado.notaMin = String(GMM.config.IMDB_MIN);   // 6 o más
-    estado.orden = "antigua";                        // del más antiguo
-    estado.porNota = true;                            // mejor puntuadas de cada año
-    estado.topAnio = GMM.config.TOP_CATEGORIA;        // 10 por año
-    reflejar();
-    /* reflejar() no toca los selects de Descubrir (los llenan las montar*), así
-       que los ponemos a mano para que el formulario refleje lo que se busca. */
-    $("selGenero").value = "";
-    $("selAnoDesde").value = estado.anoDesde;
-    $("selAnoHasta").value = estado.anoHasta;
-    $("selNota").value = estado.notaMin;
-    guardarPrefs();
-    hacerDescubrir();
-  }
 
   /* ---------------------------------------------------------------- */
 
