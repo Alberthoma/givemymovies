@@ -2,9 +2,9 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0015`
-**Próxima versión:** `V GMM 0016`
-**Última actualización:** 2026-07-28
+**Versión activa:** `V GMM 0016`
+**Próxima versión:** `V GMM 0017`
+**Última actualización:** 2026-07-29
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies/> · GitHub Pages desde `main`, raíz.
 
@@ -135,6 +135,7 @@ tocar ni una línea**: basta con enlazarlos en este orden.
 | 3 | `js/demo.js` | `GMM.demo` — catálogo de ejemplo sin clave |
 | 4 | `js/util.js` | `GMM.util` — escapado, normalizar, enumerar, retardo, lotes |
 | 5 | `js/tmdb.js` | `GMM.tmdb` — peticiones, caché, conmutación demo/vivo |
+| 5b | `js/omdb.js` | `GMM.omdb` — **fuente secundaria opcional**: notas de IMDb/RT/Metacritic por `imdb_id` |
 | 6 | `js/idioma.js` | `GMM.idioma` — **el núcleo**: evaluar, filtrar, frase |
 | 7 | `js/listas.js` | `GMM.listas` — favoritas y pendientes |
 | 8 | `js/ui.js` | `GMM.ui` — pintado de componentes, avisos |
@@ -212,11 +213,29 @@ resultados, saltándose los vacíos. Por eso `paginadorHtml()` recibe un objeto 
 disparar una ráfaga de peticiones inútiles. **Sin clave no se aplica**: el catálogo de ejemplo
 se filtra en memoria y ahí no hay peticiones que ahorrar.
 
+### Las notas de IMDb / RT / Metacritic (desde V GMM 0016)
+
+TMDB solo da **su propia** nota (0–10). Las de **IMDb, Rotten Tomatoes y Metacritic** vienen
+de **OMDb**, una segunda API gratuita (1.000 consultas/día) con **su propia clave opcional**.
+Es un **enriquecimiento**, no una dependencia: sin clave de OMDb la app funciona exactamente
+igual, solo que la ficha no muestra esas notas.
+
+- Vive en `GMM.omdb` (bloque JS 5b). `parsear(json)` convierte la respuesta cruda en
+  `{ imdb, rt, meta }` tolerando `"N/A"` y `Response:"False"`; **está aislada a propósito**
+  para poder probarla sin red. `notas(imdbId)` **nunca lanza**: cualquier fallo → `null`.
+- El puente es el **`imdb_id`**: las películas lo traen suelto; las series solo si se pide
+  `append_to_response=…,external_ids`, y `normalizarMedia` lo sube al nivel de la ficha.
+- **Solo se pide en la ficha y en el modal de detalle** (un título cada vez), nunca en las
+  cuadrículas de Descubrir/Trama: serían decenas de peticiones y reventaría el tope diario.
+- Llega **después** de pintar la ficha y **repinta** (barato, sin volver a la API). La clave
+  se guarda en ⚙, junto a la de TMDB.
+
 ### Persistencia (`localStorage`)
 
 | Clave | Contenido |
 |---|---|
 | `gmm_tmdb_key` | Clave de la API de TMDB |
+| `gmm_omdb_key` | Clave de la API de OMDb (opcional; notas de IMDb/RT/Metacritic) |
 | `gmm_prefs` | Modo, plataforma, país, idioma y los criterios de Descubrir (género, intervalo de años, nota, orden) |
 | `gmm_listas` | `{ favoritas: [], pendientes: [] }` |
 
@@ -255,6 +274,16 @@ con ocho películas de ejemplo, para que la app nunca aparezca vacía.
 | **Descubrir por género** | `/discover/movie` · `/discover/tv` con `with_genres`, `vote_average.gte`, `sort_by`, y el intervalo por `primary_release_date.gte/.lte` (o `first_air_date.*`). El recorrido año por año usa además `primary_release_year` / `first_air_date_year` |
 | Catálogo de plataformas | `/watch/providers/movie` |
 
+### Datos: OMDb (secundaria, opcional)
+
+| Uso | Endpoint |
+|---|---|
+| **Notas IMDb / RT / Metacritic** | `https://www.omdbapi.com/?apikey=…&i={imdb_id}` ← se cruza por el `imdb_id` de TMDB |
+
+Clave gratuita y aparte de la de TMDB (1.000 consultas/día). Se pide en
+<https://www.omdbapi.com/apikey.aspx> (plan FREE!) y hay que **activarla** desde el correo.
+Sin ella, la app no muestra esas notas pero funciona igual.
+
 Los géneros **no** se piden a la API: son una taxonomía estable, viven en
 `GMM.datos.GENEROS_PELICULA` y `GMM.datos.GENEROS_SERIE`. Ahorra una llamada y funciona igual
 en demo que en vivo.
@@ -277,18 +306,25 @@ el `og:image`. Y no cojas el primer `<img>` de la página: suele ser un recomend
 **La aplicación no tiene dependencias.** `pruebas/` es una herramienta aparte y opcional.
 
 ```bash
-node pruebas/logica.js      # 106 comprobaciones · sin dependencias · instantáneo
+node pruebas/logica.js      # 115 comprobaciones · sin dependencias · instantáneo
 node pruebas/imagenes.js    #  15 comprobaciones · necesita internet · ~30 s
 node pruebas/interfaz.js    #  72 comprobaciones · playwright-core · ~50 s
 node pruebas/pwa.js         #  19 comprobaciones · playwright-core · ~20 s
 ```
 
-Última ejecución: **212 comprobaciones, todas correctas**, sin errores de JavaScript en
+Última ejecución: **221 comprobaciones, todas correctas**, sin errores de JavaScript en
 consola.
 
+> **V GMM 0016 se cerró en un entorno remoto sin acceso a npm**, así que `interfaz.js` y
+> `pwa.js` (que dependen de `playwright-core`) **no se pudieron ejecutar allí**: solo corrió
+> `logica.js` (115/115, con el nuevo parseo de OMDb). Conviene pasar las dos suites de
+> navegador en local tras `git pull` para dejar el 221 confirmado de punta a punta.
+
 Detalle en `pruebas/LEEME.md`. `logica.js` cubre la normalización de series, Descubrir sobre
-la demo, las listas conscientes del tipo, la búsqueda de series (título y trama) y —desde la
-0015— el intervalo de años y las combinaciones de orden. `interfaz.js` recorre el interruptor
+la demo, las listas conscientes del tipo, la búsqueda de series (título y trama), —desde la
+0015— el intervalo de años y las combinaciones de orden, y —desde la 0016— el parseo de las
+notas de OMDb (`GMM.omdb.parsear`: respuesta completa, `Response:"False"`, campos ausentes,
+`"N/A"` y el `Metascore` de reserva). `interfaz.js` recorre el interruptor
 peli/serie, la búsqueda de una serie por título, Descubrir con series y los interruptores de
 orden con su paginador por años.
 
@@ -327,9 +363,10 @@ Comprobación manual rápida, si no quieres ejecutar nada:
   funcionan con conceptos pero no con frases largas.
 - **Series en las cuatro búsquedas** (desde V GMM 0006): el interruptor peli/serie manda en
   título, actor, trama y Descubrir. Antes (V GMM 0005) las series solo entraban por Descubrir.
-- **Puntuaciones de otras plataformas** (IMDb, Rotten Tomatoes): descartadas por ahora. La
-  calificación de Descubrir es la propia de TMDB (0–10). Traer las demás exigiría OMDb, con
-  su segunda clave. Ver el historial del 28-07 y `PROMPT-MAESTRO.md` §13.
+- **Puntuaciones de otras plataformas** (IMDb, Rotten Tomatoes, Metacritic): **integradas en
+  V GMM 0016** vía OMDb (`GMM.omdb`), con su segunda clave **opcional**. Aparecen en la ficha
+  y en el modal de detalle, no en las cuadrículas. La calificación de Descubrir sigue siendo
+  la propia de TMDB (0–10).
 - **Filmografías**: se consultan los 24 títulos más populares, con 5 peticiones simultáneas.
 - **La clave viaja al navegador**: para publicar en internet haría falta un servidor intermedio.
 
@@ -483,6 +520,7 @@ puede ir dentro de `index.html` sin problema.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| V GMM 0016 | 2026-07-29 | **Notas de IMDb, Rotten Tomatoes y Metacritic** en la ficha (y en el modal de detalle), vía **OMDb** como fuente **secundaria y opcional**. Módulo nuevo `GMM.omdb` (bloque JS 5b): `parsear` normaliza la respuesta a `{ imdb, rt, meta }` y `notas(imdbId)` **nunca lanza** (fallo → `null`). Se cruza por el `imdb_id` de TMDB —suelto en películas, vía `external_ids` en series—. Segunda clave **opcional** en ⚙ (`gmm_omdb_key`): sin ella la app va igual. Solo se consulta en la ficha, no en las cuadrículas (tope de 1.000/día). `sw.js`: `omdbapi.com` a **solo red** (las notas cambian). `logica.js` 106→115. **`interfaz.js` y `pwa.js` no se pudieron correr en el entorno remoto (sin npm para `playwright-core`); pasar en local.** |
 | V GMM 0015 | 2026-07-28 | **Descubrir se ordena, y por dos criterios a la vez.** Tres interruptores —*Más recientes*, *Más antiguas*, *Mayor puntuación*—: los dos de fecha se excluyen, el de nota se combina con cualquiera. El «Año» exacto pasa a ser un **intervalo desde–hasta**, que es lo que permite pedir «las mejor puntuadas de los últimos años». Como `sort_by` de TMDB admite **una sola clave**, la combinación año + nota se resuelve **recorriendo los años uno a uno** y pidiéndole a cada uno su lista por nota: sale 2026 primero y, dentro de 2026, las mejor puntuadas, sin coste extra —una petición por página—. El paginador pasa de «Página 3 de 40» a **«2026 · página 3 de 5»** y salta solo los años vacíos. Además: las consultas cortan en la fecha de hoy (ordenar por fecha descendente llenaba la primera página de **estrenos futuros**) y ordenar por nota exige **300 votos**, medido contra la API real. `logica.js` 92→106, `interfaz.js` 59→72. |
 | V GMM 0014 | 2026-07-28 | **Arreglo:** el modal de detalle no hacía scroll y en móvil el contenido de abajo (países, botones) quedaba cortado si la ficha era alta. Ahora el modal se limita a la altura de la pantalla (`max-height: calc(100dvh - 40px)`, con `100vh` de reserva) y el **cuerpo hace scroll interno** (`flex`, `min-height: 0`, `overflow-y: auto`), con cabecera y pie fijos. |
 | V GMM 0013 | 2026-07-28 | **Títulos alternativos por país** en la ficha: sección «También conocida como» que muestra cómo se llama el título en otros mercados (ej. *Duro de matar* → «La jungla de cristal» en España). Se pide con `append_to_response=alternative_titles` (sin llamada extra) y se filtra a mercados en español + inglés (`GMM.util.titulosAlternativos`). `logica.js` 86→92. |

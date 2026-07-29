@@ -51,6 +51,18 @@ La pastilla de la cabecera pasa de *Modo demo* a *Datos en vivo*.
 > publicas esta web en internet, cualquiera podría leerla en el código: para eso haría falta
 > un pequeño servidor intermedio que la guarde.
 
+### Notas de IMDb, Rotten Tomatoes y Metacritic (opcional)
+
+La ficha muestra la nota de TMDB. Si además quieres las de **IMDb, Rotten Tomatoes y
+Metacritic**, hace falta una segunda clave gratuita, la de **OMDb**. Es **opcional**: sin ella
+la app funciona exactamente igual, solo que no verás esas notas.
+
+1. Pídela en [omdbapi.com/apikey.aspx](https://www.omdbapi.com/apikey.aspx), plan **FREE!** (1.000 consultas al día).
+2. **Activa** la clave desde el enlace que te llega al correo (si no, no funciona).
+3. En la app, en el ⚙, pégala en el campo **Clave de OMDb** y guarda.
+
+Las notas aparecen en la ficha y en el detalle, no en las cuadrículas de descubrimiento.
+
 ---
 
 ## Cómo se busca
@@ -150,6 +162,7 @@ Cada banner indica a qué archivo correspondería si algún día quieres separar
 | 3 · Catálogo de demo | `js/demo.js` | Datos de ejemplo sin clave |
 | 4 · Utilidades | `js/util.js` | Escapado, lotes, retardos |
 | 5 · Acceso a TMDB | `js/tmdb.js` | Peticiones y caché |
+| 5b · Acceso a OMDb | `js/omdb.js` | Notas de IMDb/RT/Metacritic (opcional) |
 | 6 · Lógica de idioma | `js/idioma.js` | Filtrado y frase resumen |
 | 7 · Mis listas | `js/listas.js` | Favoritas y pendientes |
 | 8 · Interfaz | `js/ui.js` | Pintado de componentes |
@@ -166,8 +179,9 @@ Para separarlos: corta cada bloque a su archivo y enlázalos en este orden con e
 - **Precios de alquiler y compra**: TMDB no los publica. Haría falta la API de pago de JustWatch.
 - **Búsqueda por trama**: TMDB no busca dentro del texto de la sinopsis. Se usa su sistema
   de palabras clave, que funciona bien con conceptos pero no con frases largas.
-- **Puntuaciones de IMDb y Rotten Tomatoes**: no están. TMDB no las da y traerlas exigiría
-  otra fuente con su propia clave. La nota que se muestra y con la que se filtra es la de TMDB.
+- **Puntuaciones de IMDb, Rotten Tomatoes y Metacritic**: **ya están** (V GMM 0016), pero
+  requieren la clave opcional de OMDb (arriba). La nota con la que se **filtra** en Descubrir
+  sigue siendo la de TMDB.
 - **Filmografías largas**: se consultan los 24 títulos más populares, para no disparar
   cientos de peticiones.
 
@@ -180,9 +194,9 @@ Para separarlos: corta cada bloque a su archivo y enlázalos en este orden con e
 3. **Tráiler incrustado** — un clic sin salir de la app.
 4. **Comparador de países** — útil para quien usa VPN.
 5. **Sorpréndeme** — película o serie al azar que cumpla tus filtros.
-6. **Puntuaciones de IMDb y Rotten Tomatoes** — requeriría otra fuente (OMDb) con su clave.
 
-*Ya hechas: PWA instalable (V GMM 0003); descubrir por género, año y nota, y las series
+*Ya hechas: puntuaciones de IMDb / Rotten Tomatoes / Metacritic vía OMDb (V GMM 0016);
+PWA instalable (V GMM 0003); descubrir por género, año y nota, y las series
 (V GMM 0005); interruptor Película/Serie con series en todas las búsquedas (V GMM 0006);
 orden e intervalo de años en Descubrir (V GMM 0015).*
 

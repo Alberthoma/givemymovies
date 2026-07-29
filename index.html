@@ -462,6 +462,8 @@ a:hover { text-decoration: underline; }
   background: #0e151d; border: 1px solid #22303e; color: #8ba0b6;
 }
 .dato.nota { border-color: rgba(255, 138, 61, 0.4); color: #ffb37d; background: rgba(255, 138, 61, 0.10); }
+.dato.nota-ext { border-color: rgba(74, 168, 255, 0.4); color: #8fc9ff; background: rgba(74, 168, 255, 0.10); }
+.ficha-fuente-notas { font-size: 11.5px; color: #5e768c; margin: -4px 0 12px; }
 .ficha-sinopsis { color: #c3d3e2; font-size: 15px; max-width: 70ch; }
 
 /* "También conocida como": títulos alternativos por país. */
@@ -972,7 +974,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   <footer class="pie">
     <span>givemymovies · datos de disponibilidad vía TMDB / JustWatch</span>
     <span>Tus listas se guardan solo en este navegador</span>
-    <span id="version-app">V GMM 0015</span>
+    <span id="version-app">V GMM 0016</span>
   </footer>
 </div>
 
@@ -1001,6 +1003,22 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
         La clave se guarda solo en este navegador. Si algún día publicas la web, ten en cuenta
         que sería visible en el código; para eso haría falta un pequeño servidor intermedio.
       </p>
+
+      <div style="border-top:1px solid #22303e;margin:20px 0 16px"></div>
+      <div class="campo-modal">
+        <label for="entradaClaveOmdb">Clave de OMDb <span style="color:#5e768c;font-weight:400">(opcional)</span></label>
+        <input id="entradaClaveOmdb" type="text" placeholder="Para las notas de IMDb, Rotten Tomatoes y Metacritic" spellcheck="false">
+      </div>
+      <p style="font-size:13.5px;color:#8ba0b6">
+        <b>Opcional.</b> Sin ella la app funciona igual; solo que las fichas no muestran las notas
+        de <b style="color:#8fc9ff">IMDb</b>, <b style="color:#8fc9ff">Rotten Tomatoes</b> ni
+        <b style="color:#8fc9ff">Metacritic</b>. Es gratis (1.000 consultas al día):
+      </p>
+      <ol class="pasos">
+        <li>Pídela en <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noopener">omdbapi.com/apikey.aspx</a> (plan <b>FREE!</b>).</li>
+        <li><b>Activa</b> la clave desde el enlace que llega a tu correo.</li>
+        <li>Pégala arriba.</li>
+      </ol>
 
       <div style="border-top:1px solid #22303e;margin:20px 0 16px"></div>
       <label style="display:block;font-size:13px;font-weight:700;color:#8ba0b6;margin-bottom:9px">Copia de seguridad de tus listas</label>
@@ -1058,11 +1076,13 @@ var GMM = {};
 
 GMM.config = {
   CLAVE_API:     "gmm_tmdb_key",
+  CLAVE_OMDB:    "gmm_omdb_key",
   CLAVE_PREFS:   "gmm_prefs",
   CLAVE_LISTAS:  "gmm_listas",
 
-  API:    "https://api.themoviedb.org/3",
-  IMG:    "https://image.tmdb.org/t/p",
+  API:      "https://api.themoviedb.org/3",
+  API_OMDB: "https://www.omdbapi.com/",
+  IMG:      "https://image.tmdb.org/t/p",
 
   MAX_FILMOGRAFIA: 24,   // títulos que se consultan en lote
   CONCURRENCIA: 5,       // peticiones simultáneas máximas
@@ -1705,6 +1725,10 @@ GMM.util.normalizarMedia = function (item, tipo) {
     if (!m.runtime && Array.isArray(m.episode_run_time) && m.episode_run_time.length) {
       m.runtime = m.episode_run_time[0];
     }
+    /* Las películas traen imdb_id suelto; las series solo si se pide
+       external_ids (append_to_response). Lo subimos al nivel de la ficha
+       para que OMDb pueda cruzar por él igual en peli que en serie. */
+    if (!m.imdb_id && m.external_ids && m.external_ids.imdb_id) m.imdb_id = m.external_ids.imdb_id;
   }
   return m;
 };
@@ -1932,7 +1956,7 @@ GMM.tmdb = (function () {
 
   function serie(id) {
     if (!hayClave()) return Promise.resolve(GMM.demo.seriePorId(id));
-    return pedir("/tv/" + id, { language: "es-ES", append_to_response: "alternative_titles" })
+    return pedir("/tv/" + id, { language: "es-ES", append_to_response: "alternative_titles,external_ids" })
       .then(function (d) { return GMM.util.normalizarMedia(d, "tv"); });
   }
 
@@ -2052,6 +2076,71 @@ GMM.tmdb = (function () {
     ficha: ficha, descubrir: descubrir, persona: persona,
     filmografia: filmografia, proveedores: proveedores,
     catalogoPlataformas: catalogoPlataformas
+  };
+})();
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   BLOQUE JS 5b — ACCESO A OMDb                          → futuro js/omdb.js
+
+   Fuente SECUNDARIA y OPCIONAL. Solo aporta las notas de IMDb, Rotten
+   Tomatoes y Metacritic a la ficha, cruzando por el imdb_id que ya trae
+   TMDB. TMDB sigue siendo la base: OMDb no da disponibilidad ni idioma.
+   Si no hay clave o algo falla, devuelve null y la ficha se pinta igual
+   que sin OMDb: nunca es un punto de rotura.
+   ══════════════════════════════════════════════════════════════════════ */
+
+GMM.omdb = (function () {
+  var cache = {};
+
+  function clave() {
+    try { return localStorage.getItem(GMM.config.CLAVE_OMDB) || ""; }
+    catch (e) { return ""; }
+  }
+
+  /* Las claves de OMDb son cortas (8 caracteres). Con 6 basta para no
+     disparar peticiones condenadas al fallo cuando el campo va casi vacío. */
+  function hayClave() { return clave().length >= 6; }
+
+  function guardarClave(valor) {
+    try { localStorage.setItem(GMM.config.CLAVE_OMDB, (valor || "").trim()); return true; }
+    catch (e) { return false; }
+  }
+
+  /* Convierte la respuesta cruda de OMDb en un objeto limpio con solo lo
+     que la ficha muestra: { imdb, rt, meta }. Tolera campos ausentes,
+     "N/A" y Response:"False". Aislada a propósito para poder probarla sin
+     red. Devuelve null si no hay ninguna nota aprovechable. */
+  function parsear(json) {
+    if (!json || json.Response === "False") return null;
+    var salida = {};
+    if (json.imdbRating && json.imdbRating !== "N/A") salida.imdb = json.imdbRating;
+    var lista = Array.isArray(json.Ratings) ? json.Ratings : [];
+    lista.forEach(function (r) {
+      if (!r || !r.Value || r.Value === "N/A") return;
+      if (r.Source === "Rotten Tomatoes") salida.rt = r.Value;
+      else if (r.Source === "Metacritic") salida.meta = String(r.Value).replace("/100", "");
+    });
+    if (!salida.meta && json.Metascore && json.Metascore !== "N/A") salida.meta = json.Metascore;
+    return (salida.imdb || salida.rt || salida.meta) ? salida : null;
+  }
+
+  /* Pide las notas por imdb_id. Nunca lanza: cualquier problema (sin clave,
+     sin id, red caída, JSON inválido) se traduce a null. Cachea por id. */
+  function notas(imdbId) {
+    if (!hayClave() || !imdbId) return Promise.resolve(null);
+    if (Object.prototype.hasOwnProperty.call(cache, imdbId)) return Promise.resolve(cache[imdbId]);
+    var url = GMM.config.API_OMDB + "?apikey=" + encodeURIComponent(clave()) +
+              "&i=" + encodeURIComponent(imdbId);
+    return fetch(url)
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { var n = parsear(d); cache[imdbId] = n; return n; })
+      .catch(function () { return null; });
+  }
+
+  return {
+    clave: clave, hayClave: hayClave, guardarClave: guardarClave,
+    parsear: parsear, notas: notas
   };
 })();
 
@@ -2844,6 +2933,18 @@ GMM.app = (function () {
   /* Vista: película                                                  */
   /* ---------------------------------------------------------------- */
 
+  /* Insignias de notas externas (IMDb / Rotten Tomatoes / Metacritic) para
+     la fila .ficha-meta. Reciben el objeto de GMM.omdb.notas; si es nulo,
+     cadena vacía y la ficha queda como sin OMDb. */
+  function insigniasExternas(n) {
+    if (!n) return "";
+    var html = "";
+    if (n.imdb) html += '<span class="dato nota-ext">IMDb ' + GMM.util.esc(n.imdb) + '</span>';
+    if (n.rt)   html += '<span class="dato nota-ext">&#127813; ' + GMM.util.esc(n.rt) + '</span>';
+    if (n.meta) html += '<span class="dato nota-ext">Metacritic ' + GMM.util.esc(n.meta) + '</span>';
+    return html;
+  }
+
   function pintarPelicula() {
     var peli = estado.pelicula;
     if (!peli) return;
@@ -2882,8 +2983,10 @@ GMM.app = (function () {
             (ano ? '<span class="dato">' + ano + '</span>' : "") +
             (dur ? '<span class="dato">' + GMM.util.esc(dur) + '</span>' : "") +
             (nota ? '<span class="dato nota">&#9733; ' + nota + '</span>' : "") +
+            insigniasExternas(estado.notasExternas) +
             (peli.original_language ? '<span class="dato">Original en ' + GMM.util.esc(GMM.datos.nombreIdioma(peli.original_language)) + '</span>' : "") +
           '</div>' +
+          (estado.notasExternas ? '<div class="ficha-fuente-notas">IMDb &middot; Rotten Tomatoes &middot; Metacritic v&iacute;a OMDb</div>' : "") +
           (peli.overview ? '<p class="ficha-sinopsis">' + GMM.util.esc(peli.overview) + '</p>' : "") +
           GMM.ui.akaHtml(peli) +
           '<div class="ficha-acciones">' + GMM.ui.botonesLista(peli) + '</div>' +
@@ -2955,8 +3058,16 @@ GMM.app = (function () {
         if (!par[0]) { GMM.ui.estado("&#128533;", "No encontrada", "No hay ficha para ese título."); return; }
         estado.pelicula = par[0];
         estado.proveedores = par[1];
+        estado.notasExternas = null;
         pintarPelicula();
         window.scrollTo({ top: 0, behavior: "smooth" });
+        /* Enriquecimiento opcional: notas de IMDb/RT/Metacritic. Llega
+           después y repinta (barato: no vuelve a llamar a la API). Si no hay
+           clave de OMDb o falla, la ficha se queda tal cual. El guard evita
+           pintar sobre otra ficha si el usuario ya navegó a otra. */
+        GMM.omdb.notas(par[0].imdb_id).then(function (n) {
+          if (n && estado.pelicula === par[0]) { estado.notasExternas = n; pintarPelicula(); }
+        });
       })
       .catch(manejarError);
   }
@@ -3228,7 +3339,7 @@ GMM.app = (function () {
           GMM.ui.caratula(peli.poster_path, peli.title || peli.original_title) +
         '</div>' +
         '<div style="flex:1 1 260px;min-width:0">' +
-          '<div class="ficha-meta" style="margin-top:0">' +
+          '<div class="ficha-meta" id="metaDetalle" style="margin-top:0">' +
             (GMM.util.ano(peli.release_date) ? '<span class="dato">' + GMM.util.ano(peli.release_date) + '</span>' : "") +
             (peli.runtime ? '<span class="dato">' + GMM.util.esc(GMM.util.duracion(peli.runtime)) + '</span>' : "") +
             (peli.vote_average ? '<span class="dato nota">&#9733; ' + Number(peli.vote_average).toFixed(1) + '</span>' : "") +
@@ -3251,6 +3362,14 @@ GMM.app = (function () {
       html += '<div style="margin-top:18px"><button class="boton-sec" data-abrir-completo="' + peli.id + '" data-tipo="' + (peli.tipo === "tv" ? "tv" : "movie") + '">Ver ficha completa &#8599;</button></div>';
 
       cuerpo.innerHTML = html;
+
+      /* Notas de IMDb/RT/Metacritic: llegan después y se insertan en la
+         meta, sin rehacer el modal. Sin clave de OMDb o si falla, no aparece
+         nada y el modal queda como estaba. */
+      GMM.omdb.notas(peli.imdb_id).then(function (n) {
+        var meta = document.getElementById("metaDetalle");
+        if (n && meta) meta.insertAdjacentHTML("beforeend", insigniasExternas(n));
+      });
     }).catch(function (error) {
       cuerpo.innerHTML = '<p class="estado-txt">No se pudo cargar el detalle.</p>';
       manejarError(error);
@@ -3809,6 +3928,7 @@ GMM.app = (function () {
 
     $("btnAjustes").addEventListener("click", function () {
       $("entradaClave").value = GMM.tmdb.clave();
+      $("entradaClaveOmdb").value = GMM.omdb.clave();
       $("capaAjustes").classList.remove("oculto");
       $("entradaClave").focus();
     });
@@ -3816,6 +3936,7 @@ GMM.app = (function () {
     $("btnGuardarClave").addEventListener("click", function () {
       var valor = $("entradaClave").value.trim();
       GMM.tmdb.guardarClave(valor);
+      GMM.omdb.guardarClave($("entradaClaveOmdb").value);
       cerrarCapa("capaAjustes");
       GMM.ui.refrescarCabecera();
       montarPlataformas();
@@ -3823,6 +3944,9 @@ GMM.app = (function () {
     });
 
     $("entradaClave").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") $("btnGuardarClave").click();
+    });
+    $("entradaClaveOmdb").addEventListener("keydown", function (e) {
       if (e.key === "Enter") $("btnGuardarClave").click();
     });
 

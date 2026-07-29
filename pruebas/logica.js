@@ -339,6 +339,44 @@ m.afirmar("sin alternative_titles devuelve vacío",
   GMM.util.titulosAlternativos({ title: "Y" }).length === 0);
 
 /* ---------------------------------------------------------------- */
+m.titulo("OMDb: parseo de notas (IMDb / Rotten Tomatoes / Metacritic)");
+
+const omdbCompleto = {
+  Response: "True",
+  imdbRating: "8.7",
+  Metascore: "74",
+  Ratings: [
+    { Source: "Internet Movie Database", Value: "8.7/10" },
+    { Source: "Rotten Tomatoes", Value: "73%" },
+    { Source: "Metacritic", Value: "74/100" }
+  ]
+};
+let notas = GMM.omdb.parsear(omdbCompleto);
+m.afirmar("extrae la nota de IMDb", notas && notas.imdb === "8.7");
+m.afirmar("extrae Rotten Tomatoes tal cual (porcentaje)", notas && notas.rt === "73%");
+m.afirmar("Metacritic sin el '/100'", notas && notas.meta === "74");
+
+m.afirmar("Response:'False' devuelve null", GMM.omdb.parsear({ Response: "False", Error: "Movie not found!" }) === null);
+m.afirmar("respuesta nula devuelve null", GMM.omdb.parsear(null) === null);
+m.afirmar("sin ninguna nota aprovechable devuelve null",
+  GMM.omdb.parsear({ Response: "True", imdbRating: "N/A", Ratings: [] }) === null);
+
+let soloImdb = GMM.omdb.parsear({ Response: "True", imdbRating: "6.1", Ratings: [] });
+m.afirmar("con solo IMDb, rt y meta quedan indefinidos",
+  soloImdb && soloImdb.imdb === "6.1" && !soloImdb.rt && !soloImdb.meta);
+
+m.afirmar("ignora valores 'N/A' dentro de Ratings",
+  (() => {
+    const n = GMM.omdb.parsear({ Response: "True", Ratings: [{ Source: "Rotten Tomatoes", Value: "N/A" }], imdbRating: "5.0" });
+    return n && n.imdb === "5.0" && !n.rt;
+  })());
+m.afirmar("Metascore de reserva cuando no viene en Ratings",
+  (() => {
+    const n = GMM.omdb.parsear({ Response: "True", imdbRating: "7.0", Metascore: "61", Ratings: [] });
+    return n && n.meta === "61";
+  })());
+
+/* ---------------------------------------------------------------- */
 m.titulo("Lotes con concurrencia limitada");
 
 let simultaneas = 0, pico = 0;

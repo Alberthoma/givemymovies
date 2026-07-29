@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.15 · Aplicación V GMM 0015 · 28 de julio de 2026**
+**Documento v1.16 · Aplicación V GMM 0016 · 29 de julio de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies/>
 
 ---
@@ -541,11 +541,12 @@ los bloques en archivos **no exija tocar código**: basta enlazarlos en este ord
 | Buscar título | `/search/movie` · `/search/tv` (según el interruptor) |
 | Buscar persona | `/search/person` |
 | Filmografía | `/person/{id}/movie_credits` · `/person/{id}/tv_credits` |
-| Ficha película / serie | `/movie/{id}` · `/tv/{id}` (con `append_to_response=alternative_titles`) |
+| Ficha película / serie | `/movie/{id}` · `/tv/{id}` (con `append_to_response=alternative_titles`; en series además `,external_ids` para el `imdb_id`) |
 | **Dónde verla** | `/movie/{id}/watch/providers` · `/tv/{id}/watch/providers` ← el dato central |
 | Trama | `/search/keyword` → `/discover/movie?with_keywords=` · `/discover/tv?with_keywords=` |
 | Descubrir por género | `/discover/movie` · `/discover/tv` con `with_genres`, `primary_release_year` / `first_air_date_year`, `vote_average.gte` |
 | Catálogo de plataformas | `/watch/providers/movie` |
+| **Notas IMDb/RT/Metacritic** (OMDb, secundaria y opcional) | `https://www.omdbapi.com/?apikey=…&i={imdb_id}` — clave aparte; sin ella la app va igual |
 
 Todas con `language=es-ES`. Caché en memoria por ruta + parámetros.
 
@@ -564,9 +565,19 @@ en demo que en vivo.
 
 | Clave | Contenido |
 |---|---|
-| `gmm_tmdb_key` | Clave de la API |
+| `gmm_tmdb_key` | Clave de la API de TMDB |
+| `gmm_omdb_key` | Clave de la API de OMDb (opcional; notas de IMDb/RT/Metacritic) |
 | `gmm_prefs` | Modo, plataforma, país e idioma |
 | `gmm_listas` | `{ favoritas: [], pendientes: [] }` |
+
+**OMDb como fuente secundaria opcional (V GMM 0016).** Módulo `GMM.omdb` (bloque JS 5b, futuro
+`js/omdb.js`), hermano de `GMM.tmdb`. `parsear(json)` → `{ imdb, rt, meta }` tolerando `"N/A"`
+y `Response:"False"` (aislada para poder probarla sin red); `notas(imdbId)` **nunca lanza**
+(fallo → `null`) y cachea por id. Se cruza por el `imdb_id` de TMDB —suelto en películas, vía
+`external_ids` en series, que `normalizarMedia` sube al nivel de la ficha—. **Solo se pide en
+la ficha y en el modal de detalle** (nunca en las cuadrículas: reventaría el tope de 1.000/día),
+llega después de pintar y repinta sin volver a la API. Segunda clave en ⚙, junto a la de TMDB.
+En `sw.js`, `omdbapi.com` va a **solo red** (las notas cambian con el tiempo).
 
 **Mapa país → idiomas.** Lista ordenada por país, con el idioma principal primero. Cubre
 Hispanoamérica, Europa, Norteamérica, países lusófonos, Asia-Pacífico y Medio Oriente.
@@ -774,6 +785,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.16 | V GMM 0016 | 29-07-2026 | **Notas de IMDb, Rotten Tomatoes y Metacritic** en la ficha y en el modal de detalle, vía **OMDb** como fuente secundaria y **opcional** (módulo `GMM.omdb`, bloque JS 5b). Se cruza por el `imdb_id` de TMDB (en series, con `append_to_response=…,external_ids`). Segunda clave opcional en ⚙ (`gmm_omdb_key`): sin ella la app funciona igual. Solo se consulta en la ficha, no en las cuadrículas (tope de 1.000/día). `sw.js`: `omdbapi.com` a solo red. `logica.js` 106→115 (parseo de OMDb). *(Entorno remoto sin npm: `interfaz.js`/`pwa.js` no ejecutadas allí; pasar en local.)* |
 | 1.15 | V GMM 0015 | 28-07-2026 | Descubrir se ordena (§5.4b): tres interruptores —*Más recientes*, *Más antiguas* (excluyentes) y *Mayor puntuación* (combinable)— y el «Año» exacto pasa a **intervalo desde–hasta**, que se endereza solo si se elige del revés. Como `sort_by` de TMDB admite una sola clave, **año + nota se resuelve recorriendo los años uno a uno**, a una petición por página, y el paginador pasa a decir «AAAA · página X de N». Todas las consultas cortan en la fecha de hoy (fuera estrenos futuros) y ordenar por nota exige `vote_count.gte` = 300, medido contra la API real. Criterios A35–A40. `logica.js` 92→106, `interfaz.js` 59→72. |
 | 1.14 | V GMM 0014 | 28-07-2026 | Arreglo: el modal de detalle se limita a la altura de la pantalla y su cuerpo hace scroll interno (cabecera y pie fijos), para que en móvil el contenido de abajo no quede cortado. |
 | 1.13 | V GMM 0013 | 28-07-2026 | Ficha: sección «También conocida como» con los títulos alternativos por país (§5.2), vía `append_to_response=alternative_titles` y `GMM.util.titulosAlternativos` (mercados es + en). Criterio A34. `logica.js` 86→92. |

@@ -8,6 +8,7 @@
 
    ┌─────────────────────────┬───────────────────────────────────────────┐
    │ api.themoviedb.org      │ SOLO RED. Nunca se cachea.                │
+   │ www.omdbapi.com         │ SOLO RED: las notas cambian con el tiempo.│
    │ image.tmdb.org          │ Caché primero: una carátula no cambia.    │
    │ Navegación (index.html) │ Red primero, caché si no hay conexión.    │
    │ Resto del propio sitio  │ Caché primero: iconos, manifiesto.        │
@@ -19,7 +20,7 @@
 
 "use strict";
 
-var VERSION   = 13;
+var VERSION   = 14;
 var CACHE_APP = "gmm-app-v" + VERSION;
 var CACHE_IMG = "gmm-img-v" + VERSION;
 
@@ -121,8 +122,10 @@ self.addEventListener("fetch", function (evento) {
   try { url = new URL(peticion.url); } catch (e) { return; }
 
   /* 1 · Disponibilidad y fichas: SIEMPRE de la red, nunca de la caché.
-         Servir esto rancio convertiría la app en un engaño. */
+         Servir esto rancio convertiría la app en un engaño. Las notas de
+         OMDb (IMDb/RT/Metacritic) cambian con el tiempo: mismo criterio. */
   if (url.hostname === "api.themoviedb.org") return;
+  if (url.hostname === "www.omdbapi.com" || url.hostname === "omdbapi.com") return;
 
   /* 2 · Carátulas y logos: la ruta identifica la imagen y no cambia. */
   if (url.hostname === "image.tmdb.org") {
