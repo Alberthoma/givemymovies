@@ -1050,7 +1050,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   <footer class="pie">
     <span>givemymovies · datos de disponibilidad vía TMDB / JustWatch</span>
     <span>Tus listas se guardan solo en este navegador</span>
-    <span id="version-app">V GMM 0018</span>
+    <span id="version-app">V GMM 0017</span>
   </footer>
 </div>
 
@@ -3843,18 +3843,6 @@ GMM.app = (function () {
       var boton = e.target.closest("[data-cat]");
       if (!boton) return;
       cargarCarrusel(boton.getAttribute("data-cat"));
-    });
-    /* Clic en una tarjeta del carrusel: abre la FICHA COMPLETA (la misma vista
-       que buscar por título), no el modal de detalle. Los botones mini de
-       listas siguen funcionando aquí, igual que en las cuadrículas. La
-       delegación de #resultados no alcanza al carrusel (vive en otra sección),
-       así que necesita la suya. */
-    $("carrusel").addEventListener("click", function (e) {
-      var nodo;
-      if ((nodo = e.target.closest("[data-lista]"))) { alternarLista(nodo); return; }
-      if ((nodo = e.target.closest("[data-abrir]"))) {
-        abrirFicha(nodo.getAttribute("data-abrir"), nodo.getAttribute("data-tipo"));
-      }
     });
 
     /* --- selector de método: buscar en concreto / descubrir --- */

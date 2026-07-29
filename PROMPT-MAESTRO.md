@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.17 · Aplicación V GMM 0017 · 29 de julio de 2026**
+**Documento v1.18 · Aplicación V GMM 0018 · 29 de julio de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies/>
 
 ---
@@ -586,7 +586,9 @@ que el buscador). Por defecto **Tendencia** (`GMM.tmdb.tendencia(tipo)` → `/tr
 un botón «Dame sugerencias» despliega los chips de las categorías de `GMM.config.CATEGORIAS_SUGERENCIA`:
 Tendencia, Las 10 de siempre (2000→hoy), Nunca es tarde (1980–2000), Clásicos (1950–1979) y Lo que
 prefieres (favoritas por tipo). Respeta el interruptor peli/serie y las tarjetas (`GMM.ui.tarjeta`)
-abren el detalle. **El «top 10» se rankea por nota real de IMDb** porque `/discover` no ordena por
+abren la **ficha completa** (`abrirFicha`, como buscar por título; V GMM 0018). Como la
+delegación de clic de `#resultados` no alcanza a `#descubrimiento`, `#carrusel` tiene su propio
+listener: `[data-abrir]` → `abrirFicha` y `[data-lista]` → `alternarLista`. **El «top 10» se rankea por nota real de IMDb** porque `/discover` no ordena por
 IMDb: candidatos por nota de TMDB → `imdb_id` con `GMM.tmdb.ficha` (lotes de 5, `GMM.util.enLotes`)
 → nota con `GMM.omdb.notas` (lotes de 5) → `GMM.util.mejoresPorImdb` filtra `> 6`, ordena y corta a
 10. Perezoso (solo al abrir la categoría; Tendencia y Favoritas no gastan OMDb) y cacheado en
@@ -798,6 +800,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.18 | V GMM 0018 | 29-07-2026 | **Las tarjetas del carrusel abren la ficha completa** (`abrirFicha`, como buscar por título), no el modal. Arregla que en la 0017 el clic en el carrusel no respondía: la delegación de `[data-abrir]`/`[data-lista]` estaba solo en `#resultados`, que no alcanza a `#descubrimiento`; ahora `#carrusel` tiene su propio listener. `sw.js` 15→16. |
 | 1.17 | V GMM 0017 | 29-07-2026 | **Carrusel de sugerencias en el inicio** (sección `#descubrimiento`, bajo el header y encima del buscador; solo visible en el inicio vía `fijarPantalla`). Por defecto **Tendencia** (`/trending/{movie\|tv}/week`, endpoint nuevo `GMM.tmdb.tendencia`); el botón «Dame sugerencias» despliega 5 categorías (Tendencia, Las 10 de siempre 2000→hoy, Nunca es tarde 1980–2000, Clásicos 1950–1979, Lo que prefieres = favoritas). El «top 10» se rankea por **nota real de IMDb > 6**: candidatos de TMDB → `imdb_id` (`ficha`) → nota (`omdb.notas`), en lotes de 5, y `GMM.util.mejoresPorImdb` (pura) filtra/ordena/corta; perezoso, cacheado por `tipo:categoria`, y sin clave de OMDb cae a la nota de TMDB. Respeta el interruptor; las tarjetas abren el detalle. `sw.js` 14→15, `logica.js` 115→120. *(Entorno remoto sin npm: `interfaz.js`/`pwa.js` no ejecutadas; pasar en local.)* |
 | 1.16 | V GMM 0016 | 29-07-2026 | **Notas de IMDb, Rotten Tomatoes y Metacritic** en la ficha y en el modal de detalle, vía **OMDb** como fuente secundaria y **opcional** (módulo `GMM.omdb`, bloque JS 5b). Se cruza por el `imdb_id` de TMDB (en series, con `append_to_response=…,external_ids`). Segunda clave opcional en ⚙ (`gmm_omdb_key`): sin ella la app funciona igual. Solo se consulta en la ficha, no en las cuadrículas (tope de 1.000/día). `sw.js`: `omdbapi.com` a solo red. `logica.js` 106→115 (parseo de OMDb). *(Entorno remoto sin npm: `interfaz.js`/`pwa.js` no ejecutadas allí; pasar en local.)* |
 | 1.15 | V GMM 0015 | 28-07-2026 | Descubrir se ordena (§5.4b): tres interruptores —*Más recientes*, *Más antiguas* (excluyentes) y *Mayor puntuación* (combinable)— y el «Año» exacto pasa a **intervalo desde–hasta**, que se endereza solo si se elige del revés. Como `sort_by` de TMDB admite una sola clave, **año + nota se resuelve recorriendo los años uno a uno**, a una petición por página, y el paginador pasa a decir «AAAA · página X de N». Todas las consultas cortan en la fecha de hoy (fuera estrenos futuros) y ordenar por nota exige `vote_count.gte` = 300, medido contra la API real. Criterios A35–A40. `logica.js` 92→106, `interfaz.js` 59→72. |
