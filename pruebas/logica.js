@@ -377,6 +377,29 @@ m.afirmar("Metascore de reserva cuando no viene en Ratings",
   })());
 
 /* ---------------------------------------------------------------- */
+m.titulo("Carrusel: top 10 por nota de IMDb (GMM.util.mejoresPorImdb)");
+
+const cand = [
+  { id: 1, title: "A", imdbNota: 8.7 },
+  { id: 2, title: "B", imdbNota: 5.9 },   // <= 6: fuera
+  { id: 3, title: "C", imdbNota: 7.4 },
+  { id: 4, title: "D", imdbNota: null },  // sin nota: fuera
+  { id: 5, title: "E", imdbNota: 6.0 },   // exactamente 6: fuera (umbral estricto)
+  { id: 6, title: "F", imdbNota: 9.1 }
+];
+let mejores = GMM.util.mejoresPorImdb(cand, 10);
+m.afirmar("descarta IMDb <= 6 y los que no tienen nota", mejores.length === 3, "fueron " + mejores.length);
+m.afirmar("ordena de mayor a menor IMDb",
+  mejores.map((x) => x.id).join(",") === "6,1,3", mejores.map((x) => x.id).join(","));
+m.afirmar("corta al tope pedido",
+  GMM.util.mejoresPorImdb(cand, 2).map((x) => x.id).join(",") === "6,1");
+m.afirmar("6 exacto no pasa el umbral (> 6, no >=)",
+  !GMM.util.mejoresPorImdb(cand, 10).some((x) => x.imdbNota === 6.0));
+m.afirmar("lista vacía o sin notas devuelve vacío",
+  GMM.util.mejoresPorImdb([], 10).length === 0 &&
+  GMM.util.mejoresPorImdb([{ id: 9, imdbNota: null }], 10).length === 0);
+
+/* ---------------------------------------------------------------- */
 m.titulo("Lotes con concurrencia limitada");
 
 let simultaneas = 0, pico = 0;

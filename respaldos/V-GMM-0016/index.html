@@ -580,47 +580,6 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
 .pais-enlace { display: block; margin-top: 12px; font-size: 12.5px; color: #5e768c; }
 .pais-enlace:hover { color: #4aa8ff; }
 
-/* --- carrusel de sugerencias del inicio --- */
-.descubrimiento { max-width: 1120px; margin: 4px auto 26px; padding: 0 4px; }
-.carrusel-cab { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.carrusel-tit { font-size: 18px; font-weight: 800; letter-spacing: -0.01em; }
-.carrusel-flechas { display: flex; gap: 8px; }
-.carrusel-flecha {
-  width: 36px; height: 36px; border-radius: 999px; font-size: 18px; line-height: 1;
-  border: 1px solid #2f4356; background: #131c26; color: #e8f0f8;
-  transition: border-color 0.15s, background 0.15s, transform 0.15s;
-}
-.carrusel-flecha:hover { border-color: #2ee6a8; background: #1a2632; }
-.carrusel-flecha:active { transform: scale(0.94); }
-/* Tira horizontal deslizable: en móvil se arrastra con el dedo; en escritorio,
-   con las flechas. Se ocultan las barras de scroll para que quede limpia. */
-.carrusel {
-  display: flex; gap: 14px; overflow-x: auto; padding: 4px 2px 12px;
-  scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch;
-}
-.carrusel::-webkit-scrollbar { display: none; }
-.carrusel .tarjeta { flex: 0 0 150px; scroll-snap-align: start; }
-.carrusel-vacio { color: #8ba0b6; font-size: 14px; padding: 20px 4px; }
-.btn-sugerencias { margin-top: 4px; }
-.sugerencias-cats { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 14px; }
-.cat {
-  padding: 8px 15px; border-radius: 999px; white-space: nowrap;
-  border: 1px solid #22303e; background: #0e151d;
-  font-size: 13.5px; font-weight: 600; color: #8ba0b6;
-  transition: color 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
-}
-.cat:hover { color: #e8f0f8; border-color: #2f4356; }
-#descubrimiento[data-tipo="movie"] .cat.activa {
-  background: linear-gradient(135deg, #ff8a3d, #ffb37d);
-  border-color: transparent; color: #241207;
-  box-shadow: 0 0 0 3px rgba(255, 138, 61, 0.28), 0 8px 22px rgba(255, 138, 61, 0.4);
-}
-#descubrimiento[data-tipo="tv"] .cat.activa {
-  background: linear-gradient(135deg, #4aa8ff, #8fc9ff);
-  border-color: transparent; color: #06131c;
-  box-shadow: 0 0 0 3px rgba(74, 168, 255, 0.28), 0 8px 22px rgba(74, 168, 255, 0.4);
-}
-
 /* --- rejilla de pósters --- */
 .rejilla { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); }
 
@@ -866,9 +825,6 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   .campo-entrada { font-size: 16px; padding: 12px 0; }
   /* Dos columnas fijas en el móvil. */
   .rejilla { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-  /* Carrusel: tarjetas algo más estrechas y título más contenido. */
-  .carrusel .tarjeta { flex: 0 0 130px; }
-  .carrusel-tit { font-size: 16px; }
   .paises { grid-template-columns: 1fr; }
   .ficha-cuerpo { padding: 18px; gap: 18px; }
   .ficha-poster { width: 108px; flex: 0 0 108px; }
@@ -924,28 +880,6 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   <div class="barra-volver oculto" id="barraVolver">
     <button class="btn-volver" id="btnVolver" title="Volver a la búsqueda" aria-label="Volver a la búsqueda">&#8592;</button>
   </div>
-
-  <!-- ═════════════ DESCUBRIMIENTO (carrusel) ═════════════ -->
-  <!-- Vive solo en el inicio (fijarPantalla lo oculta con resultados). Por
-       defecto muestra Tendencia; "Dame sugerencias" despliega las categorías. -->
-  <section class="descubrimiento oculto" id="descubrimiento" aria-label="Sugerencias">
-    <div class="carrusel-cab">
-      <h2 class="carrusel-tit" id="carruselTitulo">Tendencia</h2>
-      <div class="carrusel-flechas">
-        <button class="carrusel-flecha" id="carruselPrev" aria-label="Anterior" title="Anterior">&#8249;</button>
-        <button class="carrusel-flecha" id="carruselNext" aria-label="Siguiente" title="Siguiente">&#8250;</button>
-      </div>
-    </div>
-    <div class="carrusel" id="carrusel"></div>
-    <button class="boton-sec btn-sugerencias" id="btnSugerencias">&#10024; Dame sugerencias</button>
-    <div class="sugerencias-cats oculto" id="sugerenciasCats" role="group" aria-label="Categorías de sugerencias">
-      <button class="cat activa" data-cat="tendencia">Tendencia</button>
-      <button class="cat" data-cat="siempre">Las 10 de siempre</button>
-      <button class="cat" data-cat="tarde">Nunca es tarde</button>
-      <button class="cat" data-cat="clasicos">Clásicos</button>
-      <button class="cat" data-cat="favoritas">Lo que prefieres</button>
-    </div>
-  </section>
 
   <!-- ═════════════ BUSCADOR ═════════════ -->
   <section class="buscador" id="buscador" data-tipo="movie">
@@ -1040,7 +974,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   <footer class="pie">
     <span>givemymovies · datos de disponibilidad vía TMDB / JustWatch</span>
     <span>Tus listas se guardan solo en este navegador</span>
-    <span id="version-app">V GMM 0017</span>
+    <span id="version-app">V GMM 0016</span>
   </footer>
 </div>
 
@@ -1207,23 +1141,6 @@ GMM.config = {
      recorrido año por año. Evita una ráfaga de peticiones inútiles cuando el
      filtro no devuelve nada en décadas enteras. */
   MAX_ANOS_VACIOS: 25,
-
-  /* Carrusel de sugerencias del inicio. Cada categoría de "top 10" se rankea
-     por nota real de IMDb (vía OMDb): se traen CANDIDATOS_CATEGORIA de TMDB
-     ordenados por su nota, se les pide el imdb_id y la nota de IMDb, y se
-     quedan los TOP_CATEGORIA con IMDb > IMDB_MIN. Sin clave de OMDb cae a la
-     nota de TMDB. "tendencia" y "favoritas" no gastan OMDb. */
-  IMDB_MIN: 6,
-  TOP_CATEGORIA: 10,
-  CANDIDATOS_CATEGORIA: 14,
-  TENDENCIA_VENTANA: "week",
-  CATEGORIAS_SUGERENCIA: [
-    { clave: "tendencia", etiqueta: "Tendencia" },
-    { clave: "siempre",   etiqueta: "Las 10 de siempre", anoDesde: 2000 },
-    { clave: "tarde",     etiqueta: "Nunca es tarde",     anoDesde: 1980, anoHasta: 2000 },
-    { clave: "clasicos",  etiqueta: "Clásicos",           anoDesde: 1950, anoHasta: 1979 },
-    { clave: "favoritas", etiqueta: "Lo que prefieres" }
-  ],
 
   /* Tipos de oferta que devuelve TMDB, en orden de interés para el usuario. */
   OFERTAS: [
@@ -1816,17 +1733,6 @@ GMM.util.normalizarMedia = function (item, tipo) {
   return m;
 };
 
-/* De una lista de fichas que ya llevan "imdbNota" (número o null, puesto por el
-   carrusel tras consultar OMDb), conserva las que superan el umbral de IMDb,
-   las ordena de mayor a menor nota y corta a n. Pura y sin red, para poder
-   probarla: el filtrado/orden por nota real de IMDb es la parte delicada. */
-GMM.util.mejoresPorImdb = function (items, n) {
-  return (items || [])
-    .filter(function (x) { return x && typeof x.imdbNota === "number" && x.imdbNota > GMM.config.IMDB_MIN; })
-    .sort(function (a, b) { return b.imdbNota - a.imdbNota; })
-    .slice(0, n);
-};
-
 /* Títulos alternativos por país (de TMDB, campo alternative_titles). Se queda
    con los mercados en español (España y Latinoamérica) más el inglés de
    referencia (GB), agrupa por título distinto y descarta los que coinciden con
@@ -2109,17 +2015,6 @@ GMM.tmdb = (function () {
     return pedir("/discover/" + mtipo, params).then(function (d) { return comoPagina(d, mtipo, pagina); });
   }
 
-  /* Lo que está en tendencia esta semana, para el carrusel del inicio. Respeta
-     el interruptor peli/serie. Sin clave, el catálogo de ejemplo hace de reserva. */
-  function tendencia(tipo) {
-    var mtipo = tipo === "tv" ? "tv" : "movie";
-    if (!hayClave()) return Promise.resolve(GMM.demo.descubrir(mtipo, {}));
-    return pedir("/trending/" + mtipo + "/" + GMM.config.TENDENCIA_VENTANA, { language: "es-ES" })
-      .then(function (d) {
-        return (d.results || []).map(function (x) { return GMM.util.normalizarMedia(x, mtipo); });
-      });
-  }
-
   function persona(id) {
     if (!hayClave()) return Promise.resolve(GMM.demo.personaPorId(id));
     return pedir("/person/" + id, { language: "es-ES" });
@@ -2178,7 +2073,7 @@ GMM.tmdb = (function () {
     buscarPeliculas: buscarPeliculas, buscarSeries: buscarSeries,
     buscarTitulos: buscarTitulos, buscarPersonas: buscarPersonas,
     buscarPorTrama: buscarPorTrama, pelicula: pelicula, serie: serie,
-    ficha: ficha, descubrir: descubrir, tendencia: tendencia, persona: persona,
+    ficha: ficha, descubrir: descubrir, persona: persona,
     filmografia: filmografia, proveedores: proveedores,
     catalogoPlataformas: catalogoPlataformas
   };
@@ -2782,14 +2677,8 @@ GMM.app = (function () {
     anios: [],            // años por visitar, ya en el orden pedido
     recorrido: [],        // cursores ya vistos: { iAnio, ano, pag, total }
     /* Paginación de las cuadrículas (Descubrir y Trama) */
-    ctxPagina: null,      // { clase, titulo, texto, pagina, total }
-    /* Carrusel de sugerencias del inicio */
-    categoria: "tendencia" // "tendencia" | "siempre" | "tarde" | "clasicos" | "favoritas"
+    ctxPagina: null       // { clase, titulo, texto, pagina, total }
   };
-
-  /* Caché en memoria del carrusel, por "tipo:categoria": volver a una categoría
-     ya vista no repite peticiones (ni las de OMDb, que es lo caro). */
-  var cacheCarrusel = {};
 
   /* Clave para marcadores y ejemplos: el título depende del interruptor. */
   function claveBusqueda() {
@@ -2961,7 +2850,6 @@ GMM.app = (function () {
   function reflejar() {
     /* interruptor peli/serie: color de acento y opción marcada */
     $("buscador").setAttribute("data-tipo", estado.tipo);
-    $("descubrimiento").setAttribute("data-tipo", estado.tipo);
     Array.prototype.forEach.call($("tipoSwitch").children, function (b) {
       b.classList.toggle("activa", b.getAttribute("data-tipo") === estado.tipo);
     });
@@ -3810,24 +3698,7 @@ GMM.app = (function () {
       cerrarSugerencias();
       reflejar();
       guardarPrefs();
-      if (estado.vista === "inicio") refrescarCarrusel();  // el carrusel respeta el tipo
       relanzarSiProcede();      // si ya había resultados, rehace la búsqueda con el nuevo tipo
-    });
-
-    /* --- carrusel de sugerencias del inicio --- */
-    $("carruselPrev").addEventListener("click", function () {
-      $("carrusel").scrollBy({ left: -$("carrusel").clientWidth * 0.85, behavior: "smooth" });
-    });
-    $("carruselNext").addEventListener("click", function () {
-      $("carrusel").scrollBy({ left: $("carrusel").clientWidth * 0.85, behavior: "smooth" });
-    });
-    $("btnSugerencias").addEventListener("click", function () {
-      $("sugerenciasCats").classList.toggle("oculto");
-    });
-    $("sugerenciasCats").addEventListener("click", function (e) {
-      var boton = e.target.closest("[data-cat]");
-      if (!boton) return;
-      cargarCarrusel(boton.getAttribute("data-cat"));
     });
 
     /* --- selector de método: buscar en concreto / descubrir --- */
@@ -4150,124 +4021,11 @@ GMM.app = (function () {
     else if (estado.vista === "listas") pintarListas();
   }
 
-  /* ---------------------------------------------------------------- */
-  /* Carrusel de sugerencias del inicio                               */
-  /* ---------------------------------------------------------------- */
-
-  function categoriaDef(clave) {
-    var lista = GMM.config.CATEGORIAS_SUGERENCIA, i;
-    for (i = 0; i < lista.length; i++) if (lista[i].clave === clave) return lista[i];
-    return lista[0];
-  }
-
-  /* Las "top 10" de una categoría, rankeadas por nota REAL de IMDb. TMDB no
-     ordena ni filtra por IMDb, así que: se traen candidatos por la nota de
-     TMDB, se les pide el imdb_id (ficha) y la nota de IMDb (OMDb), y se quedan
-     los mejores con IMDb > umbral. Sin clave de OMDb —o si OMDb no devuelve
-     nada— se cae a los primeros por nota de TMDB, para no depender de OMDb. */
-  function cargarRanking(def) {
-    var opciones = { anoDesde: def.anoDesde, anoHasta: def.anoHasta,
-                     notaMin: GMM.config.IMDB_MIN, porNota: true };
-    return GMM.tmdb.descubrir(estado.tipo, opciones, 1).then(function (res) {
-      var candidatos = (res.items || []).slice(0, GMM.config.CANDIDATOS_CATEGORIA);
-      var tope = GMM.config.TOP_CATEGORIA;
-      if (!candidatos.length) return [];
-      if (!GMM.tmdb.hayClave() || !GMM.omdb.hayClave()) return candidatos.slice(0, tope);
-
-      /* 1) imdb_id de cada candidato (la ficha lo trae normalizado) */
-      return GMM.util.enLotes(candidatos, GMM.config.CONCURRENCIA, function (c) {
-        return GMM.tmdb.ficha(c.id, estado.tipo).catch(function () { return c; });
-      }).then(function (fichas) {
-        /* 2) nota de IMDb de cada uno (OMDb nunca lanza; fallo -> null) */
-        return GMM.util.enLotes(fichas, GMM.config.CONCURRENCIA, function (f) {
-          return GMM.omdb.notas(f && f.imdb_id).then(function (n) {
-            if (f) f.imdbNota = (n && n.imdb) ? Number(n.imdb) : null;
-            return f;
-          });
-        });
-      }).then(function (fichas) {
-        var mejores = GMM.util.mejoresPorImdb(fichas, tope);
-        return mejores.length ? mejores : candidatos.slice(0, tope);
-      });
-    });
-  }
-
-  /* Resuelve los títulos de una categoría (respeta el interruptor peli/serie). */
-  function itemsCategoria(clave) {
-    if (clave === "tendencia") {
-      return GMM.tmdb.tendencia(estado.tipo).then(function (l) { return l.slice(0, 15); });
-    }
-    if (clave === "favoritas") {
-      var favs = GMM.listas.obtener("favoritas").filter(function (f) {
-        return (f.tipo || "movie") === estado.tipo;
-      });
-      return Promise.resolve(favs);
-    }
-    return cargarRanking(categoriaDef(clave));
-  }
-
-  function vacioDe(clave) {
-    if (clave === "favoritas") {
-      return estado.tipo === "tv"
-        ? "Aún no tienes series favoritas. Marca la estrella en cualquier ficha."
-        : "Aún no tienes películas favoritas. Marca la estrella en cualquier ficha.";
-    }
-    return "No hay títulos para esta categoría.";
-  }
-
-  function esqueletoCarrusel() {
-    var huesos = "", i;
-    for (i = 0; i < 6; i++) {
-      huesos += '<div class="hueso" style="flex:0 0 150px;aspect-ratio:2/3;border-radius:14px"></div>';
-    }
-    $("carrusel").innerHTML = huesos;
-  }
-
-  function pintarCarrusel(items, vacioTxt) {
-    var cont = $("carrusel");
-    if (!items || !items.length) {
-      cont.innerHTML = '<div class="carrusel-vacio">' + GMM.util.esc(vacioTxt) + '</div>';
-      return;
-    }
-    cont.innerHTML = items.map(function (p) { return GMM.ui.tarjeta(p); }).join("");
-    cont.scrollLeft = 0;
-  }
-
-  function cargarCarrusel(clave) {
-    estado.categoria = clave;
-    $("carruselTitulo").textContent = categoriaDef(clave).etiqueta;
-    Array.prototype.forEach.call($("sugerenciasCats").children, function (b) {
-      b.classList.toggle("activa", b.getAttribute("data-cat") === clave);
-    });
-
-    var cacheKey = estado.tipo + ":" + clave;
-    if (cacheCarrusel[cacheKey]) { pintarCarrusel(cacheCarrusel[cacheKey], vacioDe(clave)); return; }
-
-    esqueletoCarrusel();
-    itemsCategoria(clave).then(function (items) {
-      cacheCarrusel[cacheKey] = items;
-      /* Solo pintamos si sigue vigente lo elegido: una respuesta lenta no debe
-         pisar otra categoría o tipo que el usuario ya haya cambiado. */
-      if (estado.vista === "inicio" && estado.categoria === clave && (estado.tipo + ":" + clave) === cacheKey) {
-        pintarCarrusel(items, vacioDe(clave));
-      }
-    }).catch(function () {
-      $("carrusel").innerHTML = '<div class="carrusel-vacio">No se pudo cargar. Inténtalo de nuevo.</div>';
-    });
-  }
-
-  /* Recarga el carrusel de la categoría actual (p. ej. al cambiar el tipo). */
-  function refrescarCarrusel() { cargarCarrusel(estado.categoria); }
-
-  /* ---------------------------------------------------------------- */
-
   /* Dos pantallas: la de búsqueda (formulario visible) y la de resultados
-     (formulario oculto, con la flecha de volver). Manda estado.vista. El
-     carrusel de sugerencias vive solo en el inicio, como el buscador. */
+     (formulario oculto, con la flecha de volver). Manda estado.vista. */
   function fijarPantalla() {
     var enResultados = estado.vista !== "inicio";
     $("buscador").classList.toggle("oculto", enResultados);
-    $("descubrimiento").classList.toggle("oculto", enResultados);
     $("barraVolver").classList.toggle("oculto", !enResultados);
   }
 
@@ -4278,7 +4036,6 @@ GMM.app = (function () {
     cerrarSugerencias();
     GMM.ui.bienvenida();
     fijarPantalla();
-    refrescarCarrusel();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -4300,7 +4057,6 @@ GMM.app = (function () {
     GMM.ui.refrescarCabecera();
     GMM.ui.bienvenida();
     fijarPantalla();
-    cargarCarrusel("tendencia");
 
     if (!GMM.tmdb.hayClave()) {
       setTimeout(function () {
