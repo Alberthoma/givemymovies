@@ -2,8 +2,8 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0020`
-**Próxima versión:** `V GMM 0021`
+**Versión activa:** `V GMM 0021`
+**Próxima versión:** `V GMM 0022`
 **Última actualización:** 2026-07-29
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies/> · GitHub Pages desde `main`, raíz.
@@ -187,9 +187,13 @@ simplemente no se instala ni cachea: `GMM.pwa.seguro()` lo detecta y no registra
 junto a *Mis listas* (antes estaba dentro del buscador). La barra tiene dos grupos: `.barra-izq`
 (Mis listas + interruptor) y `.barra-der` (Instalar + ⚙). Sigue teniendo id `#tipoSwitch`, así que
 `reflejar()` y sus acentos (`#buscador[data-tipo]`, `#descubrimiento[data-tipo]`) funcionan igual.
-**La app arranca siempre en «Buscar una en concreto»** (el método ya no se restaura de `gmm_prefs`),
-de modo que los controles de «Descubrir por género» (`#descubrir`) quedan **ocultos hasta que se
-pulsa su botón** —y usar «Ver más» ya no deja Descubrir abierto al recargar—.
+**La app arranca sin método elegido** (`estado.metodo = ""`; desde V GMM 0021, antes era «buscar»):
+los controles de **ambos** métodos empiezan ocultos y cada panel se abre **solo al pulsar su botón**
+—`#panelBuscar` + `#chips` con «Buscar una en concreto», `#descubrir` con «Descubrir por género», y
+los filtros comunes `#filtros` (plataforma/país/idioma + Buscar) solo cuando hay método—. El método
+no se restaura de `gmm_prefs`, así que cada recarga vuelve a ese arranque limpio (y usar «Ver más»
+tampoco deja Descubrir abierto). **El botón ⚙ es un círculo compacto** pegado a la derecha de la
+barra (`#btnAjustes`, 34 px, el engranaje sin reducir).
 
 **Dos pantallas (desde V GMM 0009):** la de búsqueda (formulario visible) y la de resultados
 (formulario **oculto**, con una flecha **←** para volver). Lo alterna `fijarPantalla()` según
@@ -585,6 +589,7 @@ puede ir dentro de `index.html` sin problema.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| V GMM 0021 | 2026-07-29 | **Métodos plegados por defecto + ⚙ redondo.** (1) La app arranca **sin método** (`estado.metodo = ""`): los controles de «Buscar una en concreto» (`#panelBuscar`, `#chips`) y los de «Descubrir por género» (`#descubrir`) y los filtros comunes (`#filtros`) empiezan **ocultos**, y cada uno se muestra **solo al pulsar su botón**. (2) El botón **⚙ pasa a ser un círculo compacto** (`#btnAjustes`, 34 px, engranaje sin reducir) pegado a la derecha de la barra, que se aprieta en móvil para caber en una línea. Solo HTML/CSS + `reflejar()`. `sw.js` VERSION 18→19. `logica.js` 120. **`interfaz.js`/`pwa.js` no ejecutadas (sin npm); pasar en local.** |
 | V GMM 0020 | 2026-07-29 | **Ajustes de disposición.** (1) El interruptor Película/Serie sale del buscador a la **barra bajo el header**, a la izquierda junto a *Mis listas* (barra en dos grupos `.barra-izq`/`.barra-der`). (2) El botón **«Ver más»** pasa a la **derecha** de «Dame sugerencias». (3) La app **arranca siempre en «Buscar una en concreto»** (el método ya no se restaura de prefs): los controles de «Descubrir por género» quedan ocultos hasta pulsar su botón, y «Ver más» ya no los deja abiertos al recargar. Solo HTML/CSS + una línea de `cargarPrefs`. `sw.js` VERSION 17→18. `logica.js` 120. **`interfaz.js`/`pwa.js` no ejecutadas (sin npm); pasar en local.** |
 | V GMM 0019 | 2026-07-29 | **Carrusel infinito y «Ver más» por año.** (1) Las flechas ‹ › del carrusel **dan la vuelta** al llegar a un extremo (`desplazarCarrusel`, sin clonar tarjetas). (2) Botón **«Ver más»** en las categorías con intervalo (de siempre / nunca es tarde / clásicos): abre la **cuadrícula paginada año por año** con las **10 mejores de cada año** del intervalo, por **nota de TMDB ≥ 6** (el carrusel sigue con IMDb; la cuadrícula usa TMDB porque serían cientos de consultas a OMDb). Reutiliza el recorrido de la 0015 con `estado.topAnio` = 10 (corta cada año a 10 y avanza de año en año; etiqueta «1950 · 10 mejores»). Se apaga al buscar a mano o tocar un criterio. `sw.js` VERSION 16→17. `logica.js` 120 (UI + reúso). **`interfaz.js`/`pwa.js` no ejecutadas (sin npm); pasar en local.** |
 | V GMM 0018 | 2026-07-29 | **Las tarjetas del carrusel abren la ficha completa** (`abrirFicha`, como buscar por título), no el modal. Arregla de paso que en la 0017 el clic en el carrusel **no hacía nada**: la delegación de `[data-abrir]`/`[data-lista]` vivía solo en `#resultados`, que no alcanza a `#descubrimiento`; ahora `#carrusel` tiene su propio listener (`[data-abrir]`→`abrirFicha`, `[data-lista]`→`alternarLista`). `sw.js` VERSION 15→16. `logica.js` sin cambios (120; el arreglo es de cableado de eventos). **`interfaz.js`/`pwa.js` no ejecutadas en el entorno remoto (sin npm); pasar en local.** |

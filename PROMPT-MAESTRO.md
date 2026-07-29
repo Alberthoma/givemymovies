@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.20 · Aplicación V GMM 0020 · 29 de julio de 2026**
+**Documento v1.21 · Aplicación V GMM 0021 · 29 de julio de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies/>
 
 ---
@@ -804,6 +804,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.21 | V GMM 0021 | 29-07-2026 | **Métodos plegados por defecto + ⚙ redondo.** La app arranca sin método (`estado.metodo = ""`): los controles de «Buscar una en concreto» (`#panelBuscar`/`#chips`), los de «Descubrir por género» (`#descubrir`) y los filtros comunes (`#filtros`) empiezan ocultos y cada uno se muestra solo al pulsar su botón. El botón ⚙ pasa a un círculo compacto (`#btnAjustes`, 34 px) pegado a la derecha, con la barra apretada para caber en una línea en móvil. `sw.js` 18→19. |
 | 1.20 | V GMM 0020 | 29-07-2026 | **Ajustes de disposición.** El interruptor Película/Serie pasa del buscador a la barra bajo el header (izquierda, junto a *Mis listas*; barra en dos grupos). El botón «Ver más» va a la derecha de «Dame sugerencias». La app arranca siempre en «Buscar una en concreto» (el método ya no se restaura de prefs): los controles de «Descubrir por género» quedan ocultos hasta pulsar su botón. `sw.js` 17→18. |
 | 1.19 | V GMM 0019 | 29-07-2026 | **Carrusel infinito** (las flechas ‹ › dan la vuelta al llegar a un extremo, `desplazarCarrusel`, sin clonar) y botón **«Ver más»** en las tres categorías con intervalo (de siempre / nunca es tarde / clásicos): abre la cuadrícula paginada año por año con las **10 mejores de cada año** por nota de TMDB ≥ 6, reutilizando el recorrido de la 0015 con `estado.topAnio` = 10. `sw.js` 16→17. |
 | 1.18 | V GMM 0018 | 29-07-2026 | **Las tarjetas del carrusel abren la ficha completa** (`abrirFicha`, como buscar por título), no el modal. Arregla que en la 0017 el clic en el carrusel no respondía: la delegación de `[data-abrir]`/`[data-lista]` estaba solo en `#resultados`, que no alcanza a `#descubrimiento`; ahora `#carrusel` tiene su propio listener. `sw.js` 15→16. |
