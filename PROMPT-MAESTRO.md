@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.19 · Aplicación V GMM 0019 · 29 de julio de 2026**
+**Documento v1.20 · Aplicación V GMM 0020 · 29 de julio de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies/>
 
 ---
@@ -804,6 +804,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.20 | V GMM 0020 | 29-07-2026 | **Ajustes de disposición.** El interruptor Película/Serie pasa del buscador a la barra bajo el header (izquierda, junto a *Mis listas*; barra en dos grupos). El botón «Ver más» va a la derecha de «Dame sugerencias». La app arranca siempre en «Buscar una en concreto» (el método ya no se restaura de prefs): los controles de «Descubrir por género» quedan ocultos hasta pulsar su botón. `sw.js` 17→18. |
 | 1.19 | V GMM 0019 | 29-07-2026 | **Carrusel infinito** (las flechas ‹ › dan la vuelta al llegar a un extremo, `desplazarCarrusel`, sin clonar) y botón **«Ver más»** en las tres categorías con intervalo (de siempre / nunca es tarde / clásicos): abre la cuadrícula paginada año por año con las **10 mejores de cada año** por nota de TMDB ≥ 6, reutilizando el recorrido de la 0015 con `estado.topAnio` = 10. `sw.js` 16→17. |
 | 1.18 | V GMM 0018 | 29-07-2026 | **Las tarjetas del carrusel abren la ficha completa** (`abrirFicha`, como buscar por título), no el modal. Arregla que en la 0017 el clic en el carrusel no respondía: la delegación de `[data-abrir]`/`[data-lista]` estaba solo en `#resultados`, que no alcanza a `#descubrimiento`; ahora `#carrusel` tiene su propio listener. `sw.js` 15→16. |
 | 1.17 | V GMM 0017 | 29-07-2026 | **Carrusel de sugerencias en el inicio** (sección `#descubrimiento`, bajo el header y encima del buscador; solo visible en el inicio vía `fijarPantalla`). Por defecto **Tendencia** (`/trending/{movie\|tv}/week`, endpoint nuevo `GMM.tmdb.tendencia`); el botón «Dame sugerencias» despliega 5 categorías (Tendencia, Las 10 de siempre 2000→hoy, Nunca es tarde 1980–2000, Clásicos 1950–1979, Lo que prefieres = favoritas). El «top 10» se rankea por **nota real de IMDb > 6**: candidatos de TMDB → `imdb_id` (`ficha`) → nota (`omdb.notas`), en lotes de 5, y `GMM.util.mejoresPorImdb` (pura) filtra/ordena/corta; perezoso, cacheado por `tipo:categoria`, y sin clave de OMDb cae a la nota de TMDB. Respeta el interruptor; las tarjetas abren el detalle. `sw.js` 14→15, `logica.js` 115→120. *(Entorno remoto sin npm: `interfaz.js`/`pwa.js` no ejecutadas; pasar en local.)* |

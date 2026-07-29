@@ -2,8 +2,8 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0019`
-**Próxima versión:** `V GMM 0020`
+**Versión activa:** `V GMM 0020`
+**Próxima versión:** `V GMM 0021`
 **Última actualización:** 2026-07-29
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies/> · GitHub Pages desde `main`, raíz.
@@ -182,6 +182,14 @@ simplemente no se instala ni cachea: `GMM.pwa.seguro()` lo detecta y no registra
 `anoHasta`, `notaMin`, `orden` (`popular`/`reciente`/`antigua`), `porNota`, y el par
 `anios`/`recorrido` del recorrido año por año.
 `reflejar()` vuelca el formulario (interruptor, método, marcador, chips, acentos, orden).
+
+**El interruptor peli/serie vive en la barra bajo el header** (desde V GMM 0020), a la izquierda
+junto a *Mis listas* (antes estaba dentro del buscador). La barra tiene dos grupos: `.barra-izq`
+(Mis listas + interruptor) y `.barra-der` (Instalar + ⚙). Sigue teniendo id `#tipoSwitch`, así que
+`reflejar()` y sus acentos (`#buscador[data-tipo]`, `#descubrimiento[data-tipo]`) funcionan igual.
+**La app arranca siempre en «Buscar una en concreto»** (el método ya no se restaura de `gmm_prefs`),
+de modo que los controles de «Descubrir por género» (`#descubrir`) quedan **ocultos hasta que se
+pulsa su botón** —y usar «Ver más» ya no deja Descubrir abierto al recargar—.
 
 **Dos pantallas (desde V GMM 0009):** la de búsqueda (formulario visible) y la de resultados
 (formulario **oculto**, con una flecha **←** para volver). Lo alterna `fijarPantalla()` según
@@ -577,6 +585,7 @@ puede ir dentro de `index.html` sin problema.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| V GMM 0020 | 2026-07-29 | **Ajustes de disposición.** (1) El interruptor Película/Serie sale del buscador a la **barra bajo el header**, a la izquierda junto a *Mis listas* (barra en dos grupos `.barra-izq`/`.barra-der`). (2) El botón **«Ver más»** pasa a la **derecha** de «Dame sugerencias». (3) La app **arranca siempre en «Buscar una en concreto»** (el método ya no se restaura de prefs): los controles de «Descubrir por género» quedan ocultos hasta pulsar su botón, y «Ver más» ya no los deja abiertos al recargar. Solo HTML/CSS + una línea de `cargarPrefs`. `sw.js` VERSION 17→18. `logica.js` 120. **`interfaz.js`/`pwa.js` no ejecutadas (sin npm); pasar en local.** |
 | V GMM 0019 | 2026-07-29 | **Carrusel infinito y «Ver más» por año.** (1) Las flechas ‹ › del carrusel **dan la vuelta** al llegar a un extremo (`desplazarCarrusel`, sin clonar tarjetas). (2) Botón **«Ver más»** en las categorías con intervalo (de siempre / nunca es tarde / clásicos): abre la **cuadrícula paginada año por año** con las **10 mejores de cada año** del intervalo, por **nota de TMDB ≥ 6** (el carrusel sigue con IMDb; la cuadrícula usa TMDB porque serían cientos de consultas a OMDb). Reutiliza el recorrido de la 0015 con `estado.topAnio` = 10 (corta cada año a 10 y avanza de año en año; etiqueta «1950 · 10 mejores»). Se apaga al buscar a mano o tocar un criterio. `sw.js` VERSION 16→17. `logica.js` 120 (UI + reúso). **`interfaz.js`/`pwa.js` no ejecutadas (sin npm); pasar en local.** |
 | V GMM 0018 | 2026-07-29 | **Las tarjetas del carrusel abren la ficha completa** (`abrirFicha`, como buscar por título), no el modal. Arregla de paso que en la 0017 el clic en el carrusel **no hacía nada**: la delegación de `[data-abrir]`/`[data-lista]` vivía solo en `#resultados`, que no alcanza a `#descubrimiento`; ahora `#carrusel` tiene su propio listener (`[data-abrir]`→`abrirFicha`, `[data-lista]`→`alternarLista`). `sw.js` VERSION 15→16. `logica.js` sin cambios (120; el arreglo es de cableado de eventos). **`interfaz.js`/`pwa.js` no ejecutadas en el entorno remoto (sin npm); pasar en local.** |
 | V GMM 0017 | 2026-07-29 | **Carrusel de sugerencias en el inicio**, bajo el header y encima del buscador (sección `#descubrimiento`, solo visible en el inicio vía `fijarPantalla`). Por defecto **Tendencia** (`GMM.tmdb.tendencia` → `/trending/{movie\|tv}/week`, endpoint nuevo); el botón «Dame sugerencias» despliega 5 categorías: Tendencia, Las 10 de siempre (2000→hoy), Nunca es tarde (1980–2000), Clásicos (1950–1979) y Lo que prefieres (favoritas). **El «top 10» se rankea por nota REAL de IMDb** (>6): candidatos de TMDB → `imdb_id` (`ficha`) → nota (`omdb.notas`), en lotes de 5, y `GMM.util.mejoresPorImdb` (pura) filtra/ordena/corta. Perezoso y cacheado por `tipo:categoria`; sin clave de OMDb cae a la nota de TMDB. Respeta el interruptor peli/serie; las tarjetas abren el detalle. `sw.js` VERSION 14→15. `logica.js` 115→120. **`interfaz.js`/`pwa.js` no ejecutadas en el entorno remoto (sin npm); pasar en local.** |
