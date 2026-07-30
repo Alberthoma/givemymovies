@@ -374,19 +374,29 @@ el `og:image`. Y no cojas el primer `<img>` de la página: suele ser un recomend
 ```bash
 node pruebas/logica.js      # 120 comprobaciones · sin dependencias · instantáneo
 node pruebas/imagenes.js    #  15 comprobaciones · necesita internet · ~30 s
-node pruebas/interfaz.js    #  72 comprobaciones · playwright-core · ~50 s
+node pruebas/interfaz.js    #  78 comprobaciones · playwright-core · ~50 s
 node pruebas/pwa.js         #  19 comprobaciones · playwright-core · ~20 s
 ```
 
-Última ejecución: **226 comprobaciones, todas correctas**, sin errores de JavaScript en
-consola.
+Última ejecución: **232 comprobaciones, todas correctas**, sin errores de JavaScript en
+consola. Las cuatro suites, en local, el 2026-07-29 sobre la 0021.
 
-> **Las versiones 0016 y 0017 se cerraron en un entorno remoto sin acceso a npm**, así que
-> `interfaz.js` y `pwa.js` (que dependen de `playwright-core`) **no se pudieron ejecutar allí**:
-> solo corrió `logica.js` (120/120, con el selector del carrusel `mejoresPorImdb`). Conviene
-> pasar las dos suites de navegador en local tras `git pull` para dejar el 226 confirmado de
-> punta a punta, y en particular comprobar el carrusel (Tendencia por defecto, «Dame
-> sugerencias» despliega las 5 categorías, se oculta al buscar, respeta el interruptor).
+> **Las versiones 0016 a 0021 se cerraron en un entorno remoto sin acceso a npm**, así que
+> `interfaz.js` y `pwa.js` (que dependen de `playwright-core`) no se ejecutaron allí: solo
+> corrió `logica.js`. Al pasarlas en local sobre la 0021 **fallaban las dos**, y no por un
+> fallo de la app: **los tests se habían quedado atrás**. Los métodos plegados de la 0021
+> dejan `#entrada`, `#selBusquedaPor` y `#filtros` ocultos al arrancar y tras cada recarga,
+> y Playwright no escribe en lo invisible. Arreglado con un ayudante `abrirMetodo(cual)` en
+> `interfaz.js` —que pulsa el botón del método solo si su panel no está ya a la vista, porque
+> el clic vacía el campo— y un clic equivalente en `pwa.js`. De paso, 6 comprobaciones nuevas
+> (72→78) que fijan el comportamiento de la 0021: ningún método activo al arrancar, los tres
+> paneles plegados, y que la recarga los devuelve plegados (desde la 0020 el método no se
+> restaura de prefs).
+>
+> **Lección: cuenta las tarjetas acotando el selector.** «hay 2 tarjetas» usaba
+> `.tarjeta` a secas y desde la 0017 el carrusel del inicio pinta las suyas con la misma
+> clase y **las deja en el DOM, solo ocultas**, en las demás vistas. Ahora es
+> `#resultados .tarjeta`. Cualquier recuento nuevo debe acotarse al contenedor.
 
 Detalle en `pruebas/LEEME.md`. `logica.js` cubre la normalización de series, Descubrir sobre
 la demo, las listas conscientes del tipo, la búsqueda de series (título y trama), —desde la
@@ -394,8 +404,9 @@ la demo, las listas conscientes del tipo, la búsqueda de series (título y tram
 notas de OMDb (`GMM.omdb.parsear`: respuesta completa, `Response:"False"`, campos ausentes,
 `"N/A"` y el `Metascore` de reserva), y —desde la 0017— el selector del carrusel
 `GMM.util.mejoresPorImdb` (filtra IMDb > 6, ordena, corta, ignora sin nota). `interfaz.js` recorre el interruptor
-peli/serie, la búsqueda de una serie por título, Descubrir con series y los interruptores de
-orden con su paginador por años.
+peli/serie, la búsqueda de una serie por título, Descubrir con series, los interruptores de
+orden con su paginador por años y —desde la 0021— los métodos plegados (nada activo al
+arrancar, los tres paneles ocultos, y plegados otra vez tras recargar).
 
 `pwa.js` levanta un servidor local, porque los service workers no funcionan sobre `file://`
 y `localhost` cuenta como origen seguro igual que HTTPS.

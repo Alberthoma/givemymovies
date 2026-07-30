@@ -161,6 +161,11 @@ function levantarServidor() {
   await pagina.waitForTimeout(1200);
   m.afirmar("la app sigue abriendo sin red",
     (await pagina.textContent(".marca-texto")).includes("givemymovies"));
+  /* Desde V GMM 0021 el campo nace plegado, así que verlo exige pulsar antes
+     «Buscar una en concreto». Comprobarlo así vale más que mirar el DOM: si el
+     clic abre el panel es que el JS de la app también corre sin conexión. */
+  await pagina.click('#metodos [data-metodo="buscar"]');
+  await pagina.waitForTimeout(200);
   m.afirmar("el buscador sigue ahí", await pagina.locator("#entrada").isVisible());
   await contexto.setOffline(false);
 

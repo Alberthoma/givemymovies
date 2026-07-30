@@ -88,8 +88,19 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
       await pagina.waitForTimeout(200);
     }
   }
+  /* Desde V GMM 0021 la app arranca SIN método y los controles nacen ocultos:
+     hay que pulsar «Buscar una en concreto» (o «Descubrir por género») antes
+     de tocar el campo o los filtros. El clic vacía la entrada y repinta la
+     bienvenida, así que solo se pulsa cuando el panel no está ya a la vista. */
+  async function abrirMetodo(cual) {
+    const panel = cual === "descubrir" ? "#descubrir" : "#panelBuscar";
+    if (await pagina.locator(panel).isVisible()) return;
+    await pagina.click('#metodos [data-metodo="' + cual + '"]');
+    await pagina.waitForTimeout(200);
+  }
   async function buscarTitulo(txt) {
     await aBuscar();
+    await abrirMetodo("buscar");
     await pagina.fill("#entrada", txt);
     await pagina.click("#btnBuscar");
     await pagina.waitForTimeout(400);
@@ -115,7 +126,17 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
     await pagina.textContent("#version-app"));
 
   /* ---------------------------------------------------------------- */
+  m.titulo("Métodos plegados al arrancar (V GMM 0021)");
+  m.afirmar("ningún método viene activo", (await pagina.locator("#metodos .metodo.activa").count()) === 0);
+  m.afirmar("los controles de buscar nacen ocultos", !(await pagina.locator("#panelBuscar").isVisible()));
+  m.afirmar("los de descubrir nacen ocultos", !(await pagina.locator("#descubrir").isVisible()));
+  m.afirmar("los filtros comunes nacen ocultos", !(await pagina.locator("#filtros").isVisible()));
+
+  /* ---------------------------------------------------------------- */
   m.titulo("Autocompletado");
+  await abrirMetodo("buscar");
+  m.afirmar("al pulsar «Buscar una en concreto» se abren sus controles",
+    (await pagina.locator("#panelBuscar").isVisible()) && (await pagina.locator("#filtros").isVisible()));
   await pagina.fill("#entrada", "inter");
   await pagina.waitForTimeout(700);
   m.afirmar("sugiere al escribir", (await pagina.locator(".sugerencia").count()) >= 1);
@@ -203,7 +224,10 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   const textoListas = await pagina.textContent("#resultados");
   m.afirmar("la vista muestra pendientes", textoListas.includes("Pendientes de ver"));
   m.afirmar("la vista muestra favoritas", textoListas.includes("Favoritas"));
-  m.afirmar("hay 2 tarjetas", (await pagina.locator(".tarjeta").count()) === 2);
+  /* Acotado a #resultados a propósito: desde la 0017 el carrusel del inicio
+     pinta sus sugerencias con la misma clase .tarjeta y sigue en el DOM
+     (solo oculto) en las demás vistas, así que sin acotar contaría de más. */
+  m.afirmar("hay 2 tarjetas", (await pagina.locator("#resultados .tarjeta").count()) === 2);
 
   m.titulo("¿Dónde puedo verlas ahora?");
   await pagina.click("#btnDondeVerPendientes");
@@ -219,9 +243,15 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   await pagina.waitForTimeout(600);
   m.afirmar("el contador sobrevive", (await pagina.textContent("#contadorListas")).trim() === "2");
   m.afirmar("el idioma elegido sobrevive", (await pagina.inputValue("#selIdioma")) === "es");
+  /* Desde la 0020 el método NO se restaura de prefs, y desde la 0021 se
+     arranca sin ninguno: al recargar los controles vuelven a estar plegados. */
+  m.afirmar("el método no se restaura: vuelve plegado",
+    (await pagina.locator("#metodos .metodo.activa").count()) === 0 &&
+    !(await pagina.locator("#panelBuscar").isVisible()));
 
   /* ---------------------------------------------------------------- */
   m.titulo("Modo actor");
+  await abrirMetodo("buscar");
   await pagina.selectOption("#selBusquedaPor", "actor");
   await pagina.fill("#entrada", "Penélope");
   await pagina.waitForTimeout(700);
