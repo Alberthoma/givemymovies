@@ -161,12 +161,16 @@ function levantarServidor() {
   await pagina.waitForTimeout(1200);
   m.afirmar("la app sigue abriendo sin red",
     (await pagina.textContent(".marca-texto")).includes("givemymovies"));
-  /* Desde V GMM 0021 el campo nace plegado, así que verlo exige pulsar antes
-     «Buscar una en concreto». Comprobarlo así vale más que mirar el DOM: si el
-     clic abre el panel es que el JS de la app también corre sin conexión. */
+  /* Desde V GMM 0022 el formulario vive en un modal que abre «Buscar una en
+     concreto». Comprobarlo así vale más que mirar el DOM: si el clic abre el
+     modal, es que el JS de la app también corre sin conexión. */
   await pagina.click('#metodos [data-metodo="buscar"]');
-  await pagina.waitForTimeout(200);
+  await pagina.waitForTimeout(250);
+  m.afirmar("el modal del buscador se abre sin red",
+    !(await pagina.getAttribute("#capaFormulario", "class")).includes("oculto"));
   m.afirmar("el buscador sigue ahí", await pagina.locator("#entrada").isVisible());
+  await pagina.click("#capaFormulario .modal-cerrar");
+  await pagina.waitForTimeout(200);
   await contexto.setOffline(false);
 
   /* ---------------------------------------------------------------- */

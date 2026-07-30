@@ -69,7 +69,7 @@ Las notas aparecen en la ficha y en el detalle, no en las cuadrículas de descub
 
 Nada más abrir, bajo el header, hay un **carrusel deslizable** para cuando no buscas nada en
 concreto. Por defecto muestra lo que está **en tendencia**, y el botón **«Dame sugerencias»**
-despliega cinco categorías:
+abre una ventana con cinco categorías; eliges una y se cierra sola:
 
 | Categoría | Qué trae |
 |---|---|
@@ -86,17 +86,19 @@ en el móvil o con las flechas ‹ › en el ordenador, que son **infinitas**: a
 vuelven al principio, y al revés.
 
 En «Las 10 de siempre», «Nunca es tarde» y «Clásicos» aparece además un botón **«Ver más»**:
-abre una **cuadrícula paginada año por año** con las **10 mejores de cada año** del intervalo
-(por nota de TMDB de 6 o más), de la más antigua a la más reciente. Ejemplo, en Clásicos: las 10
-mejores de 1950, luego las de 1951, y así hasta 1979; si un año solo tiene 6 que llegan a la nota,
-muestra esas 6.
+abre la **cuadrícula completa del periodo** (con nota de TMDB de 6 o más), de la más antigua a la
+más reciente, **20 carátulas por página** y un paginador corriente —«Página 1 de 30»—. Desde ahí
+puedes reordenarla sin volver atrás, con el botón **Ordenar** que hay junto a la flecha ←.
 
 ---
 
 ## Cómo se busca
 
 Arriba hay un **interruptor Película / Serie** (naranja / azul) que decide qué estás
-buscando. Debajo, **dos formas de llegar al mismo resultado —dónde verla—**:
+buscando. Debajo, **dos formas de llegar al mismo resultado —dónde verla—**, cada una en su
+botón. Al pulsar uno se abre una **ventana con su formulario**: los campos van de dos en dos,
+con la **✕** arriba a la derecha para cerrar y el botón **Buscar** abajo, centrado. Si te
+equivocaste de forma, un enlace dentro de la misma ventana te lleva a la otra sin cerrarla.
 
 **1 · Buscar una en concreto.** Un desplegable elige cómo:
 
@@ -120,14 +122,20 @@ te dice en qué año estás («2026 · página 2 de 5») y al terminar un año s
 Sin encender ninguno, salen las más populares, como siempre. El texto bajo el título del
 resultado te recuerda siempre cómo está ordenada la lista.
 
-El interruptor peli/serie afecta a las dos formas y a las tres búsquedas: puedes buscar una
-serie por su nombre, ver la filmografía en TV de un actor o descubrir series por género.
+**El orden también se cambia sobre los resultados**, sin volver al formulario: junto a la
+flecha ←, el botón **Ordenar** despliega esos mismos tres interruptores.
 
-Arriba, un **interruptor Película / Serie** (naranja / azul) decide qué buscas. Los filtros
-de **idioma**, **plataforma** y **país** se eligen **antes de buscar**; el resultado ya llega
-filtrado. Cuando aparecen resultados, el formulario se oculta para que veas las carátulas sin
-estorbos, y una flecha **←** te devuelve a la búsqueda. La calificación con la que se filtra
-en Descubrir es la de **TMDB** (de 0 a 10), no un promedio de otras webs.
+El interruptor peli/serie afecta a las dos formas y a las tres búsquedas: puedes buscar una
+serie por su nombre, ver la filmografía en TV de un actor o descubrir series por género. Vive
+en la barra de arriba, así que para cambiarlo con el formulario abierto hay que cerrarlo; para
+que no te pierdas, **el título de la ventana te dice siempre qué estás buscando** («Buscar una
+serie en concreto»).
+
+Los filtros de **idioma**, **plataforma** y **país** se eligen **antes de buscar**, dentro de
+esa misma ventana; el resultado ya llega filtrado. Cuando aparecen resultados, el formulario se
+oculta para que veas las carátulas sin estorbos, y una flecha **←** te devuelve a la búsqueda.
+La calificación con la que se filtra en Descubrir es la de **TMDB** (de 0 a 10), no un promedio
+de otras webs.
 
 ---
 

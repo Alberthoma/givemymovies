@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.21 · Aplicación V GMM 0021 · 29 de julio de 2026**
+**Documento v1.22 · Aplicación V GMM 0022 · 30 de julio de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies/>
 
 ---
@@ -161,9 +161,10 @@ Para cada país con oferta, con `idiomaBuscado` e `idiomaOriginal` de la pelícu
 Película / Serie** decide el tipo de todo lo que se busca. Debajo, un selector de **método**
 con dos opciones:
 
-Los dos métodos son **dos botones sueltos, en una misma fila, centrados y debajo** del
-interruptor (sin caja ni pastilla segmentada que los envuelva). El **seleccionado se tiñe con
-el color sólido del tipo y lleva un halo** de iluminación alrededor (box-shadow del color).
+Los dos métodos son **dos botones centrados y del mismo tamaño exacto**, debajo del título (sin
+caja ni pastilla segmentada que los envuelva). Dales el mismo ancho con una **rejilla de dos
+columnas iguales**, no con flex: sus textos tienen distinto largo y con flex se ven descuadrados.
+El **seleccionado se tiñe con el color sólido del tipo y lleva un halo** de iluminación alrededor.
 
 - **Buscar una en concreto:** un **desplegable** elige *por título · por actor/actriz · por
   trama*, con el campo de texto y el autocompletado. Cambiar la forma limpia el campo y los
@@ -174,12 +175,47 @@ Buscar «dónde la veo» y «descubrir por género» son intenciones distintas y
 mezclarse en una misma fila de pestañas: por eso van en métodos separados, y el tipo
 (peli/serie) es un interruptor aparte que manda sobre los dos.
 
-**Dos pantallas (desde V GMM 0009).** El buscador **no es una caja**: son controles sueltos y
-**centrados**. Hay una pantalla de búsqueda (formulario visible) y una de resultados
+**5.1.1b Los controles viven en un modal (V GMM 0022).** En el inicio **no** se ven campos: solo
+el título y los dos botones. Cada uno abre `#capaFormulario`, un **modal-formulario** con los
+controles de su método más los filtros comunes.
+
+- **Un solo modal para los dos métodos, no dos.** Dentro van los mismos bloques de siempre
+  (`#panelBuscar`, `#descubrir`, `#filtros`, `#chips`) y `reflejar()` decide cuáles se ven.
+  Con dos modales habría que duplicar `#selIdioma`, `#selGenero` y compañía: ids repetidos y dos
+  copias de estado que sincronizar.
+- **El cuerpo es UNA rejilla de dos columnas** y los bloques interiores van a `display: contents`,
+  de modo que sus campos entren directos en ella y se repartan **de dos en dos aunque vengan de
+  bloques distintos**. Los grandes ocupan fila entera: el campo de texto, la fila de orden y los
+  chips. Usa `grid-auto-flow: row dense` o quedará un hueco al lado del campo de texto.
+- **Repite el ocultado** para esos bloques (`.forma .panel-buscar.oculto { display: none }`): el
+  selector de `display: contents` es más específico que `.oculto` y, sin ello, un bloque oculto
+  seguiría enseñando sus campos.
+- **El autocompletado no puede flotar dentro del modal.** El cuerpo hace scroll y lo recortaría:
+  ponlo `position: static`, en el flujo, empujando lo que venga debajo.
+- **X arriba a la derecha y Buscar centrado al pie.** El botón toma el color del tipo, así que el
+  `data-tipo` va también en `#capaFormulario`, no solo en `#buscador`.
+- **En el móvil, una sola columna** y con **margen visible alrededor**: el modal no debe ocupar la
+  pantalla entera. El cuerpo hace scroll dentro (patrón de §5.7).
+- **Lo que queda fuera del modal deja de ser pulsable**: la barra con el interruptor peli/serie y
+  los propios botones de método. Por eso el **título del modal nombra el tipo** («Buscar una serie
+  en concreto») y hay un **enlace para pasar al otro método sin cerrar**. El interruptor sigue en
+  su barra: para cambiarlo se cierra el modal.
+- **Escape cierra el modal, salvo si el autocompletado está desplegado**, en cuyo caso cierra solo
+  el desplegable. Resuélvelo con `stopPropagation()` en el manejador del campo: corre antes que el
+  del documento, y sin cortar la propagación se cierra el modal y se pierde lo escrito.
+
+**Dos pantallas (desde V GMM 0009).** Hay una pantalla de búsqueda y una de resultados
 (formulario **oculto**, con una flecha **←** para volver): al buscar se ve header + flecha +
-resultado, sin pasar por el formulario. Los filtros de idioma, plataforma y país se eligen
-**antes** de buscar; al haber resultados no se ven, así que ya no se refinan en vivo (se cambia
-con ← y buscar otra vez). Lo alterna `fijarPantalla()` según `estado.vista`.
+resultado. Los filtros de idioma, plataforma y país se eligen **antes** de buscar; al haber
+resultados no se ven, así que ya no se refinan en vivo (se cambia con ← y buscar otra vez). Lo
+alterna `fijarPantalla()` según `estado.vista`.
+
+**Excepción: el orden sí se cambia sobre los resultados (V GMM 0022).** Junto a la flecha ←, **en
+su misma fila**, un desplegable con los tres interruptores de orden, visible solo sobre una
+cuadrícula de Descubrir. No contradice lo anterior: reordenar no es refinar en memoria, exige otra
+consulta, y volver al formulario para eso era el paso de más que se quitó. Como los interruptores
+quedan **por duplicado** (formulario y desplegable), `reflejarOrden()` debe casar por
+**`[data-orden]`, no por id**, y un solo manejador sirve a las dos copias.
 
 **El interruptor peli/serie afecta a las cuatro búsquedas** (título, actor, trama y
 descubrir) y **solo tiñe sus propios acentos**: el propio interruptor (Series azul a la
@@ -321,7 +357,9 @@ lo apaga.
 1. Con clave: /discover/movie o /discover/tv, con
    with_genres, vote_average.gte, sort_by (según el orden), y el intervalo por
    primary_release_date.gte/.lte (first_air_date.* en series).
-   vote_count.gte = 40 normal, 300 al ordenar por nota.
+   vote_count.gte = 40 normal, 300 siempre que la nota entre en juego
+   (como orden O como filtro: con el mínimo bajo, «nota >= 6 ordenado por
+   año» saca desconocidos con un 6,0 de doce votos, peor que no filtrar).
 2. Sin clave (demo): filtra el catálogo de ejemplo por género, intervalo y nota,
    y lo ordena con el mismo criterio, combinación incluida.
 3. Normaliza cada resultado con su tipo antes de pintar (§8).
@@ -359,6 +397,11 @@ el contexto en `estado.ctxPagina` y `irAPagina(n)` rehace solo esa página.
 resultados cuando se agota el actual. Solo se puede ir a una página ya vista o a la
 inmediatamente siguiente. Cuando se acaba el intervalo, dilo («no hay más resultados») y
 quédate donde estabas, no vacíes la pantalla.
+
+**Ese paginador por años solo debe salir cuando el usuario pida la combinación.** Nada de la app
+—ni «Ver más», ni ningún atajo— debe encender fecha + nota por su cuenta: el resultado es un
+paginador que va saltando de año en año donde se esperaba «Página 1 de 30», y se rechazó
+expresamente en la V GMM 0022. Con un solo criterio de orden, paginación corriente.
 
 Cambiar cualquier criterio vuelve a la página 1 y reinicia el recorrido. Los géneros **no se
 piden a la API**: son una taxonomía estable y se guardan en `GMM.datos`.
@@ -583,16 +626,22 @@ En `sw.js`, `omdbapi.com` va a **solo red** (las notas cambian con el tiempo).
 **Carrusel de sugerencias del inicio (V GMM 0017).** Sección `#descubrimiento` bajo el header y
 encima del `#buscador`; vive solo en el inicio (`fijarPantalla` la oculta con resultados, igual
 que el buscador). Por defecto **Tendencia** (`GMM.tmdb.tendencia(tipo)` → `/trending/{movie|tv}/week`);
-un botón «Dame sugerencias» despliega los chips de las categorías de `GMM.config.CATEGORIAS_SUGERENCIA`:
+un botón «Dame sugerencias» abre el **modal `#capaSugerencias`** con las categorías de
+`GMM.config.CATEGORIAS_SUGERENCIA`:
 Tendencia, Las 10 de siempre (2000→hoy), Nunca es tarde (1980–2000), Clásicos (1950–1979) y Lo que
-prefieres (favoritas por tipo). Respeta el interruptor peli/serie y las tarjetas (`GMM.ui.tarjeta`)
+prefieres (favoritas por tipo). Preséntalas **una por fila, todas del mismo tamaño y en azul
+`#4aa8ff`** (color fijo, no el del interruptor), y **cierra el modal al elegir una**: la elección ya
+está hecha y dejarlo abierto solo taparía el resultado. Respeta el interruptor peli/serie y las tarjetas (`GMM.ui.tarjeta`)
 abren la **ficha completa** (`abrirFicha`, como buscar por título; V GMM 0018). Como la
 delegación de clic de `#resultados` no alcanza a `#descubrimiento`, `#carrusel` tiene su propio
 listener: `[data-abrir]` → `abrirFicha` y `[data-lista]` → `alternarLista`. Las flechas ‹ › son
 **infinitas** (`desplazarCarrusel`: al llegar a un extremo saltan al otro, sin clonar). En las tres
-categorías con intervalo, un botón **«Ver más»** (`verMasCategoria`) abre la cuadrícula paginada
-año por año con las **10 mejores de cada año** por **nota de TMDB ≥ 6**, reutilizando el recorrido
-de la 0015 con `estado.topAnio` = 10 (corta cada año a 10 y avanza de año en año). **El «top 10» se rankea por nota real de IMDb** porque `/discover` no ordena por
+categorías con intervalo, un botón **«Ver más»** (`verMasCategoria`) abre la **cuadrícula corriente
+de Descubrir** sobre el intervalo de la categoría, del año más antiguo al más reciente y con **nota
+de TMDB ≥ 6**: **20 por página y «Página 1 de N»**. Preajusta el estado con **un solo criterio de
+orden** (`orden: "antigua"`, `porNota: false`); **encender también la nota es lo que dispara el
+recorrido año por año**, y con él un paginador «2000 · 10 mejores» que se descartó expresamente en
+la V GMM 0022. **El «top 10» del carrusel sí se rankea por nota real de IMDb** porque `/discover` no ordena por
 IMDb: candidatos por nota de TMDB → `imdb_id` con `GMM.tmdb.ficha` (lotes de 5, `GMM.util.enLotes`)
 → nota con `GMM.omdb.notas` (lotes de 5) → `GMM.util.mejoresPorImdb` filtra `> 6`, ordena y corta a
 10. Perezoso (solo al abrir la categoría; Tendencia y Favoritas no gastan OMDb) y cacheado en
@@ -703,6 +752,14 @@ Todos deben pasar:
 | A38 | Orden por fecha descendente | Ningún resultado con fecha de estreno **posterior a hoy** |
 | A39 | Orden por nota (datos reales) | La cabeza de la lista de drama son títulos conocidos (*Cadena perpetua*, *El padrino*), no un 9,9 con 143 votos: `vote_count.gte` = 300 al ordenar por nota |
 | A40 | Sin orden elegido | Se comporta exactamente como antes de la 0015: por popularidad |
+| A41 | Modal-formulario | El inicio no muestra campos; cada método abre `#capaFormulario` con los suyos, la X lo cierra y el enlace del pie pasa al otro método **sin** cerrarlo |
+| A42 | Campos de dos en dos | Dentro del modal los campos se reparten en dos columnas del mismo ancho, sin huecos intermedios; el campo de texto, la fila de orden y los chips ocupan fila entera |
+| A43 | Modal en el móvil | A 375 px va a una columna, **deja margen a los lados** y **no ocupa toda la altura**; el cuerpo hace scroll dentro |
+| A44 | Modal de sugerencias | «Dame sugerencias» abre un modal con las 5 categorías **una por fila y del mismo ancho exacto**; elegir una carga el carrusel y **cierra el modal** |
+| A45 | Botones del mismo tamaño | Los dos métodos miden lo mismo entre sí, y los dos del carrusel entre sí, midiendo el ancho renderizado (no basta con que lo parezca) |
+| A46 | Orden junto a ← | Sobre una cuadrícula de Descubrir, el desplegable comparte fila con la flecha; encender un interruptor ahí lo enciende también en el formulario y reordena sin volver atrás |
+| A47 | «Ver más» pagina de corrido | Tras elegir *Las 10 de siempre* y pulsar «Ver más», el paginador dice **«Página 1 de N»** —nunca «AAAA · …»— y la cuadrícula trae **20 carátulas** |
+| A48 | Escape dentro del modal | Con el autocompletado desplegado, Escape cierra **solo** el desplegable y conserva lo escrito; sin él, cierra el modal |
 
 ### Al tocar el catálogo demo, verifica cada imagen
 
@@ -804,6 +861,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.22 | V GMM 0022 | 30-07-2026 | **Los formularios pasan a modales** (§5.1.1b). Los controles de los dos métodos salen de la página a un **modal-formulario único** (`#capaFormulario`): cuerpo en una rejilla de dos columnas con los bloques a `display: contents`, campos de dos en dos (los grandes a fila completa), X arriba a la derecha, Buscar centrado al pie, y en móvil una columna con margen alrededor. En el inicio solo quedan **dos botones del mismo tamaño**. Las 5 categorías de «Dame sugerencias» pasan a **otro modal**, una por fila, todas iguales y en azul fijo; elegir una lo cierra. **Desplegable de orden junto a la flecha ←** (única excepción a «los filtros se eligen antes de buscar»), con `reflejarOrden()` casando por `[data-orden]` para las dos copias. **«Ver más» pagina de corrido** —20 por página, «Página 1 de N»— porque deja de encender fecha + nota a la vez; el recorrido año por año se conserva intacto para cuando se pide a mano. Además: `vote_count.gte` = 300 siempre que la nota entra en juego, enlace para cambiar de método sin cerrar, autocompletado en el flujo dentro del modal, y Escape que no cierra el modal si hay desplegable abierto. Criterios A41–A48. `sw.js` 19→20, `interfaz.js` 78→106, `pwa.js` 19→20. |
 | 1.21 | V GMM 0021 | 29-07-2026 | **Métodos plegados por defecto + ⚙ redondo.** La app arranca sin método (`estado.metodo = ""`): los controles de «Buscar una en concreto» (`#panelBuscar`/`#chips`), los de «Descubrir por género» (`#descubrir`) y los filtros comunes (`#filtros`) empiezan ocultos y cada uno se muestra solo al pulsar su botón. El botón ⚙ pasa a un círculo compacto (`#btnAjustes`, 34 px) pegado a la derecha, con la barra apretada para caber en una línea en móvil. `sw.js` 18→19. |
 | 1.20 | V GMM 0020 | 29-07-2026 | **Ajustes de disposición.** El interruptor Película/Serie pasa del buscador a la barra bajo el header (izquierda, junto a *Mis listas*; barra en dos grupos). El botón «Ver más» va a la derecha de «Dame sugerencias». La app arranca siempre en «Buscar una en concreto» (el método ya no se restaura de prefs): los controles de «Descubrir por género» quedan ocultos hasta pulsar su botón. `sw.js` 17→18. |
 | 1.19 | V GMM 0019 | 29-07-2026 | **Carrusel infinito** (las flechas ‹ › dan la vuelta al llegar a un extremo, `desplazarCarrusel`, sin clonar) y botón **«Ver más»** en las tres categorías con intervalo (de siempre / nunca es tarde / clásicos): abre la cuadrícula paginada año por año con las **10 mejores de cada año** por nota de TMDB ≥ 6, reutilizando el recorrido de la 0015 con `estado.topAnio` = 10. `sw.js` 16→17. |

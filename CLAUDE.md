@@ -2,9 +2,9 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0021`
-**Próxima versión:** `V GMM 0022`
-**Última actualización:** 2026-07-29
+**Versión activa:** `V GMM 0022`
+**Próxima versión:** `V GMM 0023`
+**Última actualización:** 2026-07-30
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies/> · GitHub Pages desde `main`, raíz.
 
@@ -42,12 +42,16 @@ nunca te dicen el idioma. Aquí se responde de una vez, en una frase en lenguaje
 
 Plataforma y país son **opcionales**; el idioma es el filtro que da sentido a todo.
 
+**Los controles de las dos formas viven en un modal** (desde V GMM 0022): en el inicio solo se
+ven dos botones del mismo tamaño, y cada uno abre el **modal-formulario** con sus campos. Ver §4.
+
 **Encima de las dos formas, un carrusel de descubrimiento** (desde V GMM 0017) responde «¿y qué
 veo?» sin buscar nada: bajo el header, en el inicio, muestra por defecto lo que está **en
-tendencia** y un botón **«Dame sugerencias»** despliega cinco categorías —*Tendencia*, *Las 10 de
-siempre* (2000→hoy), *Nunca es tarde* (1980–2000), *Clásicos* (1950–1979) y *Lo que prefieres*
-(tus favoritas)—. Respeta el interruptor peli/serie y, al tocar una tarjeta, abre la **ficha
-completa** (la misma vista que buscar por título; desde V GMM 0018).
+tendencia** y un botón **«Dame sugerencias»** abre un **modal** con cinco categorías —*Tendencia*,
+*Las 10 de siempre* (2000→hoy), *Nunca es tarde* (1980–2000), *Clásicos* (1950–1979) y *Lo que
+prefieres* (tus favoritas)—; elegir una carga el carrusel y cierra el modal. Respeta el
+interruptor peli/serie y, al tocar una tarjeta, abre la **ficha completa** (la misma vista que
+buscar por título; desde V GMM 0018).
 
 **El interruptor peli/serie afecta a las dos formas y a las tres búsquedas** (título, actor,
 trama): buscar *The Walking Dead*, la filmografía en TV de un actor, o tramas en series, todo
@@ -181,27 +185,79 @@ simplemente no se instala ni cachea: `GMM.pwa.seguro()` lo detecta y no registra
 `disponibilidad`, `ctxPagina` (paginación) y —para Descubrir— `genero`, `anoDesde`,
 `anoHasta`, `notaMin`, `orden` (`popular`/`reciente`/`antigua`), `porNota`, y el par
 `anios`/`recorrido` del recorrido año por año.
-`reflejar()` vuelca el formulario (interruptor, método, marcador, chips, acentos, orden).
+`reflejar()` vuelca el formulario (interruptor, método, título del modal, marcador, chips,
+acentos, orden).
 
 **El interruptor peli/serie vive en la barra bajo el header** (desde V GMM 0020), a la izquierda
 junto a *Mis listas* (antes estaba dentro del buscador). La barra tiene dos grupos: `.barra-izq`
 (Mis listas + interruptor) y `.barra-der` (Instalar + ⚙). Sigue teniendo id `#tipoSwitch`, así que
 `reflejar()` y sus acentos (`#buscador[data-tipo]`, `#descubrimiento[data-tipo]`) funcionan igual.
-**La app arranca sin método elegido** (`estado.metodo = ""`; desde V GMM 0021, antes era «buscar»):
-los controles de **ambos** métodos empiezan ocultos y cada panel se abre **solo al pulsar su botón**
-—`#panelBuscar` + `#chips` con «Buscar una en concreto», `#descubrir` con «Descubrir por género», y
-los filtros comunes `#filtros` (plataforma/país/idioma + Buscar) solo cuando hay método—. El método
-no se restaura de `gmm_prefs`, así que cada recarga vuelve a ese arranque limpio (y usar «Ver más»
-tampoco deja Descubrir abierto). **El botón ⚙ es un círculo compacto** pegado a la derecha de la
-barra (`#btnAjustes`, 34 px, el engranaje sin reducir).
+**La app arranca sin método elegido** (`estado.metodo = ""`; desde V GMM 0021, antes era «buscar»),
+y el método no se restaura de `gmm_prefs`: cada recarga vuelve a ese arranque limpio. **El botón ⚙
+es un círculo compacto** pegado a la derecha de la barra (`#btnAjustes`, 34 px, el engranaje sin
+reducir).
+
+### El modal-formulario (desde V GMM 0022)
+
+**Los controles de los dos métodos no están en la página: viven en un modal.** En el inicio solo
+quedan el título y **dos botones del mismo tamaño** (`.metodos`, rejilla de dos columnas iguales,
+no flex: así miden lo mismo aunque sus textos no); cada uno abre `#capaFormulario` con sus campos.
+
+**Es un solo modal para los dos métodos, no dos.** Dentro están los mismos nodos de siempre
+—`#panelBuscar`, `#descubrir`, `#filtros`, `#chips`— y `reflejar()` decide cuáles se ven, igual
+que cuando estaban en la página. Hacerlo con dos modales habría duplicado `#selIdioma`,
+`#selGenero` y compañía, con ids repetidos y dos copias de estado que sincronizar.
+
+**El cuerpo es UNA rejilla de dos columnas** (`.forma`) y los bloques interiores son
+`display: contents`, de modo que sus campos entran directos en esa rejilla y se reparten **de dos
+en dos aunque vengan de bloques distintos**. Los grandes ocupan fila entera (el campo de texto, la
+fila de orden, los chips). Detalles que hay que conservar:
+
+- El empaquetado es **`grid-auto-flow: row dense`** a propósito: con el campo de texto a fila
+  completa quedaría un hueco a su lado, y así lo rellena el filtro siguiente.
+- `.oculto` **hay que repetirlo** para esos bloques (`.forma .panel-buscar.oculto`, …): el
+  selector de `display: contents` es más específico y, sin ello, un bloque oculto seguiría
+  enseñando sus campos.
+- En Descubrir los campos son impares y «País» cerraría media fila: se estira a fila completa.
+- **El autocompletado no puede flotar dentro del modal** (`position: static`): el cuerpo hace
+  scroll y lo recortaría. Se muestra en el flujo, empujando lo que venga debajo.
+- El botón **Buscar vive en el pie**, centrado (`.modal-pie.centrado`), y toma el color del tipo;
+  por eso `#capaFormulario` lleva también `data-tipo`, no solo `#buscador`.
+
+**Con el modal abierto, la barra queda detrás del velo.** Consecuencias asumidas: el interruptor
+peli/serie se cambia cerrando el modal (sigue en su barra, como decidió la 0020), y para que no se
+pierda de vista qué se busca, **el título del modal nombra el tipo** («Buscar una serie en
+concreto», «Descubrir películas por género»). Para pasar de un método al otro sin cerrar hay un
+enlace en el propio modal (`#btnCambiarMetodo`), porque cerrar y reabrir sería un camino absurdo
+para algo tan corriente.
+
+**Escape cierra el modal, salvo si el autocompletado está desplegado**, en cuyo caso cierra solo
+el desplegable. Lo resuelve el manejador de `#entrada` con `stopPropagation()`, no el del
+documento: el del campo corre antes, y sin cortar la propagación el modal se cerraba también y se
+perdía lo escrito.
+
+**Las categorías del carrusel viven en otro modal** (`#capaSugerencias`, `.cats-columna`): una por
+fila, **todas del mismo tamaño** y en **azul `#4aa8ff`** —el color de «información» de la paleta,
+fijo, ya no el del interruptor—. Elegir una carga el carrusel y **cierra el modal**.
 
 **Dos pantallas (desde V GMM 0009):** la de búsqueda (formulario visible) y la de resultados
 (formulario **oculto**, con una flecha **←** para volver). Lo alterna `fijarPantalla()` según
 `estado.vista` (`inicio` = búsqueda; cualquier otra = resultados). Los filtros de idioma,
 plataforma y país se eligen **antes** de buscar: al haber resultados no están a la vista, así
-que ya no se refinan en vivo (se cambia con ← y buscar de nuevo). El buscador **no es una
-caja**: son controles sueltos y centrados. El estado de datos es un **punto** en el header
-(verde = en vivo, naranja = demo) y **Mis listas** vive en una barra bajo el header, no dentro.
+que ya no se refinan en vivo (se cambia con ← y buscar de nuevo). El estado de datos es un
+**punto** en el header (verde = en vivo, naranja = demo) y **Mis listas** vive en una barra bajo
+el header, no dentro.
+
+**El orden sí se cambia sobre los resultados** (desde V GMM 0022): junto a la flecha ←, en su
+misma fila, un desplegable `#ordenMenu` con los tres interruptores. Es la **única** excepción a lo
+anterior, y no la contradice: reordenar no es refinar en memoria, exige otra consulta, y volver al
+formulario para algo tan corriente era el paso de más que se quería quitar.
+
+**Los tres interruptores de orden existen por duplicado** —el del formulario (`#orden`) y el del
+desplegable (`#ordenPanel`)— y por eso `reflejarOrden()` **casa por atributo `[data-orden]`, no
+por id**: así las dos copias dicen siempre lo mismo sin sincronizarlas a mano, y un solo manejador
+(`alPulsarOrden`) sirve a ambas. **Cuidado al contar en las pruebas:** `.orden-op.activa` a secas
+cuenta el doble; hay que acotar a `#orden`.
 
 **`disponibilidad` se indexa por `"tipo:id"`, no por id a secas.** Una película y una serie
 pueden compartir id numérico en TMDB, y la lista de pendientes ya puede mezclar ambas: usar
@@ -232,10 +288,11 @@ resultados, saltándose los vacíos. Por eso `paginadorHtml()` recibe un objeto 
 disparar una ráfaga de peticiones inútiles. **Sin clave no se aplica**: el catálogo de ejemplo
 se filtra en memoria y ahí no hay peticiones que ahorrar.
 
-**`estado.topAnio` reutiliza este recorrido para el «Ver más» del carrusel** (desde V GMM 0019):
-cuando está activo (10), `cargarAnio` corta cada año a esos 10 títulos y **siempre** salta al año
-siguiente (no pagina dentro del año), y la etiqueta pasa a «AAAA · 10 mejores». Con `topAnio` en 0
-(Descubrir normal) todo funciona como antes.
+**Este recorrido ya no se activa solo.** Entre la 0019 y la 0021, «Ver más» encendía fecha + nota
+a la vez y `estado.topAnio` cortaba cada año a 10, de donde salía el paginador «2000 · 10 mejores».
+**Eso se retiró en la V GMM 0022** (`topAnio` ya no existe): el recorrido año por año sigue intacto,
+pero **solo cuando el usuario pide expresamente esa combinación**. Ver §4 «El modal-formulario» y
+la entrada de la 0022 en el historial.
 
 ### Las notas de IMDb / RT / Metacritic (desde V GMM 0016)
 
@@ -287,13 +344,17 @@ el borde y da la vuelta —› en el final salta al principio, ‹ en el princip
 clona tarjetas, solo hace `scrollTo`.
 
 **«Ver más» en las categorías con intervalo** (de siempre / nunca es tarde / clásicos; desde V GMM
-0019): el botón `#btnVerMas` —visible solo cuando `categoriaDef(clave).anoDesde` existe— abre la
-**cuadrícula paginada año por año** con las **10 mejores de cada año** del intervalo, por **nota de
-TMDB ≥ 6** (no IMDb: serían cientos de consultas a OMDb). `verMasCategoria()` preajusta el estado de
-Descubrir (género = todos, intervalo de la categoría, orden = *antigua* + *porNota*, `notaMin` = 6) y
-enciende **`estado.topAnio` = 10**, que hace que el recorrido corte cada año a 10 y avance de año en
-año. El paginador dice **«1950 · 10 mejores»**. `estado.topAnio` se apaga (vuelve a Descubrir normal)
-al buscar a mano (`buscar`) o al tocar cualquier criterio (`alCambiarCriterio`).
+0019, replanteado en la 0022): el botón `#btnVerMas` —visible solo cuando
+`categoriaDef(clave).anoDesde` existe— abre la **cuadrícula corriente de Descubrir** sobre el
+intervalo de la categoría, del año más antiguo al más reciente y con **nota de TMDB ≥ 6** (no IMDb:
+serían cientos de consultas a OMDb). `verMasCategoria()` preajusta el estado (género = todos,
+intervalo de la categoría, `notaMin` = 6, orden = *antigua*) y **deja `porNota` apagado**.
+
+**Ese `porNota: false` es el punto entero del arreglo.** Con un solo criterio de orden la lista
+pagina de corrido: **20 por página y «Página 1 de N»**. Encenderlo también —como hacía hasta la
+0021— es exactamente lo que dispara el recorrido año por año, y con él el paginador «2000 · 10
+mejores» que el usuario rechazó. Si algún día se toca `verMasCategoria`, **no vuelvas a encender
+`porNota` ahí**: no es un detalle, es el comportamiento que se pidió.
 
 ### Persistencia (`localStorage`)
 
@@ -374,12 +435,12 @@ el `og:image`. Y no cojas el primer `<img>` de la página: suele ser un recomend
 ```bash
 node pruebas/logica.js      # 120 comprobaciones · sin dependencias · instantáneo
 node pruebas/imagenes.js    #  15 comprobaciones · necesita internet · ~30 s
-node pruebas/interfaz.js    #  78 comprobaciones · playwright-core · ~50 s
-node pruebas/pwa.js         #  19 comprobaciones · playwright-core · ~20 s
+node pruebas/interfaz.js    # 106 comprobaciones · playwright-core · ~60 s
+node pruebas/pwa.js         #  20 comprobaciones · playwright-core · ~20 s
 ```
 
-Última ejecución: **232 comprobaciones, todas correctas**, sin errores de JavaScript en
-consola. Las cuatro suites, en local, el 2026-07-29 sobre la 0021.
+Última ejecución: **261 comprobaciones, todas correctas**, sin errores de JavaScript en
+consola. Las cuatro suites, en local, el 2026-07-30 sobre la 0022.
 
 > **Las versiones 0016 a 0021 se cerraron en un entorno remoto sin acceso a npm**, así que
 > `interfaz.js` y `pwa.js` (que dependen de `playwright-core`) no se ejecutaron allí: solo
@@ -405,8 +466,12 @@ notas de OMDb (`GMM.omdb.parsear`: respuesta completa, `Response:"False"`, campo
 `"N/A"` y el `Metascore` de reserva), y —desde la 0017— el selector del carrusel
 `GMM.util.mejoresPorImdb` (filtra IMDb > 6, ordena, corta, ignora sin nota). `interfaz.js` recorre el interruptor
 peli/serie, la búsqueda de una serie por título, Descubrir con series, los interruptores de
-orden con su paginador por años y —desde la 0021— los métodos plegados (nada activo al
-arrancar, los tres paneles ocultos, y plegados otra vez tras recargar).
+orden con su paginador por años, —desde la 0021— los métodos plegados, y —desde la 0022— los
+dos modales (abrir, cerrar con la X, elegir categoría cierra el de sugerencias), que los
+botones **midan lo mismo** (los dos métodos, los dos del carrusel y las cinco categorías),
+que **«Ver más» diga «Página 1 de 30» con 20 carátulas** y sin etiqueta de año, el
+desplegable de orden junto a ← con sus dos copias sincronizadas, y que en el móvil el modal
+**deje margen y no ocupe toda la altura**.
 
 `pwa.js` levanta un servidor local, porque los service workers no funcionan sobre `file://`
 y `localhost` cuenta como origen seguro igual que HTTPS.
@@ -466,6 +531,10 @@ Comprobación manual rápida, si no quieres ejecutar nada:
 | **Un solo `sort_by` por consulta** | TMDB no ordena por dos criterios. «Año y luego nota» **no** se resuelve reordenando la página ya traída: los 20 títulos de la página son solo los 20 primeros según *un* criterio, y reordenarlos por otro da una lista que parece lo pedido sin serlo —los mejores del año pueden estar en la página 8—. Por eso se recorre año por año. Si algún día se añade otro orden combinado, mismo camino. |
 | Estrenos futuros en `/discover` | Ordenar por fecha descendente llena la primera página de películas **sin estrenar**, que es lo contrario de lo que responde la app. Todas las consultas de Descubrir cortan en la fecha de hoy (`primary_release_date.lte` / `first_air_date.lte`). |
 | Carátulas de la demo que caducan | TMDB cambia la carátula principal de un título con el tiempo, y `pruebas/imagenes.js` compara contra la oficial del momento. Tres series fallaron sin que nadie tocara el código. **No es una imagen rota: es que se movió.** Se arregla copiando el `poster_path` que el propio test reporta como oficial. |
+| **`display: contents` gana a `.oculto`** | En el modal-formulario los bloques son `display: contents` para que sus campos entren en la rejilla común. Ese selector es **más específico** que `.oculto`, así que un bloque «oculto» seguía enseñando sus campos. Hay que repetir el ocultado (`.forma .panel-buscar.oculto { display: none }`). Vale para cualquier bloque nuevo que se sume a `.forma`. |
+| **Escape encadenado en un modal** | Con el autocompletado desplegado dentro del modal, Escape lo cerraba **y además** cerraba el modal, perdiendo lo escrito: el manejador de `#entrada` corre antes que el del documento, y este veía la lista ya cerrada. Se corta con `stopPropagation()` en el del campo. Cualquier capa nueva que anide controles con Escape propio tiene el mismo riesgo. |
+| **Un control duplicado se cuenta dos veces** | Los interruptores de orden viven en el formulario **y** en el desplegable de la barra. `reflejarOrden()` casa por `[data-orden]` (bien), pero las pruebas contaban `.orden-op.activa` a secas y sacaban el doble. Acota al contenedor: `#orden .orden-op.activa`. Es la misma lección que las tarjetas del carrusel. |
+| **Lo que el modal deja detrás del velo** | Al mudar el formulario a un modal, todo lo que queda fuera —la barra con el interruptor peli/serie y los dos botones de método— **deja de ser pulsable** mientras esté abierto. No es un fallo de CSS: es lo que hace un modal. Se resolvió nombrando el tipo en el título y añadiendo un enlace para cambiar de método sin cerrar. Antes de mover algo a un modal, mira qué se queda fuera. |
 
 ---
 
@@ -600,6 +669,7 @@ puede ir dentro de `index.html` sin problema.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| V GMM 0022 | 2026-07-30 | **Rediseño de disposición: los formularios pasan a modales.** (1) Los controles de los dos métodos salen de la página a un **modal-formulario único** (`#capaFormulario`): cuerpo en **una rejilla de dos columnas** con los bloques a `display: contents`, campos **de dos en dos** (los grandes a fila completa), **X** arriba a la derecha y **Buscar centrado** al pie; en el móvil, una columna y con margen alrededor. En el inicio solo quedan **dos botones del mismo tamaño**. (2) Las 5 categorías de «Dame sugerencias» pasan a **otro modal**, una por fila, **todas iguales** y en **azul fijo**; elegir una cierra el modal. (3) **Desplegable de orden junto a la flecha ←**, en su misma fila: reordenar sin volver al formulario (`reflejarOrden` casa por `[data-orden]`, no por id, para las dos copias). (4) **«Ver más» pagina de corrido**: 20 por página y **«Página 1 de N»**, en vez de «2000 · 10 mejores» — se retira `estado.topAnio` y `verMasCategoria` deja de encender `porNota`; **el recorrido año por año de la 0015 se conserva intacto** para cuando se pide a mano. (5) De paso: **300 votos** exigidos siempre que la nota entra en juego (antes solo al ordenar por ella, y «nota ≥ 6 por año» sacaba desconocidos con doce votos), enlace para cambiar de método sin cerrar el modal, autocompletado **en el flujo** dentro del modal, Escape ya no cierra el modal si hay desplegable abierto, y fuera el CSS muerto de `.pestanas`. `sw.js` VERSION 19→20. `logica.js` 120, `interfaz.js` 78→106, `pwa.js` 19→20. |
 | V GMM 0021 | 2026-07-29 | **Métodos plegados por defecto + ⚙ redondo.** (1) La app arranca **sin método** (`estado.metodo = ""`): los controles de «Buscar una en concreto» (`#panelBuscar`, `#chips`) y los de «Descubrir por género» (`#descubrir`) y los filtros comunes (`#filtros`) empiezan **ocultos**, y cada uno se muestra **solo al pulsar su botón**. (2) El botón **⚙ pasa a ser un círculo compacto** (`#btnAjustes`, 34 px, engranaje sin reducir) pegado a la derecha de la barra, que se aprieta en móvil para caber en una línea. Solo HTML/CSS + `reflejar()`. `sw.js` VERSION 18→19. `logica.js` 120. **`interfaz.js`/`pwa.js` no ejecutadas (sin npm); pasar en local.** |
 | V GMM 0020 | 2026-07-29 | **Ajustes de disposición.** (1) El interruptor Película/Serie sale del buscador a la **barra bajo el header**, a la izquierda junto a *Mis listas* (barra en dos grupos `.barra-izq`/`.barra-der`). (2) El botón **«Ver más»** pasa a la **derecha** de «Dame sugerencias». (3) La app **arranca siempre en «Buscar una en concreto»** (el método ya no se restaura de prefs): los controles de «Descubrir por género» quedan ocultos hasta pulsar su botón, y «Ver más» ya no los deja abiertos al recargar. Solo HTML/CSS + una línea de `cargarPrefs`. `sw.js` VERSION 17→18. `logica.js` 120. **`interfaz.js`/`pwa.js` no ejecutadas (sin npm); pasar en local.** |
 | V GMM 0019 | 2026-07-29 | **Carrusel infinito y «Ver más» por año.** (1) Las flechas ‹ › del carrusel **dan la vuelta** al llegar a un extremo (`desplazarCarrusel`, sin clonar tarjetas). (2) Botón **«Ver más»** en las categorías con intervalo (de siempre / nunca es tarde / clásicos): abre la **cuadrícula paginada año por año** con las **10 mejores de cada año** del intervalo, por **nota de TMDB ≥ 6** (el carrusel sigue con IMDb; la cuadrícula usa TMDB porque serían cientos de consultas a OMDb). Reutiliza el recorrido de la 0015 con `estado.topAnio` = 10 (corta cada año a 10 y avanza de año en año; etiqueta «1950 · 10 mejores»). Se apaga al buscar a mano o tocar un criterio. `sw.js` VERSION 16→17. `logica.js` 120 (UI + reúso). **`interfaz.js`/`pwa.js` no ejecutadas (sin npm); pasar en local.** |

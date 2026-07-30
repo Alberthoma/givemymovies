@@ -132,8 +132,22 @@ a:hover { text-decoration: underline; }
 .barra-listas .tipo-switch { margin: 0; }
 .barra-listas .tipo-op { padding: 6px 14px; font-size: 13px; }
 
-/* Flecha de volver a la búsqueda (modo resultados). */
-.barra-volver { margin: 4px 0 12px; }
+/* Flecha de volver a la búsqueda (modo resultados) y, en la misma fila, el
+   desplegable de orden. */
+.barra-volver { display: flex; align-items: center; gap: 10px; margin: 4px 0 12px; }
+
+/* Desplegable de orden: el panel flota sobre los resultados, anclado al botón.
+   Los mismos tres interruptores que en el formulario (comparten data-orden y
+   se reflejan juntos), para reordenar sin volver atrás. */
+.orden-menu { position: relative; }
+.orden-panel {
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 45;
+  display: flex; flex-direction: column; align-items: stretch; gap: 8px;
+  min-width: 220px; padding: 14px;
+  background: #131c26; border: 1px solid #2f4356; border-radius: 14px;
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.55);
+}
+.orden-panel .orden-op { width: 100%; text-align: center; }
 .btn-volver {
   display: inline-grid; place-items: center;
   width: 42px; height: 42px; border-radius: 12px;
@@ -179,31 +193,38 @@ a:hover { text-decoration: underline; }
 }
 .buscador-sub { color: #8ba0b6; font-size: 14.5px; margin-bottom: 20px; }
 
-/* El interruptor y los métodos son inline-flex: los centra el text-align del
-   buscador. Los campos y filtros se alinean a la izquierda dentro de su
-   rejilla, pero la columna entera queda centrada y con un ancho cómodo. */
-.panel-buscar, .descubrir, .filtros, .chips {
-  text-align: left; max-width: 720px; margin-left: auto; margin-right: auto;
+/* Cuerpo del modal-formulario: UNA sola rejilla de dos columnas para todos los
+   campos, vengan del bloque que vengan. Los bloques interiores no pintan nada
+   (display: contents), así que sus campos entran directos en esta rejilla y se
+   reparten de dos en dos; los grandes ocupan el ancho completo.
+   El empaquetado es "dense" a propósito: con el campo de texto a fila completa
+   quedaría un hueco a su lado, y así lo rellena el filtro siguiente. */
+.forma {
+  display: grid; gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-flow: row dense;
+  align-items: end;
 }
-.chips { justify-content: center; }
-
-.pestanas {
-  display: inline-flex; gap: 4px; padding: 4px;
-  background: #0e151d; border: 1px solid #22303e; border-radius: 13px;
-  margin-bottom: 16px; flex-wrap: wrap;
+.forma .panel-buscar, .forma .descubrir, .forma .filtros { display: contents; }
+/* Hay que repetir el ocultado: el selector de arriba es más específico que
+   .oculto y, sin esto, un bloque oculto seguiría enseñando sus campos. */
+.forma .panel-buscar.oculto, .forma .descubrir.oculto, .forma .filtros.oculto { display: none; }
+/* Lo que ocupa fila entera: la nota, el campo de texto, el orden y los chips. */
+.forma-nota, .forma #campoTexto, .forma .orden, .forma .chips { grid-column: 1 / -1; }
+/* En Descubrir los campos son impares y "País" cerraría solo media fila; se
+   estira para que la rejilla no acabe con un hueco a la vista. */
+.forma .descubrir:not(.oculto) ~ .filtros .filtro-pais { grid-column: 1 / -1; }
+.forma .chips { margin-top: 2px; }
+/* Cambiar de método sin salir del modal: un enlace discreto, no un tercer
+   botón que compita con Buscar. */
+.cambiar-metodo {
+  grid-column: 1 / -1; justify-self: center;
+  padding: 6px 10px; margin-top: 2px;
+  font-size: 13.5px; font-weight: 600; color: #8fc9ff;
+  border-bottom: 1px dashed rgba(74, 168, 255, 0.45);
+  transition: color 0.15s, border-color 0.15s;
 }
-.pestana {
-  padding: 9px 17px; border-radius: 10px;
-  font-size: 14px; font-weight: 600; color: #8ba0b6;
-  transition: color 0.15s, background 0.15s;
-}
-.pestana:hover { color: #e8f0f8; }
-.pestana.activa {
-  background: linear-gradient(135deg, rgba(46, 230, 168, 0.18), rgba(74, 168, 255, 0.18));
-  border: 1px solid rgba(46, 230, 168, 0.38);
-  padding: 8px 16px;
-  color: #e8f0f8;
-}
+.cambiar-metodo:hover { color: #e8f0f8; border-color: #4aa8ff; }
 
 .campo { position: relative; }
 
@@ -231,6 +252,10 @@ a:hover { text-decoration: underline; }
 .campo-limpiar:hover { background: #1a2632; color: #e8f0f8; }
 
 /* --- autocompletado --- */
+/* Dentro del modal NO puede flotar: el cuerpo hace scroll y lo recortaría.
+   Se muestra en el flujo, justo bajo el campo, empujando lo que venga debajo.
+   Es la única forma que no depende de trucos de posicionamiento. */
+.forma .sugerencias { position: static; margin-top: 8px; max-height: 300px; }
 .sugerencias {
   position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 40;
   background: #131c26; border: 1px solid #2f4356; border-radius: 14px;
@@ -257,18 +282,8 @@ a:hover { text-decoration: underline; }
 .sugerencia-tit { font-size: 14.5px; font-weight: 600; }
 .sugerencia-meta { font-size: 12.5px; color: #8ba0b6; }
 
-/* --- filtros --- */
-.filtros {
-  display: grid; gap: 12px; margin-top: 16px;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
-  align-items: end;
-}
-/* Controles de la sección Descubrir: misma rejilla y estética que los filtros. */
-.descubrir {
-  display: grid; gap: 12px; margin-top: 16px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  align-items: end;
-}
+/* Los filtros y los controles de Descubrir ya no llevan rejilla propia: la
+   pone .forma, que los reparte a todos por igual dentro del modal. */
 
 /* Fila de orden, a lo ancho bajo los desplegables. Son interruptores que se
    encienden y apagan: "recientes" y "antiguas" se excluyen entre sí, y
@@ -318,15 +333,16 @@ a:hover { text-decoration: underline; }
   color: #241207; box-shadow: 0 6px 18px rgba(255, 138, 61, 0.32);
 }
 
-/* Selector de método: dos botones sueltos (sin contenedor) debajo del
-   interruptor, centrados. Cada uno es su propio botón; el activo se tiñe. */
+/* Selector de método: dos botones sueltos debajo del interruptor. Rejilla de
+   dos columnas iguales, no flex: así los dos miden EXACTAMENTE lo mismo aunque
+   sus textos tengan distinto largo, que es lo que hacía que se vieran
+   descuadrados. Cada uno abre su formulario en el modal. */
 .metodos {
-  display: flex; gap: 10px; flex-wrap: nowrap; justify-content: center;
-  width: -moz-fit-content; width: fit-content; max-width: 100%;
-  margin: 0 auto 18px;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;
+  max-width: 470px; margin: 0 auto 18px;
 }
 .metodo {
-  padding: 9px 18px; border-radius: 999px; white-space: nowrap;
+  padding: 12px 16px; border-radius: 999px; white-space: nowrap;
   border: 1px solid #22303e; background: #0e151d;
   font-size: 14px; font-weight: 600; color: #8ba0b6;
   transition: color 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
@@ -345,11 +361,6 @@ a:hover { text-decoration: underline; }
   box-shadow: 0 0 0 3px rgba(74, 168, 255, 0.28), 0 8px 22px rgba(74, 168, 255, 0.45);
 }
 
-/* Panel de "buscar en concreto": el desplegable por + el campo de texto. */
-.panel-buscar {
-  display: grid; gap: 12px; align-items: start;
-  grid-template-columns: minmax(150px, 210px) 1fr;
-}
 .filtro-por { min-width: 0; }
 
 .filtro { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
@@ -390,17 +401,18 @@ a:hover { text-decoration: underline; }
 .boton-buscar[disabled] { filter: grayscale(0.7) brightness(0.7); cursor: progress; transform: none; }
 
 /* El botón Buscar toma el color del interruptor: naranja en películas, azul
-   en series. Es el acento principal que refleja el modo. */
-#buscador[data-tipo="movie"] .boton-buscar {
+   en series. Es el acento principal que refleja el modo. Vive en el pie del
+   modal-formulario, así que el data-tipo se refleja también ahí. */
+#capaFormulario[data-tipo="movie"] .boton-buscar {
   background: linear-gradient(135deg, #ff8a3d, #ffb37d);
   box-shadow: 0 8px 24px rgba(255, 138, 61, 0.26); color: #241207;
 }
-#buscador[data-tipo="movie"] .boton-buscar:hover { box-shadow: 0 12px 30px rgba(255, 138, 61, 0.36); }
-#buscador[data-tipo="tv"] .boton-buscar {
+#capaFormulario[data-tipo="movie"] .boton-buscar:hover { box-shadow: 0 12px 30px rgba(255, 138, 61, 0.36); }
+#capaFormulario[data-tipo="tv"] .boton-buscar {
   background: linear-gradient(135deg, #4aa8ff, #8fc9ff);
   box-shadow: 0 8px 24px rgba(74, 168, 255, 0.26); color: #06131c;
 }
-#buscador[data-tipo="tv"] .boton-buscar:hover { box-shadow: 0 12px 30px rgba(74, 168, 255, 0.36); }
+#capaFormulario[data-tipo="tv"] .boton-buscar:hover { box-shadow: 0 12px 30px rgba(74, 168, 255, 0.36); }
 
 /* --- chips de ejemplo --- */
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; align-items: center; }
@@ -609,27 +621,11 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
 .carrusel::-webkit-scrollbar { display: none; }
 .carrusel .tarjeta { flex: 0 0 150px; scroll-snap-align: start; }
 .carrusel-vacio { color: #8ba0b6; font-size: 14px; padding: 20px 4px; }
-.carrusel-acciones { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 4px; }
+/* Los dos botones del carrusel, centrados y del mismo tamaño exacto. */
+.carrusel-acciones { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 4px; }
+.btn-carrusel { min-width: 215px; justify-content: center; }
 .btn-vermas { border-color: rgba(74, 168, 255, 0.5); color: #8fc9ff; }
 .btn-vermas:hover { border-color: #4aa8ff; background: rgba(74, 168, 255, 0.1); }
-.sugerencias-cats { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 14px; }
-.cat {
-  padding: 8px 15px; border-radius: 999px; white-space: nowrap;
-  border: 1px solid #22303e; background: #0e151d;
-  font-size: 13.5px; font-weight: 600; color: #8ba0b6;
-  transition: color 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
-}
-.cat:hover { color: #e8f0f8; border-color: #2f4356; }
-#descubrimiento[data-tipo="movie"] .cat.activa {
-  background: linear-gradient(135deg, #ff8a3d, #ffb37d);
-  border-color: transparent; color: #241207;
-  box-shadow: 0 0 0 3px rgba(255, 138, 61, 0.28), 0 8px 22px rgba(255, 138, 61, 0.4);
-}
-#descubrimiento[data-tipo="tv"] .cat.activa {
-  background: linear-gradient(135deg, #4aa8ff, #8fc9ff);
-  border-color: transparent; color: #06131c;
-  box-shadow: 0 0 0 3px rgba(74, 168, 255, 0.28), 0 8px 22px rgba(74, 168, 255, 0.4);
-}
 
 /* --- rejilla de pósters --- */
 .rejilla { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); }
@@ -786,6 +782,32 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   max-height: calc(100dvh - 40px);
 }
 .modal.ancho { max-width: 900px; }
+/* El de sugerencias es una lista de opciones: más estrecho se lee mejor. */
+.modal.modal-estrecho { max-width: 420px; }
+/* El formulario necesita sitio para las dos columnas, sin llegar a comerse la
+   pantalla: en el móvil el .capa deja su margen alrededor y nunca ocupa el
+   100%, y aquí el tope evita que se estire de más en escritorio. */
+.modal.modal-forma { max-width: 620px; }
+.modal-nota { font-size: 13.5px; color: #8ba0b6; margin-bottom: 4px; }
+/* Pie con un solo botón: centrado, no a la derecha. */
+.modal-pie.centrado { justify-content: center; }
+.modal-pie.centrado .boton-buscar { min-width: 190px; text-align: center; }
+
+/* Categorías de sugerencias: una por fila, todas del mismo tamaño y en azul
+   —el color de "información" de la paleta—. La elegida, en azul sólido. */
+.cats-columna { display: grid; gap: 10px; }
+.cat {
+  width: 100%; padding: 14px 18px; border-radius: 13px; text-align: center;
+  border: 1px solid rgba(74, 168, 255, 0.32); background: rgba(74, 168, 255, 0.07);
+  font-size: 15px; font-weight: 700; color: #8fc9ff;
+  transition: color 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.cat:hover { border-color: #4aa8ff; background: rgba(74, 168, 255, 0.15); color: #e8f0f8; }
+.cat.activa {
+  background: linear-gradient(135deg, #4aa8ff, #8fc9ff);
+  border-color: transparent; color: #06131c;
+  box-shadow: 0 0 0 3px rgba(74, 168, 255, 0.24), 0 8px 22px rgba(74, 168, 255, 0.38);
+}
 @keyframes subir { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
 .modal-cab {
@@ -863,9 +885,6 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
    ══════════════════════════════════════════════════════════════════════ */
 
 @media (max-width: 860px) {
-  .filtros { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .descubrir { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .boton-buscar { grid-column: 1 / -1; width: 100%; }
   .ficha-poster { width: 140px; flex: 0 0 140px; }
   .ficha-titulo { font-size: 25px; }
 }
@@ -883,11 +902,16 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   .buscador-titulo { font-size: 17px; white-space: nowrap; letter-spacing: -0.3px; }
   .buscador-sub { font-size: 13px; }
   /* Los dos métodos, en una sola fila también en el móvil. */
-  .metodo { font-size: 12px; padding: 8px 12px; }
+  .metodo { font-size: 12px; padding: 10px 12px; }
   .metodos { gap: 8px; }
-  .filtros { grid-template-columns: 1fr; }
-  .descubrir { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .panel-buscar { grid-template-columns: 1fr; }
+  /* El formulario pasa a una columna: dos campos por fila en un móvil quedan
+     demasiado estrechos para leer sus etiquetas. */
+  .forma { grid-template-columns: 1fr; gap: 12px; }
+  .forma .descubrir:not(.oculto) ~ .filtros .filtro-pais { grid-column: auto; }
+  /* Los dos botones del carrusel, apilados y a todo el ancho: más fáciles de
+     pulsar con el pulgar y sin partir el texto en dos líneas. */
+  .carrusel-acciones { flex-direction: column; align-items: stretch; }
+  .btn-carrusel { min-width: 0; }
   .cabecera { padding: 15px; }
   .campo-entrada { font-size: 16px; padding: 12px 0; }
   /* Dos columnas fijas en el móvil. */
@@ -956,9 +980,23 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
     </div>
   </div>
 
-  <!-- Volver a la búsqueda (solo visible cuando hay resultados). -->
+  <!-- Volver a la búsqueda (solo visible cuando hay resultados). A su lado, en
+       la misma fila, el desplegable de orden: permite reordenar la cuadrícula
+       sin volver al formulario. Solo sale con una cuadrícula de Descubrir
+       delante, que es la única que se puede reordenar. -->
   <div class="barra-volver oculto" id="barraVolver">
     <button class="btn-volver" id="btnVolver" title="Volver a la búsqueda" aria-label="Volver a la búsqueda">&#8592;</button>
+    <div class="orden-menu oculto" id="ordenMenu">
+      <button class="boton-cabecera" id="btnOrdenMenu" aria-expanded="false" aria-controls="ordenPanel">
+        <span aria-hidden="true">&#8645;</span> Ordenar
+      </button>
+      <div class="orden-panel oculto" id="ordenPanel" role="group" aria-label="Ordenar los resultados">
+        <span class="orden-etiqueta">Ordenar por</span>
+        <button class="orden-op" data-orden="reciente" aria-pressed="false">M&aacute;s recientes</button>
+        <button class="orden-op" data-orden="antigua" aria-pressed="false">M&aacute;s antiguas</button>
+        <button class="orden-op" data-orden="nota" aria-pressed="false">Mayor puntuaci&oacute;n</button>
+      </div>
+    </div>
   </div>
 
   <!-- ═════════════ DESCUBRIMIENTO (carrusel) ═════════════ -->
@@ -973,20 +1011,18 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
       </div>
     </div>
     <div class="carrusel" id="carrusel"></div>
+    <!-- Los dos botones, del mismo tamaño y centrados. Las categorías ya no se
+         despliegan aquí: viven en un modal (#capaSugerencias). -->
     <div class="carrusel-acciones">
-      <button class="boton-sec btn-sugerencias" id="btnSugerencias">&#10024; Dame sugerencias</button>
-      <button class="boton-sec btn-vermas oculto" id="btnVerMas">Ver m&aacute;s &#8594;</button>
-    </div>
-    <div class="sugerencias-cats oculto" id="sugerenciasCats" role="group" aria-label="Categorías de sugerencias">
-      <button class="cat activa" data-cat="tendencia">Tendencia</button>
-      <button class="cat" data-cat="siempre">Las 10 de siempre</button>
-      <button class="cat" data-cat="tarde">Nunca es tarde</button>
-      <button class="cat" data-cat="clasicos">Clásicos</button>
-      <button class="cat" data-cat="favoritas">Lo que prefieres</button>
+      <button class="boton-sec btn-carrusel btn-sugerencias" id="btnSugerencias">&#10024; Dame sugerencias</button>
+      <button class="boton-sec btn-carrusel btn-vermas oculto" id="btnVerMas">Ver m&aacute;s &#8594;</button>
     </div>
   </section>
 
   <!-- ═════════════ BUSCADOR ═════════════ -->
+  <!-- En el inicio solo quedan el título y los dos métodos, del mismo tamaño y
+       centrados. Cada uno abre su formulario en un modal (#capaFormulario): el
+       inicio se ve despejado y los controles, ordenados dentro del modal. -->
   <section class="buscador" id="buscador" data-tipo="movie">
     <h2 class="buscador-titulo">Te digo <em>dónde verla</em>, y en tu idioma</h2>
     <p class="buscador-sub" id="buscadorSub">Elige película o serie, y luego búscala.</p>
@@ -996,75 +1032,6 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
       <button class="metodo" data-metodo="buscar" role="tab">Buscar una en concreto</button>
       <button class="metodo" data-metodo="descubrir" role="tab">Descubrir por género</button>
     </div>
-
-    <!-- Método 1: buscar por título, actor o trama -->
-    <div class="panel-buscar" id="panelBuscar">
-      <label class="filtro filtro-por">
-        <span class="filtro-etiqueta">Buscar por</span>
-        <select id="selBusquedaPor">
-          <option value="titulo">Título</option>
-          <option value="actor">Actor / actriz</option>
-          <option value="trama">Trama / tema</option>
-        </select>
-      </label>
-      <div class="campo" id="campoTexto">
-        <div class="campo-caja">
-          <span class="campo-lupa" aria-hidden="true">&#128269;</span>
-          <input class="campo-entrada" id="entrada" type="text" autocomplete="off"
-                 spellcheck="false" placeholder="Ej. Interestelar, El Padrino, Parásitos…"
-                 aria-label="Término de búsqueda">
-          <button class="campo-limpiar oculto" id="btnLimpiar" title="Limpiar">&#10005;</button>
-        </div>
-        <div class="sugerencias oculto" id="sugerencias"></div>
-      </div>
-    </div>
-
-    <!-- Método 2: descubrir por género, intervalo de años, nota y orden
-         (el tipo lo manda el interruptor de arriba) -->
-    <div class="descubrir oculto" id="descubrir">
-      <label class="filtro">
-        <span class="filtro-etiqueta">Género</span>
-        <select id="selGenero"></select>
-      </label>
-      <label class="filtro">
-        <span class="filtro-etiqueta">Desde <em>opcional</em></span>
-        <select id="selAnoDesde"></select>
-      </label>
-      <label class="filtro">
-        <span class="filtro-etiqueta">Hasta <em>opcional</em></span>
-        <select id="selAnoHasta"></select>
-      </label>
-      <label class="filtro">
-        <span class="filtro-etiqueta">Calificación</span>
-        <select id="selNota"></select>
-      </label>
-      <div class="orden" id="orden" role="group" aria-label="Ordenar los resultados">
-        <span class="orden-etiqueta">Ordenar por</span>
-        <button class="orden-op" id="ordenReciente" data-orden="reciente" aria-pressed="false">Más recientes</button>
-        <button class="orden-op" id="ordenAntigua" data-orden="antigua" aria-pressed="false">Más antiguas</button>
-        <button class="orden-op" id="ordenNota" data-orden="nota" aria-pressed="false">Mayor puntuación</button>
-      </div>
-    </div>
-
-    <div class="filtros oculto" id="filtros">
-      <label class="filtro">
-        <span class="filtro-etiqueta">Plataforma <em>opcional</em></span>
-        <select id="selPlataforma"><option value="">Todas las plataformas</option></select>
-      </label>
-      <label class="filtro">
-        <span class="filtro-etiqueta">País <em>opcional</em></span>
-        <select id="selPais"><option value="">Todos los países</option></select>
-      </label>
-      <label class="filtro">
-        <span class="filtro-etiqueta">Idioma</span>
-        <select id="selIdioma"></select>
-      </label>
-      <button class="boton-buscar" id="btnBuscar">Buscar</button>
-    </div>
-
-    <div class="chips" id="chips">
-      <span class="chips-titulo">Prueba con:</span>
-    </div>
   </section>
 
   <!-- ═════════════ RESULTADOS ═════════════ -->
@@ -1073,7 +1040,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   <footer class="pie">
     <span>givemymovies · datos de disponibilidad vía TMDB / JustWatch</span>
     <span>Tus listas se guardan solo en este navegador</span>
-    <span id="version-app">V GMM 0021</span>
+    <span id="version-app">V GMM 0022</span>
   </footer>
 </div>
 
@@ -1130,6 +1097,128 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
     <div class="modal-pie">
       <button class="boton-sec" data-cerrar="capaAjustes">Cancelar</button>
       <button class="boton-buscar" id="btnGuardarClave">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════ MODAL: SUGERENCIAS ═════════════ -->
+<!-- Las categorías del carrusel. Una por fila y todas del mismo tamaño, para
+     que se lean como una lista de opciones y no como botones desparejados.
+     Elegir una carga el carrusel y cierra el modal. -->
+<div class="capa oculto" id="capaSugerencias">
+  <div class="modal modal-estrecho" role="dialog" aria-modal="true" aria-labelledby="tituloSugerencias">
+    <div class="modal-cab">
+      <h3 class="modal-tit" id="tituloSugerencias">&#10024; Dame sugerencias</h3>
+      <button class="modal-cerrar" data-cerrar="capaSugerencias" aria-label="Cerrar">&#10005;</button>
+    </div>
+    <div class="modal-cuerpo">
+      <p class="modal-nota">Elige una lista y la ver&aacute;s en el carrusel.</p>
+      <div class="cats-columna" id="sugerenciasCats" role="group" aria-label="Categorías de sugerencias">
+        <button class="cat activa" data-cat="tendencia">Tendencia</button>
+        <button class="cat" data-cat="siempre">Las 10 de siempre</button>
+        <button class="cat" data-cat="tarde">Nunca es tarde</button>
+        <button class="cat" data-cat="clasicos">Clásicos</button>
+        <button class="cat" data-cat="favoritas">Lo que prefieres</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════ MODAL: FORMULARIO DE BÚSQUEDA ═════════════ -->
+<!-- Un solo modal para los dos métodos, con el título cambiando según el
+     elegido. Es deliberado que sea uno y no dos: los controles son los mismos
+     nodos de siempre (#selIdioma, #selGenero…), así que no hay ids duplicados
+     ni estado que sincronizar, y reflejar() sigue siendo el único sitio que
+     decide qué se ve. El cuerpo es UNA rejilla de dos columnas: los bloques
+     interiores son "display: contents", de modo que sus campos se reparten de
+     dos en dos aunque vengan de bloques distintos; los grandes (el campo de
+     texto, la fila de orden, los chips) ocupan el ancho completo. -->
+<div class="capa oculto" id="capaFormulario" data-tipo="movie">
+  <div class="modal modal-forma" role="dialog" aria-modal="true" aria-labelledby="tituloFormulario">
+    <div class="modal-cab">
+      <h3 class="modal-tit" id="tituloFormulario">Buscar una en concreto</h3>
+      <button class="modal-cerrar" data-cerrar="capaFormulario" aria-label="Cerrar">&#10005;</button>
+    </div>
+    <div class="modal-cuerpo forma">
+      <p class="modal-nota forma-nota" id="formularioSub"></p>
+
+      <!-- Método 1: buscar por título, actor o trama -->
+      <div class="panel-buscar" id="panelBuscar">
+        <label class="filtro filtro-por">
+          <span class="filtro-etiqueta">Buscar por</span>
+          <select id="selBusquedaPor">
+            <option value="titulo">Título</option>
+            <option value="actor">Actor / actriz</option>
+            <option value="trama">Trama / tema</option>
+          </select>
+        </label>
+        <div class="campo" id="campoTexto">
+          <div class="campo-caja">
+            <span class="campo-lupa" aria-hidden="true">&#128269;</span>
+            <input class="campo-entrada" id="entrada" type="text" autocomplete="off"
+                   spellcheck="false" placeholder="Ej. Interestelar, El Padrino, Parásitos…"
+                   aria-label="Término de búsqueda">
+            <button class="campo-limpiar oculto" id="btnLimpiar" title="Limpiar">&#10005;</button>
+          </div>
+          <div class="sugerencias oculto" id="sugerencias"></div>
+        </div>
+      </div>
+
+      <!-- Método 2: descubrir por género, intervalo de años, nota y orden
+           (el tipo lo manda el interruptor de arriba) -->
+      <div class="descubrir oculto" id="descubrir">
+        <label class="filtro">
+          <span class="filtro-etiqueta">Género</span>
+          <select id="selGenero"></select>
+        </label>
+        <label class="filtro">
+          <span class="filtro-etiqueta">Calificación</span>
+          <select id="selNota"></select>
+        </label>
+        <label class="filtro">
+          <span class="filtro-etiqueta">Desde <em>opcional</em></span>
+          <select id="selAnoDesde"></select>
+        </label>
+        <label class="filtro">
+          <span class="filtro-etiqueta">Hasta <em>opcional</em></span>
+          <select id="selAnoHasta"></select>
+        </label>
+        <div class="orden" id="orden" role="group" aria-label="Ordenar los resultados">
+          <span class="orden-etiqueta">Ordenar por</span>
+          <button class="orden-op" id="ordenReciente" data-orden="reciente" aria-pressed="false">Más recientes</button>
+          <button class="orden-op" id="ordenAntigua" data-orden="antigua" aria-pressed="false">Más antiguas</button>
+          <button class="orden-op" id="ordenNota" data-orden="nota" aria-pressed="false">Mayor puntuación</button>
+        </div>
+      </div>
+
+      <!-- Filtros comunes a los dos métodos. El idioma va primero: es el que da
+           sentido a la app, no un añadido. -->
+      <div class="filtros oculto" id="filtros">
+        <label class="filtro">
+          <span class="filtro-etiqueta">Idioma</span>
+          <select id="selIdioma"></select>
+        </label>
+        <label class="filtro">
+          <span class="filtro-etiqueta">Plataforma <em>opcional</em></span>
+          <select id="selPlataforma"><option value="">Todas las plataformas</option></select>
+        </label>
+        <label class="filtro filtro-pais">
+          <span class="filtro-etiqueta">País <em>opcional</em></span>
+          <select id="selPais"><option value="">Todos los países</option></select>
+        </label>
+      </div>
+
+      <div class="chips" id="chips">
+        <span class="chips-titulo">Prueba con:</span>
+      </div>
+
+      <!-- Pasar al otro método sin cerrar: los dos botones del inicio quedan
+           detrás del velo del modal, y cerrar para volver a abrir sería un
+           camino absurdo para algo tan corriente. -->
+      <button class="cambiar-metodo" id="btnCambiarMetodo"></button>
+    </div>
+    <div class="modal-pie centrado">
+      <button class="boton-buscar" id="btnBuscar">Buscar</button>
     </div>
   </div>
 </div>
@@ -2113,11 +2202,17 @@ GMM.tmdb = (function () {
     /* Una sola clave de orden por consulta: si se pide nota, manda la nota, y
        el año lo acota quien llama fijando "ano". */
     var clave = opciones.porNota ? "nota" : (opciones.orden || "popular");
+    /* Los 300 votos se exigen siempre que la nota entre en juego, sea como
+       orden o como filtro. Con el mínimo bajo, "nota >= 6 ordenado por año"
+       saca desconocidos con un 6,0 de doce votos, que es peor que no filtrar.
+       El número está medido contra la API real, no supuesto (ver CLAUDE.md §7):
+       si se cambia, hay que volver a medirlo. */
+    var pesaLaNota = clave === "nota" || !!opciones.notaMin;
     var params = {
       language: "es-ES",
       sort_by: (GMM.config.ORDENES[clave] || GMM.config.ORDENES.popular)[mtipo],
       include_adult: "false",
-      "vote_count.gte": clave === "nota" ? GMM.config.VOTOS_MIN_NOTA : GMM.config.VOTOS_MIN,
+      "vote_count.gte": pesaLaNota ? GMM.config.VOTOS_MIN_NOTA : GMM.config.VOTOS_MIN,
       page: pagina
     };
     if (opciones.genero) params.with_genres = opciones.genero;
@@ -2822,8 +2917,7 @@ GMM.app = (function () {
     /* Paginación de las cuadrículas (Descubrir y Trama) */
     ctxPagina: null,      // { clase, titulo, texto, pagina, total }
     /* Carrusel de sugerencias del inicio */
-    categoria: "tendencia", // "tendencia" | "siempre" | "tarde" | "clasicos" | "favoritas"
-    topAnio: 0              // "Ver más": nº de títulos por año (0 = Descubrir normal)
+    categoria: "tendencia"  // "tendencia" | "siempre" | "tarde" | "clasicos" | "favoritas"
   };
 
   /* Caché en memoria del carrusel, por "tipo:categoria": volver a una categoría
@@ -2978,13 +3072,19 @@ GMM.app = (function () {
   }
 
   /* Vuelca el orden elegido en los tres interruptores. */
+  /* Los tres interruptores viven en DOS sitios: el formulario y el desplegable
+     de la barra de resultados. Se reflejan por atributo y no por id, de modo que
+     las dos copias digan siempre lo mismo sin tener que sincronizarlas a mano. */
   function reflejarOrden() {
-    [["ordenReciente", estado.orden === "reciente"],
-     ["ordenAntigua",  estado.orden === "antigua"],
-     ["ordenNota",     estado.porNota]].forEach(function (par) {
-      var boton = $(par[0]);
-      boton.classList.toggle("activa", par[1]);
-      boton.setAttribute("aria-pressed", par[1] ? "true" : "false");
+    var activo = {
+      reciente: estado.orden === "reciente",
+      antigua: estado.orden === "antigua",
+      nota: estado.porNota
+    };
+    Array.prototype.forEach.call(document.querySelectorAll("[data-orden]"), function (boton) {
+      var encendido = !!activo[boton.getAttribute("data-orden")];
+      boton.classList.toggle("activa", encendido);
+      boton.setAttribute("aria-pressed", encendido ? "true" : "false");
     });
   }
 
@@ -3001,9 +3101,12 @@ GMM.app = (function () {
   /* Vuelca el estado en la interfaz: interruptor, método, forma de búsqueda,
      colores de acento, marcador y chips. Un solo sitio que manda. */
   function reflejar() {
-    /* interruptor peli/serie: color de acento y opción marcada */
+    /* interruptor peli/serie: color de acento y opción marcada. El modal del
+       formulario lo lleva también, porque el botón Buscar vive en su pie y se
+       tiñe con el color del tipo. */
     $("buscador").setAttribute("data-tipo", estado.tipo);
     $("descubrimiento").setAttribute("data-tipo", estado.tipo);
+    $("capaFormulario").setAttribute("data-tipo", estado.tipo);
     Array.prototype.forEach.call($("tipoSwitch").children, function (b) {
       b.classList.toggle("activa", b.getAttribute("data-tipo") === estado.tipo);
     });
@@ -3013,10 +3116,9 @@ GMM.app = (function () {
       b.classList.toggle("activa", b.getAttribute("data-metodo") === estado.metodo);
     });
 
-    /* Paneles: cada método (buscar en concreto / descubrir por género) enseña
-       sus controles SOLO cuando está elegido. Al arrancar no hay método, así
-       que todo queda oculto hasta que se pulsa un botón. Los filtros comunes
-       (plataforma/país/idioma + Buscar) y los chips solo salen con método. */
+    /* Paneles del modal-formulario: cada método enseña sus controles SOLO
+       cuando está elegido, y los filtros comunes salen con cualquiera de los
+       dos. Al arrancar no hay método y el modal no está abierto. */
     var esBuscar = estado.metodo === "buscar";
     var esDescubrir = estado.metodo === "descubrir";
     var hayMetodo = esBuscar || esDescubrir;
@@ -3024,6 +3126,22 @@ GMM.app = (function () {
     $("descubrir").classList.toggle("oculto", !esDescubrir);
     $("filtros").classList.toggle("oculto", !hayMetodo);
     $("chips").classList.toggle("oculto", !esBuscar);
+
+    /* Título y explicación del modal, según el método elegido. El título nombra
+       también el tipo: con el modal abierto, el interruptor peli/serie queda
+       detrás del velo, así que decirlo aquí evita que se pierda de vista qué se
+       está buscando (para cambiarlo se cierra el modal, y el interruptor sigue
+       en su barra de siempre). */
+    var esSerie = estado.tipo === "tv";
+    $("tituloFormulario").textContent = esDescubrir
+      ? (esSerie ? "Descubrir series por género" : "Descubrir películas por género")
+      : (esSerie ? "Buscar una serie en concreto" : "Buscar una película en concreto");
+    $("formularioSub").textContent = esDescubrir
+      ? "Elige género e intervalo de años, y cómo quieres ordenarlo."
+      : "Busca por título, por actor o actriz, o por su trama.";
+    $("btnCambiarMetodo").textContent = esDescubrir
+      ? "¿Prefieres buscar una en concreto?"
+      : "¿Prefieres descubrir por género?";
 
     /* forma de búsqueda y su marcador */
     $("selBusquedaPor").value = estado.busquedaPor;
@@ -3033,12 +3151,9 @@ GMM.app = (function () {
     /* interruptores de orden de Descubrir */
     reflejarOrden();
 
-    /* subtítulo acorde al método (o invitación a elegir uno) */
-    $("buscadorSub").textContent = !hayMetodo
-      ? "Elige cómo empezar: busca una en concreto o descubre por género."
-      : esDescubrir
-        ? "Elige género e intervalo de años, y cómo quieres ordenarlo."
-        : "Elige película o serie, cómo buscarla, y dónde la ves.";
+    /* El subtítulo del inicio invita a elegir método: es lo único que queda a
+       la vista, porque los controles se han mudado al modal. */
+    $("buscadorSub").textContent = "Elige cómo empezar: busca una en concreto o descubre por género.";
   }
 
   /* ---------------------------------------------------------------- */
@@ -3539,6 +3654,13 @@ GMM.app = (function () {
   }
 
   function cerrarCapa(id) { $(id).classList.add("oculto"); }
+  function abrirCapa(id) { $(id).classList.remove("oculto"); }
+
+  /* El desplegable de orden de la barra de resultados. */
+  function cerrarMenuOrden() {
+    $("ordenPanel").classList.add("oculto");
+    $("btnOrdenMenu").setAttribute("aria-expanded", "false");
+  }
 
   /* ---------------------------------------------------------------- */
   /* Búsqueda principal                                               */
@@ -3658,10 +3780,9 @@ GMM.app = (function () {
     } else if (indice === 0) {
       promesa = buscarDesdeAnio(0, 1, 0);
     } else if (previo) {
-      /* "Ver más" (topAnio): un solo bloque de 10 por año, así que siempre se
-         salta al año siguiente. Descubrir normal: se sigue dentro del mismo año
-         mientras le queden páginas. */
-      promesa = (estado.topAnio || previo.pag >= previo.total)
+      /* Se sigue dentro del mismo año mientras le queden páginas; cuando se
+         agota, se salta al siguiente año con resultados. */
+      promesa = previo.pag >= previo.total
         ? buscarDesdeAnio(previo.iAnio + 1, 1, 0)
         : buscarDesdeAnio(previo.iAnio, previo.pag + 1, 0);
     } else {
@@ -3686,16 +3807,10 @@ GMM.app = (function () {
       };
       estado.ctxPagina = { clase: "anios", titulo: titulo, texto: "", pagina: indice + 1, total: 0 };
 
-      /* Con "Ver más" cada año aporta como mucho topAnio títulos (las 10
-         mejores; menos si el año no llega), y el paginador avanza de año en
-         año. Descubrir normal pagina dentro del año, como siempre. */
-      var items = estado.topAnio ? cursor.items.slice(0, estado.topAnio) : cursor.items;
-      var etiqueta = estado.topAnio
-        ? cursor.ano + " · " + items.length + (items.length === 1 ? " título" : " mejores")
-        : cursor.ano + " · página " + cursor.pag + " de " + cursor.total;
-      var hayNext = estado.topAnio
-        ? cursor.iAnio < estado.anios.length - 1
-        : (cursor.pag < cursor.total || cursor.iAnio < estado.anios.length - 1);
+      /* Se pagina dentro del año y, al agotarlo, se pasa al siguiente. */
+      var items = cursor.items;
+      var etiqueta = cursor.ano + " · página " + cursor.pag + " de " + cursor.total;
+      var hayNext = cursor.pag < cursor.total || cursor.iAnio < estado.anios.length - 1;
 
       pintarRejilla(items, titulo, subtituloDescubrir(), {
         pagina: indice + 1,
@@ -3765,13 +3880,14 @@ GMM.app = (function () {
   }
 
   function buscar() {
-    /* Buscar a mano es Descubrir normal: se sale del modo "Ver más" (10/año). */
-    estado.topAnio = 0;
-    if (estado.metodo === "descubrir") { hacerDescubrir(); return; }
+    if (estado.metodo === "descubrir") { cerrarCapa("capaFormulario"); hacerDescubrir(); return; }
 
     var texto = $("entrada").value.trim();
+    /* El aviso de campo vacío se da con el modal AÚN abierto: cerrarlo antes
+       dejaría el mensaje señalando un campo que ya no se ve. */
     if (!texto) { GMM.ui.aviso("Escribe algo para buscar", "error"); $("entrada").focus(); return; }
 
+    cerrarCapa("capaFormulario");
     cerrarSugerencias();
     guardarPrefs();
     estado.mostrarTodos = false;
@@ -3884,13 +4000,16 @@ GMM.app = (function () {
     $("carruselPrev").addEventListener("click", function () { desplazarCarrusel(-1); });
     $("carruselNext").addEventListener("click", function () { desplazarCarrusel(1); });
     $("btnSugerencias").addEventListener("click", function () {
-      $("sugerenciasCats").classList.toggle("oculto");
+      abrirCapa("capaSugerencias");
     });
     $("btnVerMas").addEventListener("click", verMasCategoria);
+    /* Elegir una categoría carga el carrusel y cierra el modal: la elección ya
+       está hecha, dejarlo abierto solo taparía el resultado. */
     $("sugerenciasCats").addEventListener("click", function (e) {
       var boton = e.target.closest("[data-cat]");
       if (!boton) return;
       cargarCarrusel(boton.getAttribute("data-cat"));
+      cerrarCapa("capaSugerencias");
     });
     /* Clic en una tarjeta del carrusel: abre la FICHA COMPLETA (la misma vista
        que buscar por título), no el modal de detalle. Los botones mini de
@@ -3906,17 +4025,28 @@ GMM.app = (function () {
     });
 
     /* --- selector de método: buscar en concreto / descubrir --- */
-    $("metodos").addEventListener("click", function (e) {
-      var boton = e.target.closest("[data-metodo]");
-      if (!boton) return;
-      estado.metodo = boton.getAttribute("data-metodo") === "descubrir" ? "descubrir" : "buscar";
+    /* Cada método abre su formulario en el modal, con sus controles ya
+       preparados. El campo se vacía al cambiar de método porque lo escrito para
+       buscar un título no sirve para buscar por trama. */
+    function elegirMetodo(cual) {
+      estado.metodo = cual === "descubrir" ? "descubrir" : "buscar";
       $("entrada").value = "";
       $("btnLimpiar").classList.add("oculto");
       cerrarSugerencias();
       reflejar();
       guardarPrefs();
       GMM.ui.bienvenida();
+      abrirCapa("capaFormulario");
       if (estado.metodo === "buscar") $("entrada").focus();
+    }
+    $("metodos").addEventListener("click", function (e) {
+      var boton = e.target.closest("[data-metodo]");
+      if (!boton) return;
+      elegirMetodo(boton.getAttribute("data-metodo"));
+    });
+    /* El enlace del pie del modal: cambia al otro método sin cerrarlo. */
+    $("btnCambiarMetodo").addEventListener("click", function () {
+      elegirMetodo(estado.metodo === "descubrir" ? "buscar" : "descubrir");
     });
 
     /* --- forma de búsqueda: título / actor / trama --- */
@@ -3936,7 +4066,6 @@ GMM.app = (function () {
     /* Cambiar un criterio rehace la búsqueda si ya hay una cuadrícula
        delante, y el recorrido empieza de cero: lo pedido es otra cosa. */
     function alCambiarCriterio() {
-      estado.topAnio = 0;   // tocar un criterio a mano vuelve a Descubrir normal
       guardarPrefs();
       if (estado.vista === "rejilla") hacerDescubrir();
     }
@@ -3962,8 +4091,10 @@ GMM.app = (function () {
 
     /* Los tres interruptores de orden. "Recientes" y "antiguas" se excluyen
        —una lista no puede ir en los dos sentidos a la vez—, y volver a pulsar
-       el que ya está encendido lo apaga y devuelve el orden por popularidad. */
-    $("orden").addEventListener("click", function (e) {
+       el que ya está encendido lo apaga y devuelve el orden por popularidad.
+       El mismo manejador sirve a las dos copias: la del formulario y la del
+       desplegable de la barra de resultados. */
+    function alPulsarOrden(e) {
       var boton = e.target.closest("[data-orden]");
       if (!boton) return;
       var cual = boton.getAttribute("data-orden");
@@ -3971,6 +4102,19 @@ GMM.app = (function () {
       else estado.orden = estado.orden === cual ? "popular" : cual;
       reflejarOrden();
       alCambiarCriterio();
+    }
+    $("orden").addEventListener("click", alPulsarOrden);
+    $("ordenPanel").addEventListener("click", alPulsarOrden);
+
+    /* Abrir y cerrar el desplegable de orden. Se cierra al pulsar fuera, como
+       cualquier menú: si no, se queda tapando los resultados. */
+    $("btnOrdenMenu").addEventListener("click", function (e) {
+      e.stopPropagation();
+      var abierto = $("ordenPanel").classList.toggle("oculto");
+      this.setAttribute("aria-expanded", abierto ? "false" : "true");
+    });
+    document.addEventListener("click", function (e) {
+      if (!$("ordenMenu").contains(e.target)) cerrarMenuOrden();
     });
 
     /* --- entrada de texto --- */
@@ -4005,7 +4149,13 @@ GMM.app = (function () {
         return;
       }
 
-      if (e.key === "Escape") cerrarSugerencias();
+      /* Escape con el desplegable abierto cierra SOLO el desplegable: se corta
+         la propagación para que el manejador del documento no cierre además el
+         modal del formulario y se pierda lo escrito. */
+      if (e.key === "Escape" && !$("sugerencias").classList.contains("oculto")) {
+        e.stopPropagation();
+        cerrarSugerencias();
+      }
     });
 
     $("btnLimpiar").addEventListener("click", function () {
@@ -4023,6 +4173,8 @@ GMM.app = (function () {
       $("entrada").value = boton.getAttribute("data-nombre");
       $("btnLimpiar").classList.remove("oculto");
       cerrarSugerencias();
+      /* Elegir una sugerencia ES la búsqueda: el modal ya no hace falta. */
+      cerrarCapa("capaFormulario");
       guardarPrefs();
       if (estado.busquedaPor === "actor") abrirPersona(id); else abrirFicha(id, estado.tipo);
     });
@@ -4110,16 +4262,26 @@ GMM.app = (function () {
       }
     });
 
-    $("capaAjustes").addEventListener("click", function (e) {
-      var nodo;
-      if (e.target === this) { cerrarCapa("capaAjustes"); return; }
-      if ((nodo = e.target.closest("[data-cerrar]"))) cerrarCapa(nodo.getAttribute("data-cerrar"));
+    /* Las capas con formulario se cierran con la X, pulsando el fondo o con
+       Escape. Mismo comportamiento en las tres, para que no haya que aprenderse
+       una excepción por modal. */
+    ["capaAjustes", "capaSugerencias", "capaFormulario"].forEach(function (id) {
+      $(id).addEventListener("click", function (e) {
+        var nodo;
+        if (e.target === this) { cerrarCapa(id); return; }
+        if ((nodo = e.target.closest("[data-cerrar]"))) cerrarCapa(nodo.getAttribute("data-cerrar"));
+      });
     });
 
     document.addEventListener("keydown", function (e) {
       if (e.key !== "Escape") return;
       cerrarCapa("capaDetalle");
       cerrarCapa("capaAjustes");
+      cerrarCapa("capaSugerencias");
+      /* Si el autocompletado estaba desplegado, su propio manejador ya se ha
+         quedado con la tecla y aquí no llegamos: cerrar el modal entero de
+         golpe habría perdido lo escrito. */
+      cerrarCapa("capaFormulario");
     });
 
     /* --- cabecera --- */
@@ -4352,9 +4514,16 @@ GMM.app = (function () {
   }
 
   /* "Ver más" de una categoría con intervalo (de siempre / nunca es tarde /
-     clásicos): abre la cuadrícula paginada año por año, con las 10 mejores de
-     cada año (nota de TMDB >= 6), del más antiguo al más reciente. Reutiliza la
-     maquinaria de Descubrir; estado.topAnio hace que corte cada año a 10. */
+     clásicos): abre la cuadrícula del intervalo entero, del año más antiguo al
+     más reciente y con nota de TMDB >= 6, reutilizando la maquinaria de
+     Descubrir.
+
+     Va con UN SOLO criterio de orden a propósito. Antes encendía también "mejor
+     puntuadas", y esa combinación es justo la que obliga al recorrido año por
+     año (TMDB no ordena por dos claves), de donde salía el paginador que decía
+     "2000 · 10 mejores". Con un solo criterio se pagina de corrido: 20 por
+     página y "Página 1 de N". El recorrido por años sigue existiendo, pero solo
+     cuando se pide a mano desde el desplegable de orden. */
   function verMasCategoria() {
     var def = categoriaDef(estado.categoria);
     if (!def.anoDesde) return;
@@ -4364,8 +4533,7 @@ GMM.app = (function () {
     estado.anoHasta = String(def.anoHasta || new Date().getFullYear());
     estado.notaMin = String(GMM.config.IMDB_MIN);   // 6 o más
     estado.orden = "antigua";                        // del más antiguo
-    estado.porNota = true;                            // mejor puntuadas de cada año
-    estado.topAnio = GMM.config.TOP_CATEGORIA;        // 10 por año
+    estado.porNota = false;
     reflejar();
     /* reflejar() no toca los selects de Descubrir (los llenan las montar*), así
        que los ponemos a mano para que el formulario refleje lo que se busca. */
@@ -4387,6 +4555,14 @@ GMM.app = (function () {
     $("buscador").classList.toggle("oculto", enResultados);
     $("descubrimiento").classList.toggle("oculto", enResultados);
     $("barraVolver").classList.toggle("oculto", !enResultados);
+
+    /* El desplegable de orden solo acompaña a la flecha cuando hay delante una
+       cuadrícula de Descubrir: es la única que se puede reordenar. Sobre una
+       ficha o una filmografía no tendría nada que ordenar. */
+    var clase = estado.ctxPagina && estado.ctxPagina.clase;
+    var ordenable = enResultados && (clase === "descubrir" || clase === "anios");
+    $("ordenMenu").classList.toggle("oculto", !ordenable);
+    if (!ordenable) cerrarMenuOrden();
   }
 
   /* Vuelve a la pantalla de búsqueda (lo que hace la flecha ←). */

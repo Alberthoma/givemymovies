@@ -82,21 +82,41 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   /* Desde V GMM 0009 los resultados ocultan el formulario y aparece una flecha
      ← para volver. Estos ayudantes reflejan ese flujo: los filtros se eligen
      en la pantalla de búsqueda, no sobre el resultado. */
+  /* Vuelve a la pantalla de búsqueda. Desde V GMM 0022 los controles viven en un
+     modal, así que "estar en la búsqueda" incluye tenerlo abierto: se reabre en
+     el método que estuviera activo, porque es donde están los campos. */
   async function aBuscar() {
     if (await pagina.locator("#barraVolver:not(.oculto)").count() > 0) {
       await pagina.click("#btnVolver");
       await pagina.waitForTimeout(200);
     }
+    if (await pagina.locator("#capaFormulario:not(.oculto)").count() > 0) return;
+    const activo = pagina.locator("#metodos .metodo.activa");
+    if (await activo.count() === 0) return;   // al arrancar no hay método elegido
+    await activo.click();
+    await pagina.waitForTimeout(250);
   }
-  /* Desde V GMM 0021 la app arranca SIN método y los controles nacen ocultos:
-     hay que pulsar «Buscar una en concreto» (o «Descubrir por género») antes
-     de tocar el campo o los filtros. El clic vacía la entrada y repinta la
-     bienvenida, así que solo se pulsa cuando el panel no está ya a la vista. */
+  /* Desde V GMM 0021 la app arranca SIN método, y desde la 0022 pulsar uno abre
+     su formulario en el modal. El clic vacía la entrada y repinta la bienvenida,
+     así que solo se pulsa cuando el panel del método no está ya a la vista. */
   async function abrirMetodo(cual) {
     const panel = cual === "descubrir" ? "#descubrir" : "#panelBuscar";
     if (await pagina.locator(panel).isVisible()) return;
-    await pagina.click('#metodos [data-metodo="' + cual + '"]');
-    await pagina.waitForTimeout(200);
+    /* Con el modal abierto, los dos botones del inicio quedan detrás del velo:
+       de método a método se pasa por el enlace del propio modal. */
+    if (await pagina.locator("#capaFormulario:not(.oculto)").count() > 0) {
+      await pagina.click("#btnCambiarMetodo");
+    } else {
+      await pagina.click('#metodos [data-metodo="' + cual + '"]');
+    }
+    await pagina.waitForTimeout(250);
+  }
+  /* El interruptor peli/serie vive en la barra, detrás del velo del modal: para
+     pulsarlo hay que cerrarlo primero. */
+  async function cerrarFormulario() {
+    if (await pagina.locator("#capaFormulario:not(.oculto)").count() === 0) return;
+    await pagina.click("#capaFormulario .modal-cerrar");
+    await pagina.waitForTimeout(250);
   }
   async function buscarTitulo(txt) {
     await aBuscar();
@@ -126,17 +146,52 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
     await pagina.textContent("#version-app"));
 
   /* ---------------------------------------------------------------- */
-  m.titulo("Métodos plegados al arrancar (V GMM 0021)");
+  /* El inicio es lo primero que se ve: conviene tener su foto a mano. */
+  await pagina.waitForTimeout(1200);   // que baje el carrusel
+  await pagina.screenshot({ path: path.join(CAPTURAS, "00-inicio.png"), fullPage: true });
+  /* Los dos métodos han de medir EXACTAMENTE lo mismo: era parte del desorden. */
+  const anchosMetodo = await pagina.evaluate(() =>
+    Array.from(document.querySelectorAll("#metodos .metodo"))
+      .map((b) => Math.round(b.getBoundingClientRect().width)));
+  m.afirmar("los dos botones de método miden lo mismo",
+    new Set(anchosMetodo).size === 1, anchosMetodo.join(" / "));
+  const anchosCarrusel = await pagina.evaluate(() =>
+    Array.from(document.querySelectorAll(".carrusel-acciones .btn-carrusel"))
+      .filter((b) => b.offsetParent !== null)
+      .map((b) => Math.round(b.getBoundingClientRect().width)));
+  m.afirmar("los botones del carrusel también", new Set(anchosCarrusel).size === 1,
+    anchosCarrusel.join(" / "));
+
+  /* ---------------------------------------------------------------- */
+  m.titulo("El formulario vive en un modal (V GMM 0022)");
   m.afirmar("ningún método viene activo", (await pagina.locator("#metodos .metodo.activa").count()) === 0);
+  m.afirmar("el modal del formulario nace cerrado",
+    (await pagina.getAttribute("#capaFormulario", "class")).includes("oculto"));
   m.afirmar("los controles de buscar nacen ocultos", !(await pagina.locator("#panelBuscar").isVisible()));
   m.afirmar("los de descubrir nacen ocultos", !(await pagina.locator("#descubrir").isVisible()));
   m.afirmar("los filtros comunes nacen ocultos", !(await pagina.locator("#filtros").isVisible()));
+  m.afirmar("el desplegable de orden no está en el inicio",
+    !(await pagina.locator("#ordenMenu").isVisible()));
+
+  await abrirMetodo("buscar");
+  m.afirmar("pulsar «Buscar una en concreto» abre el modal con sus controles",
+    !(await pagina.getAttribute("#capaFormulario", "class")).includes("oculto") &&
+    (await pagina.locator("#panelBuscar").isVisible()) &&
+    (await pagina.locator("#filtros").isVisible()));
+  m.afirmar("el título del modal nombra el tipo que se busca",
+    (await pagina.textContent("#tituloFormulario")).includes("película"));
+  m.afirmar("el pie lleva el botón Buscar centrado",
+    (await pagina.locator("#capaFormulario .modal-pie.centrado #btnBuscar").count()) === 1);
+  await pagina.screenshot({ path: path.join(CAPTURAS, "08-modal-buscar.png"), fullPage: true });
+
+  /* La X cierra, y volver a pulsar el método lo reabre. */
+  await cerrarFormulario();
+  m.afirmar("la X cierra el modal",
+    (await pagina.getAttribute("#capaFormulario", "class")).includes("oculto"));
+  await abrirMetodo("buscar");
 
   /* ---------------------------------------------------------------- */
   m.titulo("Autocompletado");
-  await abrirMetodo("buscar");
-  m.afirmar("al pulsar «Buscar una en concreto» se abren sus controles",
-    (await pagina.locator("#panelBuscar").isVisible()) && (await pagina.locator("#filtros").isVisible()));
   await pagina.fill("#entrada", "inter");
   await pagina.waitForTimeout(700);
   m.afirmar("sugiere al escribir", (await pagina.locator(".sugerencia").count()) >= 1);
@@ -293,6 +348,9 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   m.titulo("Interruptor Película / Serie");
   await aBuscar();
   await pagina.selectOption("#selBusquedaPor", "titulo");
+  /* El interruptor vive en la barra, detrás del velo del modal: hay que
+     cerrarlo para llegar a él. Es deliberado que siga ahí y no dentro. */
+  await cerrarFormulario();
   await pagina.click('#tipoSwitch [data-tipo="tv"]');
   await pagina.waitForTimeout(250);
   m.afirmar("el buscador marca tipo serie",
@@ -302,6 +360,9 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   m.afirmar("el ejemplo del campo cambia a series",
     (await pagina.getAttribute("#entrada", "placeholder")).includes("Breaking Bad"));
 
+  await aBuscar();
+  m.afirmar("el título del modal pasa a decir «serie»",
+    (await pagina.textContent("#tituloFormulario")).includes("serie"));
   await pagina.fill("#entrada", "casa");
   await pagina.click("#btnBuscar");
   await pagina.waitForSelector(".ficha-titulo", { timeout: 5000 });
@@ -309,10 +370,13 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
     (await pagina.textContent(".ficha-titulo")).includes("La casa de papel"));
 
   await aBuscar();
-  await pagina.click('#metodos [data-metodo="descubrir"]');
-  await pagina.waitForTimeout(200);
+  await abrirMetodo("descubrir");
   m.afirmar("Descubrir oculta el campo de texto",
     !(await pagina.locator("#panelBuscar").isVisible()));
+  m.afirmar("el enlace del modal cambia de método sin cerrarlo",
+    !(await pagina.getAttribute("#capaFormulario", "class")).includes("oculto") &&
+    (await pagina.locator("#descubrir").isVisible()));
+  await pagina.screenshot({ path: path.join(CAPTURAS, "09-modal-descubrir.png"), fullPage: true });
   await pagina.selectOption("#selGenero", "18");
   await pagina.click("#btnBuscar");
   await pagina.waitForTimeout(500);
@@ -325,8 +389,10 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   m.afirmar("el intervalo tiene dos extremos",
     (await pagina.locator("#selAnoDesde").count()) === 1 &&
     (await pagina.locator("#selAnoHasta").count()) === 1);
+  /* Acotado a #orden: desde la 0022 los interruptores están en dos sitios —el
+     formulario y el desplegable de la barra—, y sin acotar se contarían dobles. */
   m.afirmar("los tres interruptores de orden arrancan apagados",
-    (await pagina.locator(".orden-op.activa").count()) === 0);
+    (await pagina.locator("#orden .orden-op.activa").count()) === 0);
 
   await pagina.click("#ordenReciente");
   await pagina.waitForTimeout(200);
@@ -342,12 +408,12 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   await pagina.click("#ordenNota");
   await pagina.waitForTimeout(200);
   m.afirmar("«Mayor puntuación» se suma en vez de sustituir",
-    (await pagina.locator(".orden-op.activa").count()) === 2);
+    (await pagina.locator("#orden .orden-op.activa").count()) === 2);
 
   await pagina.click("#ordenAntigua");
   await pagina.waitForTimeout(200);
   m.afirmar("volver a pulsar el que está activo lo apaga",
-    (await pagina.locator(".orden-op.activa").count()) === 1);
+    (await pagina.locator("#orden .orden-op.activa").count()) === 1);
   await pagina.screenshot({ path: path.join(CAPTURAS, "07-descubrir-orden.png"), fullPage: true });
 
   /* Con año y nota a la vez la lista se arma año por año, y el paginador pasa
@@ -391,7 +457,7 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   await pagina.selectOption("#selAnoHasta", "");
   await pagina.waitForTimeout(400);
   m.afirmar("se puede volver al orden por popularidad",
-    (await pagina.locator(".orden-op.activa").count()) === 0);
+    (await pagina.locator("#orden .orden-op.activa").count()) === 0);
 
   /* ---------------------------------------------------------------- */
   m.titulo("Paginador de Descubrir");
@@ -412,11 +478,90 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   m.afirmar("Siguiente avanza a la página 2", (await pagina.textContent(".paginador-info")).includes("2 de 7"));
 
   /* ---------------------------------------------------------------- */
+  /* Las categorías del carrusel se eligen en un modal, no desplegadas bajo el
+     botón: elegir una carga el carrusel y cierra el modal. */
+  m.titulo("Modal de sugerencias (V GMM 0022)");
+  await cerrarFormulario();
+  if (await pagina.locator("#barraVolver:not(.oculto)").count() > 0) {
+    await pagina.click("#btnVolver");
+    await pagina.waitForTimeout(400);
+  }
+  m.afirmar("las categorías arrancan fuera de la vista",
+    !(await pagina.locator("#sugerenciasCats").isVisible()));
+  await pagina.click("#btnSugerencias");
+  await pagina.waitForTimeout(300);
+  m.afirmar("«Dame sugerencias» abre el modal",
+    !(await pagina.getAttribute("#capaSugerencias", "class")).includes("oculto"));
+  m.afirmar("las 5 categorías están en una columna",
+    (await pagina.locator("#sugerenciasCats .cat").count()) === 5);
+  /* Mismo tamaño exacto: era el desorden que había que arreglar. */
+  const anchos = await pagina.evaluate(() =>
+    Array.from(document.querySelectorAll("#sugerenciasCats .cat"))
+      .map((b) => Math.round(b.getBoundingClientRect().width)));
+  m.afirmar("todas miden lo mismo", new Set(anchos).size === 1, anchos.join(" / "));
+  await pagina.screenshot({ path: path.join(CAPTURAS, "11-modal-sugerencias.png"), fullPage: true });
+
+  await pagina.click('#sugerenciasCats [data-cat="siempre"]');
+  await pagina.waitForTimeout(900);
+  m.afirmar("elegir una cierra el modal",
+    (await pagina.getAttribute("#capaSugerencias", "class")).includes("oculto"));
+  m.afirmar("la categoría elegida titula el carrusel",
+    (await pagina.textContent("#carruselTitulo")).includes("siempre"));
+  m.afirmar("con intervalo aparece «Ver más»", await pagina.locator("#btnVerMas").isVisible());
+
+  /* ---------------------------------------------------------------- */
+  /* "Ver más" pagina de corrido: 20 por página y «Página X de N». Antes decía
+     «2000 · 10 mejores» porque encendía año + nota a la vez, y esa combinación
+     obliga al recorrido año por año. */
+  m.titulo("«Ver más» pagina de corrido, no por años");
+  await pagina.evaluate(() => {
+    const base = GMM.demo.PELICULAS, items = [];
+    for (let i = 0; i < 20; i++) items.push(Object.assign({}, base[i % base.length], { id: 800000 + i }));
+    GMM.tmdb.descubrir = (tipo, opciones, p) => Promise.resolve({ items, pagina: p || 1, total: 30 });
+  });
+  await pagina.click("#btnVerMas");
+  await pagina.waitForTimeout(700);
+  const infoVerMas = (await pagina.textContent(".paginador-info")).trim();
+  m.afirmar("el paginador dice «Página 1 de 30»", infoVerMas === "Página 1 de 30", infoVerMas);
+  m.afirmar("no queda rastro de la etiqueta por año", !/^\d{4} ·/.test(infoVerMas), infoVerMas);
+  m.afirmar("muestra 20 carátulas", (await pagina.locator(".rejilla .tarjeta").count()) === 20);
+  await pagina.click('.paginador [data-ir-pagina="2"] >> nth=0');
+  await pagina.waitForTimeout(500);
+  m.afirmar("Siguiente va a la página 2 de 30",
+    (await pagina.textContent(".paginador-info")).trim() === "Página 2 de 30");
+
+  /* El desplegable de orden, junto a la flecha y en su misma fila. */
+  m.titulo("Desplegable de orden junto a la flecha ←");
+  m.afirmar("acompaña a la flecha", await pagina.locator("#ordenMenu").isVisible());
+  m.afirmar("comparte fila con la flecha", await pagina.evaluate(() => {
+    const f = document.querySelector("#btnVolver").getBoundingClientRect();
+    const o = document.querySelector("#ordenMenu").getBoundingClientRect();
+    return Math.abs((f.top + f.height / 2) - (o.top + o.height / 2)) < 12;
+  }));
+  m.afirmar("el panel arranca cerrado", !(await pagina.locator("#ordenPanel").isVisible()));
+  await pagina.click("#btnOrdenMenu");
+  await pagina.waitForTimeout(250);
+  m.afirmar("se abre con los tres interruptores",
+    (await pagina.locator("#ordenPanel .orden-op").count()) === 3);
+  await pagina.screenshot({ path: path.join(CAPTURAS, "12-orden-menu.png"), fullPage: true });
+  /* Las dos copias de los interruptores han de decir lo mismo. */
+  await pagina.click('#ordenPanel [data-orden="nota"]');
+  await pagina.waitForTimeout(600);
+  m.afirmar("encender uno aquí también lo enciende en el formulario",
+    (await pagina.getAttribute("#ordenNota", "class")).includes("activa"));
+  m.afirmar("y reordena sin volver atrás",
+    (await pagina.locator(".rejilla .tarjeta").count()) === 20);
+  await pagina.click('#ordenPanel [data-orden="nota"]');   // se deja como estaba
+  await pagina.waitForTimeout(500);
+
+  /* ---------------------------------------------------------------- */
   m.titulo("Móvil, 375 px");
   await pagina.setViewportSize({ width: 375, height: 780 });
   await aBuscar();
-  await pagina.click('#metodos [data-metodo="buscar"]');
+  await cerrarFormulario();
   await pagina.click('#tipoSwitch [data-tipo="movie"]');
+  await aBuscar();
+  await abrirMetodo("buscar");
   await pagina.selectOption("#selBusquedaPor", "titulo");
   await pagina.fill("#entrada", "Coco");
   await pagina.click("#btnBuscar");
@@ -431,15 +576,24 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   m.afirmar("sin desbordamiento horizontal", desborde <= 0, "sobran " + desborde + " px");
   await pagina.screenshot({ path: path.join(CAPTURAS, "05-movil.png"), fullPage: true });
 
-  /* La fila de orden es nueva y se envuelve: hay que verla también aquí. */
+  /* El modal-formulario es lo que más se estrecha: hay que verlo también aquí,
+     con sus campos en una sola columna y sin comerse la pantalla entera. */
   await aBuscar();
-  await pagina.click('#metodos [data-metodo="descubrir"]');
+  await abrirMetodo("descubrir");
   await pagina.waitForTimeout(300);
   const desbordeDescubrir = await pagina.evaluate(() =>
     document.documentElement.scrollWidth - document.documentElement.clientWidth);
   m.afirmar("Descubrir tampoco desborda en el móvil", desbordeDescubrir <= 0,
     "sobran " + desbordeDescubrir + " px");
-  await pagina.screenshot({ path: path.join(CAPTURAS, "08-descubrir-movil.png"), fullPage: true });
+  /* No debe ocupar el 100%: el velo tiene que verse alrededor. */
+  const holgura = await pagina.evaluate(() => {
+    const caja = document.querySelector("#capaFormulario .modal").getBoundingClientRect();
+    return { izq: Math.round(caja.left), alto: Math.round(caja.height), pantalla: window.innerHeight };
+  });
+  m.afirmar("el modal deja margen a los lados en el móvil", holgura.izq >= 8, JSON.stringify(holgura));
+  m.afirmar("y no ocupa toda la altura de la pantalla",
+    holgura.alto < holgura.pantalla, JSON.stringify(holgura));
+  await pagina.screenshot({ path: path.join(CAPTURAS, "10-descubrir-movil.png"), fullPage: true });
 
   /* ---------------------------------------------------------------- */
   m.titulo("Errores acumulados en toda la sesión");
