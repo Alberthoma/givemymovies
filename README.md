@@ -65,27 +65,26 @@ Las notas aparecen en la ficha y en el detalle, no en las cuadrículas de descub
 
 ---
 
-## El carrusel de sugerencias (¿y qué veo?)
+## Los carruseles de sugerencias (¿y qué veo?)
 
-Nada más abrir, bajo el header, hay un **carrusel deslizable** para cuando no buscas nada en
-concreto. Por defecto muestra lo que está **en tendencia**, y el botón **«Dame sugerencias»**
-abre una ventana con cinco categorías; eliges una y se cierra sola:
+Nada más abrir, bajo el header, hay **cinco carruseles deslizables** para cuando no buscas nada
+en concreto — uno por categoría, con **20 títulos cada uno**:
 
 | Categoría | Qué trae |
 |---|---|
 | **Tendencia** | Lo más visto de la semana. |
-| **Las 10 de siempre** | Las 10 mejores de 2000 en adelante. |
-| **Nunca es tarde** | Las 10 mejores de 1980 a 2000. |
-| **Clásicos** | Las 10 mejores de 1950 a 1979. |
+| **Las 20 de siempre** | Las 20 mejores de 2000 en adelante. |
+| **Nunca es tarde** | Las 20 mejores de 1980 a 2000. |
+| **Clásicos** | Las 20 mejores de 1950 a 1979. |
 | **Lo que prefieres** | Tu lista de favoritas. |
 
-Las tres de «las 10 mejores» se ordenan por **nota real de IMDb** (mayor de 6), para lo que usa
-tu clave de OMDb; sin ella, se ordenan por la nota de TMDB. El carrusel **respeta el interruptor
-Película / Serie**, y al tocar una carátula se abre su ficha de dónde verla. Desliza con el dedo
-en el móvil o con las flechas ‹ › en el ordenador, que son **infinitas**: al llegar al final
-vuelven al principio, y al revés.
+Cada carátula lleva su **nota de TMDB** en la esquina, que es además la que ordena la lista: lo
+que ves arriba es lo mejor puntuado. Los carruseles **respetan el interruptor Película / Serie**,
+y al tocar una carátula se abre su ficha de dónde verla. Desliza con el dedo en el móvil o con
+las flechas ‹ › en el ordenador, que son **infinitas**: al llegar al final vuelven al principio,
+y al revés.
 
-En «Las 10 de siempre», «Nunca es tarde» y «Clásicos» aparece además un botón **«Ver más»**:
+En «Las 20 de siempre», «Nunca es tarde» y «Clásicos» aparece además un botón **«Ver más»**:
 abre la **cuadrícula completa del periodo** (con nota de TMDB de 6 o más), de la más antigua a la
 más reciente, **20 carátulas por página** y un paginador corriente —«Página 1 de 30»—. Desde ahí
 puedes reordenarla sin volver atrás, con el botón **Ordenar** que hay junto a la flecha ←.
@@ -231,8 +230,8 @@ Para separarlos: corta cada bloque a su archivo y enlázalos en este orden con e
 4. **Comparador de países** — útil para quien usa VPN.
 5. **Sorpréndeme** — película o serie al azar que cumpla tus filtros.
 
-*Ya hechas: carrusel de sugerencias en el inicio, con «top 10» por IMDb, infinito y con «Ver más»
-año por año (V GMM 0017–0019);
+*Ya hechas: cinco carruseles de sugerencias en el inicio, de 20 títulos, ordenados por la nota de
+TMDB y con ella a la vista, infinitos y con «Ver más» (V GMM 0017–0019, 0023);
 puntuaciones de IMDb / Rotten Tomatoes / Metacritic vía OMDb (V GMM 0016);
 PWA instalable (V GMM 0003); descubrir por género, año y nota, y las series
 (V GMM 0005); interruptor Película/Serie con series en todas las búsquedas (V GMM 0006);

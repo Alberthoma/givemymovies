@@ -155,12 +155,6 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
       .map((b) => Math.round(b.getBoundingClientRect().width)));
   m.afirmar("los dos botones de método miden lo mismo",
     new Set(anchosMetodo).size === 1, anchosMetodo.join(" / "));
-  const anchosCarrusel = await pagina.evaluate(() =>
-    Array.from(document.querySelectorAll(".carrusel-acciones .btn-carrusel"))
-      .filter((b) => b.offsetParent !== null)
-      .map((b) => Math.round(b.getBoundingClientRect().width)));
-  m.afirmar("los botones del carrusel también", new Set(anchosCarrusel).size === 1,
-    anchosCarrusel.join(" / "));
 
   /* ---------------------------------------------------------------- */
   m.titulo("El formulario vive en un modal (V GMM 0022)");
@@ -478,36 +472,64 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   m.afirmar("Siguiente avanza a la página 2", (await pagina.textContent(".paginador-info")).includes("2 de 7"));
 
   /* ---------------------------------------------------------------- */
-  /* Las categorías del carrusel se eligen en un modal, no desplegadas bajo el
-     botón: elegir una carga el carrusel y cierra el modal. */
-  m.titulo("Modal de sugerencias (V GMM 0022)");
+  /* Cinco carruseles a la vez, uno por categoría. El modal que elegía cuál se
+     veía ya no existe: con los cinco delante no elegía nada. */
+  m.titulo("Cinco carruseles, uno por categoría (V GMM 0023)");
   await cerrarFormulario();
   if (await pagina.locator("#barraVolver:not(.oculto)").count() > 0) {
     await pagina.click("#btnVolver");
-    await pagina.waitForTimeout(400);
+    await pagina.waitForTimeout(900);
   }
-  m.afirmar("las categorías arrancan fuera de la vista",
-    !(await pagina.locator("#sugerenciasCats").isVisible()));
-  await pagina.click("#btnSugerencias");
-  await pagina.waitForTimeout(300);
-  m.afirmar("«Dame sugerencias» abre el modal",
-    !(await pagina.getAttribute("#capaSugerencias", "class")).includes("oculto"));
-  m.afirmar("las 5 categorías están en una columna",
-    (await pagina.locator("#sugerenciasCats .cat").count()) === 5);
-  /* Mismo tamaño exacto: era el desorden que había que arreglar. */
-  const anchos = await pagina.evaluate(() =>
-    Array.from(document.querySelectorAll("#sugerenciasCats .cat"))
-      .map((b) => Math.round(b.getBoundingClientRect().width)));
-  m.afirmar("todas miden lo mismo", new Set(anchos).size === 1, anchos.join(" / "));
-  await pagina.screenshot({ path: path.join(CAPTURAS, "11-modal-sugerencias.png"), fullPage: true });
+  m.afirmar("hay cinco bloques de carrusel",
+    (await pagina.locator("#descubrimiento .carrusel-bloque").count()) === 5);
+  m.afirmar("cada bloque tiene su propia pista",
+    (await pagina.locator("#descubrimiento .carrusel").count()) === 5);
+  const clavesPista = await pagina.evaluate(() =>
+    Array.from(document.querySelectorAll("#descubrimiento .carrusel")).map((c) => c.id));
+  m.afirmar("las pistas llevan el id de su categoría",
+    clavesPista.join(",") === "carrusel-tendencia,carrusel-siempre,carrusel-tarde,carrusel-clasicos,carrusel-favoritas",
+    clavesPista.join(","));
+  m.afirmar("los cinco títulos vienen del config",
+    (await pagina.evaluate(() =>
+      Array.from(document.querySelectorAll(".carrusel-tit")).map((t) => t.textContent).join("|"))) ===
+      "Tendencia|Las 20 de siempre|Nunca es tarde|Clásicos|Lo que prefieres");
+  m.afirmar("«Ver más» solo en las tres con intervalo de años",
+    (await pagina.locator("#descubrimiento [data-vermas]").count()) === 3);
+  m.afirmar("ya no existe el botón «Dame sugerencias»",
+    (await pagina.locator("#btnSugerencias").count()) === 0);
+  m.afirmar("ni su modal", (await pagina.locator("#capaSugerencias").count()) === 0);
+  /* La insignia de nota es de TMDB, no de IMDb: es la misma que ordena la lista. */
+  m.afirmar("las tarjetas del carrusel llevan la nota de TMDB",
+    (await pagina.locator("#carrusel-tendencia .tarjeta-nota").count()) > 0);
+  m.afirmar("no queda la insignia de IMDb",
+    (await pagina.locator("#descubrimiento .tarjeta-imdb").count()) === 0);
+  m.afirmar("la nota se lee como un número con un decimal",
+    /^★ \d+\.\d$/.test((await pagina.textContent("#carrusel-tendencia .tarjeta-nota")).trim()),
+    await pagina.textContent("#carrusel-tendencia .tarjeta-nota"));
+  await pagina.screenshot({ path: path.join(CAPTURAS, "11-carruseles.png"), fullPage: true });
 
-  await pagina.click('#sugerenciasCats [data-cat="siempre"]');
-  await pagina.waitForTimeout(900);
-  m.afirmar("elegir una cierra el modal",
-    (await pagina.getAttribute("#capaSugerencias", "class")).includes("oculto"));
-  m.afirmar("la categoría elegida titula el carrusel",
-    (await pagina.textContent("#carruselTitulo")).includes("siempre"));
-  m.afirmar("con intervalo aparece «Ver más»", await pagina.locator("#btnVerMas").isVisible());
+  /* El tope son 20 por carrusel, y el catálogo de ejemplo solo tiene ocho: hay
+     que inyectar una respuesta de treinta para ver si corta.
+
+     Va en una pestaña aparte porque los carruseles se cachean por "tipo:clave"
+     y a estas alturas de la sesión ya están todos cacheados: en la pestaña de
+     siempre el doble no llegaría a pedirse. El stub se instala desde un
+     addInitScript en DOMContentLoaded, que corre ANTES que GMM.app.iniciar
+     —se registra primero— y con GMM ya definido. */
+  const paginaTope = await contexto.newPage();
+  await paginaTope.addInitScript(() => {
+    window.__GMM_FORZAR_DEMO = true;
+    document.addEventListener("DOMContentLoaded", () => {
+      const base = GMM.demo.PELICULAS, items = [];
+      for (let i = 0; i < 30; i++) items.push(Object.assign({}, base[i % base.length], { id: 900000 + i }));
+      GMM.tmdb.tendencia = () => Promise.resolve(items);
+    });
+  });
+  await paginaTope.goto(PAGINA);
+  await paginaTope.waitForTimeout(900);
+  const cuantas = await paginaTope.locator("#carrusel-tendencia .tarjeta").count();
+  m.afirmar("cada carrusel corta en 20 títulos", cuantas === 20, String(cuantas));
+  await paginaTope.close();
 
   /* ---------------------------------------------------------------- */
   /* "Ver más" pagina de corrido: 20 por página y «Página X de N». Antes decía
@@ -519,7 +541,7 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
     for (let i = 0; i < 20; i++) items.push(Object.assign({}, base[i % base.length], { id: 800000 + i }));
     GMM.tmdb.descubrir = (tipo, opciones, p) => Promise.resolve({ items, pagina: p || 1, total: 30 });
   });
-  await pagina.click("#btnVerMas");
+  await pagina.click('[data-vermas="siempre"]');
   await pagina.waitForTimeout(700);
   const infoVerMas = (await pagina.textContent(".paginador-info")).trim();
   m.afirmar("el paginador dice «Página 1 de 30»", infoVerMas === "Página 1 de 30", infoVerMas);

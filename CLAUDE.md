@@ -2,8 +2,8 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0022`
-**Próxima versión:** `V GMM 0023`
+**Versión activa:** `V GMM 0023`
+**Próxima versión:** `V GMM 0024`
 **Última actualización:** 2026-07-30
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies/> · GitHub Pages desde `main`, raíz.
@@ -45,13 +45,12 @@ Plataforma y país son **opcionales**; el idioma es el filtro que da sentido a t
 **Los controles de las dos formas viven en un modal** (desde V GMM 0022): en el inicio solo se
 ven dos botones del mismo tamaño, y cada uno abre el **modal-formulario** con sus campos. Ver §4.
 
-**Encima de las dos formas, un carrusel de descubrimiento** (desde V GMM 0017) responde «¿y qué
-veo?» sin buscar nada: bajo el header, en el inicio, muestra por defecto lo que está **en
-tendencia** y un botón **«Dame sugerencias»** abre un **modal** con cinco categorías —*Tendencia*,
-*Las 10 de siempre* (2000→hoy), *Nunca es tarde* (1980–2000), *Clásicos* (1950–1979) y *Lo que
-prefieres* (tus favoritas)—; elegir una carga el carrusel y cierra el modal. Respeta el
-interruptor peli/serie y, al tocar una tarjeta, abre la **ficha completa** (la misma vista que
-buscar por título; desde V GMM 0018).
+**Encima de las dos formas, cinco carruseles de descubrimiento** (desde V GMM 0017; **cinco a la
+vez desde la 0023**) responden «¿y qué veo?» sin buscar nada: bajo el header, en el inicio, uno
+por categoría —*Tendencia*, *Las 20 de siempre* (2000→hoy), *Nunca es tarde* (1980–2000),
+*Clásicos* (1950–1979) y *Lo que prefieres* (tus favoritas)—, con **20 títulos cada uno** y la
+**nota de TMDB** en la esquina de cada carátula. Respetan el interruptor peli/serie y, al tocar
+una tarjeta, abren la **ficha completa** (la misma vista que buscar por título; desde V GMM 0018).
 
 **El interruptor peli/serie afecta a las dos formas y a las tres búsquedas** (título, actor,
 trama): buscar *The Walking Dead*, la filmografía en TV de un actor, o tramas en series, todo
@@ -184,7 +183,8 @@ simplemente no se instala ni cachea: `GMM.pwa.seguro()` lo detecta y no registra
 `mostrarTodos`, `vista`, `pelicula`, `proveedores`, `persona`, `filmografia`,
 `disponibilidad`, `ctxPagina` (paginación) y —para Descubrir— `genero`, `anoDesde`,
 `anoHasta`, `notaMin`, `orden` (`popular`/`reciente`/`antigua`), `porNota`, y el par
-`anios`/`recorrido` del recorrido año por año.
+`anios`/`recorrido` del recorrido año por año. **Ya no hay `categoria`**: desde la 0023 los cinco
+carruseles están a la vista y no hay «categoría activa» que recordar.
 `reflejar()` vuelca el formulario (interruptor, método, título del modal, marcador, chips,
 acentos, orden).
 
@@ -236,9 +236,8 @@ el desplegable. Lo resuelve el manejador de `#entrada` con `stopPropagation()`, 
 documento: el del campo corre antes, y sin cortar la propagación el modal se cerraba también y se
 perdía lo escrito.
 
-**Las categorías del carrusel viven en otro modal** (`#capaSugerencias`, `.cats-columna`): una por
-fila, **todas del mismo tamaño** y en **azul `#4aa8ff`** —el color de «información» de la paleta,
-fijo, ya no el del interruptor—. Elegir una carga el carrusel y **cierra el modal**.
+**El modal de sugerencias se retiró en la 0023.** Existía para elegir cuál de las cinco categorías
+se veía en el único carrusel; con los cinco a la vista ya no elegía nada.
 
 **Dos pantallas (desde V GMM 0009):** la de búsqueda (formulario visible) y la de resultados
 (formulario **oculto**, con una flecha **←** para volver). Lo alterna `fijarPantalla()` según
@@ -307,48 +306,60 @@ igual, solo que la ficha no muestra esas notas.
 - El puente es el **`imdb_id`**: las películas lo traen suelto; las series solo si se pide
   `append_to_response=…,external_ids`, y `normalizarMedia` lo sube al nivel de la ficha.
 - **Solo se pide en la ficha y en el modal de detalle** (un título cada vez), nunca en las
-  cuadrículas de Descubrir/Trama: serían decenas de peticiones y reventaría el tope diario.
+  cuadrículas de Descubrir/Trama **ni en los carruseles del inicio**: serían decenas o cientos de
+  peticiones y reventaría el tope diario. Los carruseles lo usaron entre la 0017 y la 0022; ver
+  «Los cinco carruseles del inicio».
 - Llega **después** de pintar la ficha y **repinta** (barato, sin volver a la API). La clave
   se guarda en ⚙, junto a la de TMDB.
 
-### El carrusel de sugerencias del inicio (desde V GMM 0017)
+### Los cinco carruseles del inicio (desde V GMM 0017; cinco desde la 0023)
 
-Vive en una sección propia `#descubrimiento`, **bajo el header y encima del buscador**, y —como
-el buscador— solo existe en el inicio: `fijarPantalla()` lo oculta al haber resultados. Por
-defecto carga **Tendencia** (`GMM.tmdb.tendencia`, endpoint `/trending/{movie|tv}/week`, nuevo);
-el botón «Dame sugerencias» despliega los chips de categoría.
+Viven en una sección propia `#descubrimiento`, **bajo el header y encima del buscador**, y —como
+el buscador— solo existen en el inicio: `fijarPantalla()` los oculta al haber resultados.
 
-**El «top 10» se rankea por nota REAL de IMDb, no por la de TMDB.** Como `/discover` de TMDB no
-ordena ni filtra por IMDb (ni trae `imdb_id`), cada categoría de ranking se arma en tres pasos,
-**solo al abrirla** (perezoso; Tendencia y Favoritas no gastan OMDb) y **cacheado en memoria por
-`tipo:categoria`**: (1) candidatos de `GMM.tmdb.descubrir` por nota de TMDB; (2) su `imdb_id` vía
-`GMM.tmdb.ficha` en lotes de 5; (3) su nota de IMDb vía `GMM.omdb.notas` en lotes de 5. Luego
-`GMM.util.mejoresPorImdb` (pura y testable) filtra IMDb > `IMDB_MIN` (6), ordena y corta a 10.
-Las tarjetas de ranking **muestran esa nota de IMDb en la esquina** (`GMM.ui.tarjeta` pinta la
-insignia `.tarjeta-imdb` solo si el ítem trae `imdbNota`; Tendencia, Favoritas y las cuadrículas
-normales no la llevan, así que no aparece).
-**Sin clave de OMDb —o si OMDb no devuelve nada— cae a los primeros por nota de TMDB**, de modo
-que el carrusel sigue funcionando sin OMDb. Las categorías y sus rangos viven en
-`GMM.config.CATEGORIAS_SUGERENCIA`. Lo orquesta `GMM.app` (`cargarCarrusel`, `cargarRanking`,
-`itemsCategoria`, `pintarCarrusel`), reutilizando `GMM.ui.tarjeta` y `GMM.util.enLotes`.
+**Hay uno por categoría y se ven los cinco a la vez.** Los monta `montarCarruseles()` a partir de
+`GMM.config.CATEGORIAS_SUGERENCIA`: añadir una categoría al config añade su carrusel, sin tocar
+el HTML. Cada bloque es autónomo —su pista es `#carrusel-{clave}`, se carga por su cuenta y su
+«Ver más» mira su propia categoría—, y se cargan **en paralelo**, cada uno pintando en cuanto
+llega. Hasta la 0022 había uno solo y un modal elegía cuál se veía.
 
-**Tocar una tarjeta del carrusel abre la ficha completa** (`abrirFicha`, la misma vista que
-buscar por título), no el modal de detalle de las cuadrículas. La delegación de clic de
-`#resultados` **no** alcanza al carrusel (vive en `#descubrimiento`, otra sección), así que
-`#carrusel` tiene su propio listener: `[data-abrir]` → `abrirFicha`, `[data-lista]` →
-`alternarLista` (para que los botones mini de listas sigan funcionando). Desde V GMM 0018;
-antes las tarjetas del carrusel no respondían al clic.
+**Se ordenan por la nota de TMDB, y esa misma nota es la que luce cada tarjeta.** `GMM.ui.tarjeta`
+pinta la insignia `.tarjeta-nota` **solo si el ítem trae `tmdbNota`** (lo marca `conNota()` en
+`GMM.app`), así que las cuadrículas de Descubrir —que traen `vote_average` igual— no la llevan.
+`GMM.util.mejoresPorNota` (pura y testable) filtra por `NOTA_MIN_CATEGORIA` (6), ordena y corta a
+`TOP_CATEGORIA` (20), que es justo lo que cabe en una página de `/discover`: **una sola petición
+por carrusel**.
 
-**El carrusel es "infinito" con las flechas** (desde V GMM 0019): `desplazarCarrusel(dir)` detecta
-el borde y da la vuelta —› en el final salta al principio, ‹ en el principio salta al final—; no
-clona tarjetas, solo hace `scrollTo`.
+**Hasta la 0022 el «top 10» se rankeaba por la nota REAL de IMDb**, dando un rodeo por OMDb
+(`imdb_id` de cada candidato vía `GMM.tmdb.ficha` + su nota vía `GMM.omdb.notas`). Con cinco
+carruseles de veinte cargando a la vez eso son **~120 consultas a OMDb por visita**, sobre un tope
+de 1.000 al día: se agotaría en ocho aperturas de la app. Además la lista iría ordenada por un
+número distinto del que muestra la insignia. **OMDb sigue donde no cuesta: en la ficha.**
+
+Todo cacheado en memoria por `tipo:categoria`, así que ir y volver del inicio —o cambiar el
+interruptor de ida y vuelta— no repite peticiones. **`alternarLista` invalida la caché de
+`favoritas`** y repinta ese carrusel: «Lo que prefieres» está siempre a la vista y marcar una
+favorita tiene que notarse ahí mismo.
+
+**Tocar una tarjeta abre la ficha completa** (`abrirFicha`, la misma vista que buscar por título),
+no el modal de detalle de las cuadrículas. La delegación de clic de `#resultados` **no** alcanza
+aquí (esto vive en `#descubrimiento`, otra sección), así que hay **una sola delegación en
+`#descubrimiento`** que sirve a los cinco bloques: `[data-mover]` → `desplazarCarrusel`,
+`[data-vermas]` → `verMasCategoria`, `[data-abrir]` → `abrirFicha`, `[data-lista]` →
+`alternarLista`. Es delegación y no un listener por flecha porque las pistas **se repintan
+enteras** en cada carga, y habría que recablear cada vez. Desde V GMM 0018 (el clic) y 0023 (la
+delegación única).
+
+**Cada carrusel es "infinito" con sus flechas** (desde V GMM 0019): `desplazarCarrusel(clave, dir)`
+detecta el borde y da la vuelta —› en el final salta al principio, ‹ en el principio salta al
+final—; no clona tarjetas, solo hace `scrollTo`.
 
 **«Ver más» en las categorías con intervalo** (de siempre / nunca es tarde / clásicos; desde V GMM
-0019, replanteado en la 0022): el botón `#btnVerMas` —visible solo cuando
-`categoriaDef(clave).anoDesde` existe— abre la **cuadrícula corriente de Descubrir** sobre el
-intervalo de la categoría, del año más antiguo al más reciente y con **nota de TMDB ≥ 6** (no IMDb:
-serían cientos de consultas a OMDb). `verMasCategoria()` preajusta el estado (género = todos,
-intervalo de la categoría, `notaMin` = 6, orden = *antigua*) y **deja `porNota` apagado**.
+0019, replanteado en la 0022 y uno por carrusel desde la 0023): el botón `[data-vermas]` —solo en
+los bloques cuya categoría tiene `anoDesde`— abre la **cuadrícula corriente de Descubrir** sobre el
+intervalo de esa categoría, del año más antiguo al más reciente y con **nota de TMDB ≥ 6**.
+`verMasCategoria(clave)` preajusta el estado (género = todos, intervalo de la categoría,
+`notaMin` = 6, orden = *antigua*) y **deja `porNota` apagado**.
 
 **Ese `porNota: false` es el punto entero del arreglo.** Con un solo criterio de orden la lista
 pagina de corrido: **20 por página y «Página 1 de N»**. Encenderlo también —como hacía hasta la
@@ -433,14 +444,14 @@ el `og:image`. Y no cojas el primer `<img>` de la página: suele ser un recomend
 **La aplicación no tiene dependencias.** `pruebas/` es una herramienta aparte y opcional.
 
 ```bash
-node pruebas/logica.js      # 120 comprobaciones · sin dependencias · instantáneo
+node pruebas/logica.js      # 125 comprobaciones · sin dependencias · instantáneo
 node pruebas/imagenes.js    #  15 comprobaciones · necesita internet · ~30 s
-node pruebas/interfaz.js    # 106 comprobaciones · playwright-core · ~60 s
+node pruebas/interfaz.js    # 109 comprobaciones · playwright-core · ~60 s
 node pruebas/pwa.js         #  20 comprobaciones · playwright-core · ~20 s
 ```
 
-Última ejecución: **261 comprobaciones, todas correctas**, sin errores de JavaScript en
-consola. Las cuatro suites, en local, el 2026-07-30 sobre la 0022.
+Última ejecución: **269 comprobaciones, todas correctas**, sin errores de JavaScript en
+consola. Las cuatro suites, en local, el 2026-07-30 sobre la 0023.
 
 > **Las versiones 0016 a 0021 se cerraron en un entorno remoto sin acceso a npm**, así que
 > `interfaz.js` y `pwa.js` (que dependen de `playwright-core`) no se ejecutaron allí: solo
@@ -458,20 +469,31 @@ consola. Las cuatro suites, en local, el 2026-07-30 sobre la 0022.
 > `.tarjeta` a secas y desde la 0017 el carrusel del inicio pinta las suyas con la misma
 > clase y **las deja en el DOM, solo ocultas**, en las demás vistas. Ahora es
 > `#resultados .tarjeta`. Cualquier recuento nuevo debe acotarse al contenedor.
+>
+> **Lección (0023): una caché puede tragarse tu simulacro.** La comprobación de que cada
+> carrusel corta en 20 títulos inyectaba una respuesta de 30 y cambiaba el interruptor para
+> forzar la recarga… pero los carruseles se cachean por `tipo:categoria` y a esas alturas de
+> la sesión ya estaban todos cacheados, así que el simulacro **no llegaba a pedirse** y el
+> test veía las 3 series de la demo. Se resolvió abriendo una **pestaña aparte** con un
+> `addInitScript` que instala el simulacro en `DOMContentLoaded`: ese manejador se registra
+> antes que el de `GMM.app.iniciar` y corre con `GMM` ya definido. Antes de inyectar una
+> respuesta, pregúntate si algo la tiene ya guardada.
 
 Detalle en `pruebas/LEEME.md`. `logica.js` cubre la normalización de series, Descubrir sobre
 la demo, las listas conscientes del tipo, la búsqueda de series (título y trama), —desde la
 0015— el intervalo de años y las combinaciones de orden, y —desde la 0016— el parseo de las
 notas de OMDb (`GMM.omdb.parsear`: respuesta completa, `Response:"False"`, campos ausentes,
-`"N/A"` y el `Metascore` de reserva), y —desde la 0017— el selector del carrusel
-`GMM.util.mejoresPorImdb` (filtra IMDb > 6, ordena, corta, ignora sin nota). `interfaz.js` recorre el interruptor
+`"N/A"` y el `Metascore` de reserva), y —desde la 0023— el selector de los carruseles
+`GMM.util.mejoresPorNota` (filtra nota ≥ 6, ordena, corta, ignora sin nota, admite otro umbral)
+y la forma del config de categorías. `interfaz.js` recorre el interruptor
 peli/serie, la búsqueda de una serie por título, Descubrir con series, los interruptores de
-orden con su paginador por años, —desde la 0021— los métodos plegados, y —desde la 0022— los
-dos modales (abrir, cerrar con la X, elegir categoría cierra el de sugerencias), que los
-botones **midan lo mismo** (los dos métodos, los dos del carrusel y las cinco categorías),
-que **«Ver más» diga «Página 1 de 30» con 20 carátulas** y sin etiqueta de año, el
-desplegable de orden junto a ← con sus dos copias sincronizadas, y que en el móvil el modal
-**deje margen y no ocupe toda la altura**.
+orden con su paginador por años, —desde la 0021— los métodos plegados, —desde la 0022— el modal
+del formulario (abrir, cerrar con la X), que los dos métodos **midan lo mismo**, que
+**«Ver más» diga «Página 1 de 30» con 20 carátulas** y sin etiqueta de año, el desplegable de
+orden junto a ← con sus dos copias sincronizadas, y que en el móvil el modal **deje margen y no
+ocupe toda la altura**; y —desde la 0023— los **cinco carruseles** (cinco bloques, sus ids de
+pista, sus títulos, «Ver más» solo en los tres con intervalo, que el botón y el modal de
+sugerencias ya no existan, la insignia de **nota de TMDB** y no la de IMDb, y el corte en 20).
 
 `pwa.js` levanta un servidor local, porque los service workers no funcionan sobre `file://`
 y `localhost` cuenta como origen seguro igual que HTTPS.
@@ -510,8 +532,8 @@ Comprobación manual rápida, si no quieres ejecutar nada:
   título, actor, trama y Descubrir. Antes (V GMM 0005) las series solo entraban por Descubrir.
 - **Puntuaciones de otras plataformas** (IMDb, Rotten Tomatoes, Metacritic): **integradas en
   V GMM 0016** vía OMDb (`GMM.omdb`), con su segunda clave **opcional**. Aparecen en la ficha
-  y en el modal de detalle, no en las cuadrículas. La calificación de Descubrir sigue siendo
-  la propia de TMDB (0–10).
+  y en el modal de detalle, no en las cuadrículas ni en los carruseles. La calificación de
+  Descubrir y la insignia de los carruseles son la propia de TMDB (0–10).
 - **Filmografías**: se consultan los 24 títulos más populares, con 5 peticiones simultáneas.
 - **La clave viaja al navegador**: para publicar en internet haría falta un servidor intermedio.
 
@@ -669,6 +691,7 @@ puede ir dentro de `index.html` sin problema.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| V GMM 0023 | 2026-07-30 | **Cinco carruseles en vez de uno, de 20 títulos y con la nota de TMDB.** (1) El inicio pasa de **un carrusel intercambiable a cinco a la vez**, uno por categoría, montados desde `GMM.config.CATEGORIAS_SUGERENCIA` por `montarCarruseles()`: pista `#carrusel-{clave}`, carga en paralelo, flechas propias y **«Ver más» por bloque** en los tres que tienen intervalo. Con ello se retiran el botón **«Dame sugerencias» y su modal** (`#capaSugerencias`), que existían para elegir cuál se veía, y `estado.categoria`. Los cinco cuelgan de **una sola delegación de clic** en `#descubrimiento` (`[data-mover]`, `[data-vermas]`, `[data-abrir]`, `[data-lista]`), porque las pistas se repintan enteras y un listener por flecha habría que recablearlo. (2) **20 títulos por carrusel** (`TOP_CATEGORIA` 10→20), que es justo una página de `/discover`: **una petición por carrusel**. (3) **Insignia con la nota de TMDB** en cada carátula (`.tarjeta-nota`, verde, ★ + nota), en lugar de la de IMDb: `GMM.ui.tarjeta` la pinta solo si el ítem trae `tmdbNota`, así las cuadrículas siguen sin ella. (4) **Se retira el rodeo por OMDb** de los carruseles —`GMM.util.mejoresPorImdb` → `GMM.util.mejoresPorNota`, `IMDB_MIN` → `NOTA_MIN_CATEGORIA`, fuera `CANDIDATOS_CATEGORIA`—: con cinco carruseles de veinte serían ~120 consultas por visita sobre un tope de 1.000/día, y la lista iría ordenada por un número distinto del que muestra la tarjeta. **OMDb sigue en la ficha.** (5) `alternarLista` invalida la caché de *favoritas* y repinta su carrusel, que ahora está siempre a la vista. `sw.js` VERSION 20→21. `logica.js` 120→125, `interfaz.js` 106→109, `pwa.js` 20. |
 | V GMM 0022 | 2026-07-30 | **Rediseño de disposición: los formularios pasan a modales.** (1) Los controles de los dos métodos salen de la página a un **modal-formulario único** (`#capaFormulario`): cuerpo en **una rejilla de dos columnas** con los bloques a `display: contents`, campos **de dos en dos** (los grandes a fila completa), **X** arriba a la derecha y **Buscar centrado** al pie; en el móvil, una columna y con margen alrededor. En el inicio solo quedan **dos botones del mismo tamaño**. (2) Las 5 categorías de «Dame sugerencias» pasan a **otro modal**, una por fila, **todas iguales** y en **azul fijo**; elegir una cierra el modal. (3) **Desplegable de orden junto a la flecha ←**, en su misma fila: reordenar sin volver al formulario (`reflejarOrden` casa por `[data-orden]`, no por id, para las dos copias). (4) **«Ver más» pagina de corrido**: 20 por página y **«Página 1 de N»**, en vez de «2000 · 10 mejores» — se retira `estado.topAnio` y `verMasCategoria` deja de encender `porNota`; **el recorrido año por año de la 0015 se conserva intacto** para cuando se pide a mano. (5) De paso: **300 votos** exigidos siempre que la nota entra en juego (antes solo al ordenar por ella, y «nota ≥ 6 por año» sacaba desconocidos con doce votos), enlace para cambiar de método sin cerrar el modal, autocompletado **en el flujo** dentro del modal, Escape ya no cierra el modal si hay desplegable abierto, y fuera el CSS muerto de `.pestanas`. `sw.js` VERSION 19→20. `logica.js` 120, `interfaz.js` 78→106, `pwa.js` 19→20. |
 | V GMM 0021 | 2026-07-29 | **Métodos plegados por defecto + ⚙ redondo.** (1) La app arranca **sin método** (`estado.metodo = ""`): los controles de «Buscar una en concreto» (`#panelBuscar`, `#chips`) y los de «Descubrir por género» (`#descubrir`) y los filtros comunes (`#filtros`) empiezan **ocultos**, y cada uno se muestra **solo al pulsar su botón**. (2) El botón **⚙ pasa a ser un círculo compacto** (`#btnAjustes`, 34 px, engranaje sin reducir) pegado a la derecha de la barra, que se aprieta en móvil para caber en una línea. Solo HTML/CSS + `reflejar()`. `sw.js` VERSION 18→19. `logica.js` 120. **`interfaz.js`/`pwa.js` no ejecutadas (sin npm); pasar en local.** |
 | V GMM 0020 | 2026-07-29 | **Ajustes de disposición.** (1) El interruptor Película/Serie sale del buscador a la **barra bajo el header**, a la izquierda junto a *Mis listas* (barra en dos grupos `.barra-izq`/`.barra-der`). (2) El botón **«Ver más»** pasa a la **derecha** de «Dame sugerencias». (3) La app **arranca siempre en «Buscar una en concreto»** (el método ya no se restaura de prefs): los controles de «Descubrir por género» quedan ocultos hasta pulsar su botón, y «Ver más» ya no los deja abiertos al recargar. Solo HTML/CSS + una línea de `cargarPrefs`. `sw.js` VERSION 17→18. `logica.js` 120. **`interfaz.js`/`pwa.js` no ejecutadas (sin npm); pasar en local.** |

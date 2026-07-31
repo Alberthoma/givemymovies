@@ -600,11 +600,17 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
 .pais-enlace { display: block; margin-top: 12px; font-size: 12.5px; color: #5e768c; }
 .pais-enlace:hover { color: #4aa8ff; }
 
-/* --- carrusel de sugerencias del inicio --- */
+/* --- carruseles de sugerencias del inicio --- */
+/* Cinco tiras apiladas, una por categoría (desde V GMM 0023). Cada bloque lleva
+   su cabecera con el título, su "Ver más" si la categoría tiene intervalo, y
+   sus dos flechas. */
 .descubrimiento { max-width: 1120px; margin: 4px auto 26px; padding: 0 4px; }
-.carrusel-cab { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.carrusel-bloque { margin-bottom: 24px; }
+.carrusel-bloque:last-child { margin-bottom: 0; }
+.carrusel-cab { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
 .carrusel-tit { font-size: 18px; font-weight: 800; letter-spacing: -0.01em; }
-.carrusel-flechas { display: flex; gap: 8px; }
+/* Empuja las flechas al extremo derecho y deja "Ver más" pegado al título. */
+.carrusel-flechas { display: flex; gap: 8px; margin-left: auto; }
 .carrusel-flecha {
   width: 36px; height: 36px; border-radius: 999px; font-size: 18px; line-height: 1;
   border: 1px solid #2f4356; background: #131c26; color: #e8f0f8;
@@ -621,10 +627,12 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
 .carrusel::-webkit-scrollbar { display: none; }
 .carrusel .tarjeta { flex: 0 0 150px; scroll-snap-align: start; }
 .carrusel-vacio { color: #8ba0b6; font-size: 14px; padding: 20px 4px; }
-/* Los dos botones del carrusel, centrados y del mismo tamaño exacto. */
-.carrusel-acciones { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 4px; }
-.btn-carrusel { min-width: 215px; justify-content: center; }
-.btn-vermas { border-color: rgba(74, 168, 255, 0.5); color: #8fc9ff; }
+/* "Ver más" de cada carrusel: discreto, junto al título, para que no compita
+   con él ni con las carátulas. */
+.btn-vermas {
+  padding: 5px 12px; font-size: 12.5px; border-radius: 999px;
+  border-color: rgba(74, 168, 255, 0.5); color: #8fc9ff;
+}
 .btn-vermas:hover { border-color: #4aa8ff; background: rgba(74, 168, 255, 0.1); }
 
 /* --- rejilla de pósters --- */
@@ -659,14 +667,14 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
 .tarjeta-tit { font-size: 13.5px; font-weight: 600; margin-top: 9px; line-height: 1.35; }
 .tarjeta-ano { font-size: 12.5px; color: #8ba0b6; }
 
-/* Nota de IMDb sobre el póster (esquina superior izquierda). Los botones de
+/* Nota de TMDB sobre el póster (esquina superior izquierda). Los botones de
    lista van a la derecha, así que no se pisan. Siempre visible: es la razón
-   de que la tarjeta esté en el "top 10". */
-.tarjeta-imdb {
+   de que la tarjeta esté donde está dentro del carrusel. */
+.tarjeta-nota {
   position: absolute; top: 8px; left: 8px; z-index: 2;
   font-size: 11.5px; font-weight: 700; padding: 3px 8px; border-radius: 999px;
-  background: rgba(11, 15, 20, 0.85); border: 1px solid rgba(74, 168, 255, 0.5);
-  color: #8fc9ff; backdrop-filter: blur(3px);
+  background: rgba(11, 15, 20, 0.85); border: 1px solid rgba(46, 230, 168, 0.5);
+  color: #6ff0c4; backdrop-filter: blur(3px);
 }
 
 .tarjeta-marcas {
@@ -782,8 +790,6 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   max-height: calc(100dvh - 40px);
 }
 .modal.ancho { max-width: 900px; }
-/* El de sugerencias es una lista de opciones: más estrecho se lee mejor. */
-.modal.modal-estrecho { max-width: 420px; }
 /* El formulario necesita sitio para las dos columnas, sin llegar a comerse la
    pantalla: en el móvil el .capa deja su margen alrededor y nunca ocupa el
    100%, y aquí el tope evita que se estire de más en escritorio. */
@@ -793,21 +799,6 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
 .modal-pie.centrado { justify-content: center; }
 .modal-pie.centrado .boton-buscar { min-width: 190px; text-align: center; }
 
-/* Categorías de sugerencias: una por fila, todas del mismo tamaño y en azul
-   —el color de "información" de la paleta—. La elegida, en azul sólido. */
-.cats-columna { display: grid; gap: 10px; }
-.cat {
-  width: 100%; padding: 14px 18px; border-radius: 13px; text-align: center;
-  border: 1px solid rgba(74, 168, 255, 0.32); background: rgba(74, 168, 255, 0.07);
-  font-size: 15px; font-weight: 700; color: #8fc9ff;
-  transition: color 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
-}
-.cat:hover { border-color: #4aa8ff; background: rgba(74, 168, 255, 0.15); color: #e8f0f8; }
-.cat.activa {
-  background: linear-gradient(135deg, #4aa8ff, #8fc9ff);
-  border-color: transparent; color: #06131c;
-  box-shadow: 0 0 0 3px rgba(74, 168, 255, 0.24), 0 8px 22px rgba(74, 168, 255, 0.38);
-}
 @keyframes subir { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
 .modal-cab {
@@ -908,17 +899,16 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
      demasiado estrechos para leer sus etiquetas. */
   .forma { grid-template-columns: 1fr; gap: 12px; }
   .forma .descubrir:not(.oculto) ~ .filtros .filtro-pais { grid-column: auto; }
-  /* Los dos botones del carrusel, apilados y a todo el ancho: más fáciles de
-     pulsar con el pulgar y sin partir el texto en dos líneas. */
-  .carrusel-acciones { flex-direction: column; align-items: stretch; }
-  .btn-carrusel { min-width: 0; }
   .cabecera { padding: 15px; }
   .campo-entrada { font-size: 16px; padding: 12px 0; }
   /* Dos columnas fijas en el móvil. */
   .rejilla { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-  /* Carrusel: tarjetas algo más estrechas y título más contenido. */
+  /* Carruseles: tarjetas algo más estrechas, título más contenido y menos aire
+     entre bloques, que con cinco apilados el inicio se hace largo. */
   .carrusel .tarjeta { flex: 0 0 130px; }
   .carrusel-tit { font-size: 16px; }
+  .carrusel-bloque { margin-bottom: 18px; }
+  .carrusel-flecha { width: 32px; height: 32px; font-size: 16px; }
   .paises { grid-template-columns: 1fr; }
   .ficha-cuerpo { padding: 18px; gap: 18px; }
   .ficha-poster { width: 108px; flex: 0 0 108px; }
@@ -999,25 +989,13 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
     </div>
   </div>
 
-  <!-- ═════════════ DESCUBRIMIENTO (carrusel) ═════════════ -->
-  <!-- Vive solo en el inicio (fijarPantalla lo oculta con resultados). Por
-       defecto muestra Tendencia; "Dame sugerencias" despliega las categorías. -->
-  <section class="descubrimiento oculto" id="descubrimiento" aria-label="Sugerencias">
-    <div class="carrusel-cab">
-      <h2 class="carrusel-tit" id="carruselTitulo">Tendencia</h2>
-      <div class="carrusel-flechas">
-        <button class="carrusel-flecha" id="carruselPrev" aria-label="Anterior" title="Anterior">&#8249;</button>
-        <button class="carrusel-flecha" id="carruselNext" aria-label="Siguiente" title="Siguiente">&#8250;</button>
-      </div>
-    </div>
-    <div class="carrusel" id="carrusel"></div>
-    <!-- Los dos botones, del mismo tamaño y centrados. Las categorías ya no se
-         despliegan aquí: viven en un modal (#capaSugerencias). -->
-    <div class="carrusel-acciones">
-      <button class="boton-sec btn-carrusel btn-sugerencias" id="btnSugerencias">&#10024; Dame sugerencias</button>
-      <button class="boton-sec btn-carrusel btn-vermas oculto" id="btnVerMas">Ver m&aacute;s &#8594;</button>
-    </div>
-  </section>
+  <!-- ═════════════ DESCUBRIMIENTO (carruseles) ═════════════ -->
+  <!-- Vive solo en el inicio (fijarPantalla lo oculta con resultados). Desde
+       V GMM 0023 hay UN CARRUSEL POR CATEGORÍA, los cinco a la vez, en vez de
+       uno solo que se cambiaba desde un modal. Los bloques los monta
+       montarCarruseles() a partir de GMM.config.CATEGORIAS_SUGERENCIA: añadir
+       una categoría al config añade su carrusel, sin tocar este HTML. -->
+  <section class="descubrimiento oculto" id="descubrimiento" aria-label="Sugerencias"></section>
 
   <!-- ═════════════ BUSCADOR ═════════════ -->
   <!-- En el inicio solo quedan el título y los dos métodos, del mismo tamaño y
@@ -1040,7 +1018,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   <footer class="pie">
     <span>givemymovies · datos de disponibilidad vía TMDB / JustWatch</span>
     <span>Tus listas se guardan solo en este navegador</span>
-    <span id="version-app">V GMM 0022</span>
+    <span id="version-app">V GMM 0023</span>
   </footer>
 </div>
 
@@ -1101,28 +1079,9 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   </div>
 </div>
 
-<!-- ═════════════ MODAL: SUGERENCIAS ═════════════ -->
-<!-- Las categorías del carrusel. Una por fila y todas del mismo tamaño, para
-     que se lean como una lista de opciones y no como botones desparejados.
-     Elegir una carga el carrusel y cierra el modal. -->
-<div class="capa oculto" id="capaSugerencias">
-  <div class="modal modal-estrecho" role="dialog" aria-modal="true" aria-labelledby="tituloSugerencias">
-    <div class="modal-cab">
-      <h3 class="modal-tit" id="tituloSugerencias">&#10024; Dame sugerencias</h3>
-      <button class="modal-cerrar" data-cerrar="capaSugerencias" aria-label="Cerrar">&#10005;</button>
-    </div>
-    <div class="modal-cuerpo">
-      <p class="modal-nota">Elige una lista y la ver&aacute;s en el carrusel.</p>
-      <div class="cats-columna" id="sugerenciasCats" role="group" aria-label="Categorías de sugerencias">
-        <button class="cat activa" data-cat="tendencia">Tendencia</button>
-        <button class="cat" data-cat="siempre">Las 10 de siempre</button>
-        <button class="cat" data-cat="tarde">Nunca es tarde</button>
-        <button class="cat" data-cat="clasicos">Clásicos</button>
-        <button class="cat" data-cat="favoritas">Lo que prefieres</button>
-      </div>
-    </div>
-  </div>
-</div>
+<!-- El modal de sugerencias se retiró en V GMM 0023: existía para ELEGIR cuál de
+     las cinco categorías se veía en el único carrusel, y ahora se ven las
+     cinco a la vez, así que ya no elegía nada. -->
 
 <!-- ═════════════ MODAL: FORMULARIO DE BÚSQUEDA ═════════════ -->
 <!-- Un solo modal para los dos métodos, con el título cambiando según el
@@ -1330,18 +1289,22 @@ GMM.config = {
      filtro no devuelve nada en décadas enteras. */
   MAX_ANOS_VACIOS: 25,
 
-  /* Carrusel de sugerencias del inicio. Cada categoría de "top 10" se rankea
-     por nota real de IMDb (vía OMDb): se traen CANDIDATOS_CATEGORIA de TMDB
-     ordenados por su nota, se les pide el imdb_id y la nota de IMDb, y se
-     quedan los TOP_CATEGORIA con IMDb > IMDB_MIN. Sin clave de OMDb cae a la
-     nota de TMDB. "tendencia" y "favoritas" no gastan OMDb. */
-  IMDB_MIN: 6,
-  TOP_CATEGORIA: 10,
-  CANDIDATOS_CATEGORIA: 14,
+  /* Los carruseles de sugerencias del inicio: uno por categoría, los cinco a la
+     vista a la vez (desde V GMM 0023). Cada uno trae TOP_CATEGORIA títulos, que
+     es justo lo que cabe en una página de TMDB: una sola petición por carrusel.
+
+     Se ordenan por la NOTA DE TMDB, que es la misma que luce la insignia de
+     cada tarjeta: el número que se ve es el que ordena la lista. Hasta la 0022
+     el "top 10" se rankeaba por la nota real de IMDb, dando un rodeo por OMDb
+     (imdb_id de cada candidato + su nota); con cinco carruseles de veinte
+     cargando a la vez serían ~120 consultas a OMDb por visita, y el tope diario
+     es de 1.000. OMDb sigue donde no cuesta: en la ficha. */
+  NOTA_MIN_CATEGORIA: 6,
+  TOP_CATEGORIA: 20,
   TENDENCIA_VENTANA: "week",
   CATEGORIAS_SUGERENCIA: [
     { clave: "tendencia", etiqueta: "Tendencia" },
-    { clave: "siempre",   etiqueta: "Las 10 de siempre", anoDesde: 2000 },
+    { clave: "siempre",   etiqueta: "Las 20 de siempre", anoDesde: 2000 },
     { clave: "tarde",     etiqueta: "Nunca es tarde",     anoDesde: 1980, anoHasta: 2000 },
     { clave: "clasicos",  etiqueta: "Clásicos",           anoDesde: 1950, anoHasta: 1979 },
     { clave: "favoritas", etiqueta: "Lo que prefieres" }
@@ -1938,14 +1901,19 @@ GMM.util.normalizarMedia = function (item, tipo) {
   return m;
 };
 
-/* De una lista de fichas que ya llevan "imdbNota" (número o null, puesto por el
-   carrusel tras consultar OMDb), conserva las que superan el umbral de IMDb,
-   las ordena de mayor a menor nota y corta a n. Pura y sin red, para poder
-   probarla: el filtrado/orden por nota real de IMDb es la parte delicada. */
-GMM.util.mejoresPorImdb = function (items, n) {
+/* De una lista de fichas de TMDB, conserva las que llegan al umbral de nota,
+   las ordena de mayor a menor y corta a n. Es el selector de los carruseles de
+   "top" del inicio. Pura y sin red, para poder probarla.
+
+   TMDB ya devuelve la página ordenada y filtrada, así que en vivo esto no
+   cambia nada; hace falta igual porque el catálogo de ejemplo (sin clave) se
+   filtra en memoria y porque el orden es lo que sostiene la insignia: la
+   tarjeta enseña la misma nota que la coloca donde está. */
+GMM.util.mejoresPorNota = function (items, n, minimo) {
+  var tope = typeof minimo === "number" ? minimo : GMM.config.NOTA_MIN_CATEGORIA;
   return (items || [])
-    .filter(function (x) { return x && typeof x.imdbNota === "number" && x.imdbNota > GMM.config.IMDB_MIN; })
-    .sort(function (a, b) { return b.imdbNota - a.imdbNota; })
+    .filter(function (x) { return x && typeof x.vote_average === "number" && x.vote_average >= tope; })
+    .sort(function (a, b) { return b.vote_average - a.vote_average; })
     .slice(0, n);
 };
 
@@ -2742,10 +2710,11 @@ GMM.ui = (function () {
       '<button class="tarjeta-img" data-abrir="' + pelicula.id + '" data-tipo="' + tipoMedia + '" title="Ver detalle de ' + GMM.util.esc(titulo) + '">' +
         caratula(pelicula.poster_path, titulo) +
       '</button>' +
-      /* Nota de IMDb en la esquina: solo aparece si el ítem la trae (tarjetas
-         del carrusel de ranking); en las cuadrículas normales no se pone. */
-      (typeof pelicula.imdbNota === "number"
-        ? '<span class="tarjeta-imdb">IMDb ' + pelicula.imdbNota.toFixed(1) + '</span>'
+      /* Nota de TMDB en la esquina: solo aparece si el ítem la trae marcada
+         (tarjetas de los carruseles del inicio); en las cuadrículas de
+         Descubrir no se pone, para no recargarlas de números. */
+      (typeof pelicula.tmdbNota === "number"
+        ? '<span class="tarjeta-nota">&#9733; ' + pelicula.tmdbNota.toFixed(1) + '</span>'
         : "") +
       botonesLista(pelicula, "mini") +
       '<div class="tarjeta-tit">' + GMM.util.esc(titulo) + '</div>' +
@@ -2915,13 +2884,13 @@ GMM.app = (function () {
     anios: [],            // años por visitar, ya en el orden pedido
     recorrido: [],        // cursores ya vistos: { iAnio, ano, pag, total }
     /* Paginación de las cuadrículas (Descubrir y Trama) */
-    ctxPagina: null,      // { clase, titulo, texto, pagina, total }
-    /* Carrusel de sugerencias del inicio */
-    categoria: "tendencia"  // "tendencia" | "siempre" | "tarde" | "clasicos" | "favoritas"
+    ctxPagina: null       // { clase, titulo, texto, pagina, total }
   };
 
-  /* Caché en memoria del carrusel, por "tipo:categoria": volver a una categoría
-     ya vista no repite peticiones (ni las de OMDb, que es lo caro). */
+  /* Caché en memoria de los carruseles, por "tipo:categoria": ir y volver del
+     inicio, o cambiar el interruptor de ida y vuelta, no repite peticiones.
+     Ya no hay "categoría activa" en el estado: desde V GMM 0023 los cinco
+     carruseles están a la vista y cada uno se carga por su cuenta. */
   var cacheCarrusel = {};
 
   /* Clave para marcadores y ejemplos: el título depende del interruptor. */
@@ -3996,28 +3965,22 @@ GMM.app = (function () {
       relanzarSiProcede();      // si ya había resultados, rehace la búsqueda con el nuevo tipo
     });
 
-    /* --- carrusel de sugerencias del inicio --- */
-    $("carruselPrev").addEventListener("click", function () { desplazarCarrusel(-1); });
-    $("carruselNext").addEventListener("click", function () { desplazarCarrusel(1); });
-    $("btnSugerencias").addEventListener("click", function () {
-      abrirCapa("capaSugerencias");
-    });
-    $("btnVerMas").addEventListener("click", verMasCategoria);
-    /* Elegir una categoría carga el carrusel y cierra el modal: la elección ya
-       está hecha, dejarlo abierto solo taparía el resultado. */
-    $("sugerenciasCats").addEventListener("click", function (e) {
-      var boton = e.target.closest("[data-cat]");
-      if (!boton) return;
-      cargarCarrusel(boton.getAttribute("data-cat"));
-      cerrarCapa("capaSugerencias");
-    });
-    /* Clic en una tarjeta del carrusel: abre la FICHA COMPLETA (la misma vista
-       que buscar por título), no el modal de detalle. Los botones mini de
-       listas siguen funcionando aquí, igual que en las cuadrículas. La
-       delegación de #resultados no alcanza al carrusel (vive en otra sección),
-       así que necesita la suya. */
-    $("carrusel").addEventListener("click", function (e) {
+    /* --- carruseles de sugerencias del inicio --- */
+    /* Una sola delegación para los cinco bloques: los monta montarCarruseles()
+       y sus pistas se repintan enteras a cada carga, así que colgar un listener
+       de cada flecha obligaría a recablear en cada repintado.
+
+       Clic en una tarjeta: abre la FICHA COMPLETA (la misma vista que buscar
+       por título), no el modal de detalle. La delegación de #resultados no
+       alcanza aquí (esto vive en otra sección), así que necesita la suya. */
+    $("descubrimiento").addEventListener("click", function (e) {
       var nodo;
+      if ((nodo = e.target.closest("[data-mover]"))) {
+        var bloque = nodo.closest("[data-cat]");
+        if (bloque) desplazarCarrusel(bloque.getAttribute("data-cat"), Number(nodo.getAttribute("data-mover")));
+        return;
+      }
+      if ((nodo = e.target.closest("[data-vermas]"))) { verMasCategoria(nodo.getAttribute("data-vermas")); return; }
       if ((nodo = e.target.closest("[data-lista]"))) { alternarLista(nodo); return; }
       if ((nodo = e.target.closest("[data-abrir]"))) {
         abrirFicha(nodo.getAttribute("data-abrir"), nodo.getAttribute("data-tipo"));
@@ -4263,9 +4226,9 @@ GMM.app = (function () {
     });
 
     /* Las capas con formulario se cierran con la X, pulsando el fondo o con
-       Escape. Mismo comportamiento en las tres, para que no haya que aprenderse
+       Escape. Mismo comportamiento en las dos, para que no haya que aprenderse
        una excepción por modal. */
-    ["capaAjustes", "capaSugerencias", "capaFormulario"].forEach(function (id) {
+    ["capaAjustes", "capaFormulario"].forEach(function (id) {
       $(id).addEventListener("click", function (e) {
         var nodo;
         if (e.target === this) { cerrarCapa(id); return; }
@@ -4277,7 +4240,6 @@ GMM.app = (function () {
       if (e.key !== "Escape") return;
       cerrarCapa("capaDetalle");
       cerrarCapa("capaAjustes");
-      cerrarCapa("capaSugerencias");
       /* Si el autocompletado estaba desplegado, su propio manejador ya se ha
          quedado con la tecla y aquí no llegamos: cerrar el modal entero de
          golpe habría perdido lo escrito. */
@@ -4369,6 +4331,14 @@ GMM.app = (function () {
 
     if (estado.vista === "listas") pintarListas();
     else GMM.ui.refrescarBotonesLista();
+
+    /* "Lo que prefieres" es uno de los cinco carruseles del inicio y está
+       siempre a la vista, así que marcar una favorita tiene que notarse ahí
+       mismo. Se invalida su caché (las otras cuatro no dependen de la lista). */
+    if (tipo === "favoritas") {
+      delete cacheCarrusel[estado.tipo + ":favoritas"];
+      if (estado.vista === "inicio") cargarCarrusel("favoritas");
+    }
   }
 
   function vaciarLista(tipo) {
@@ -4389,8 +4359,12 @@ GMM.app = (function () {
   }
 
   /* ---------------------------------------------------------------- */
-  /* Carrusel de sugerencias del inicio                               */
+  /* Carruseles de sugerencias del inicio                             */
   /* ---------------------------------------------------------------- */
+  /* Desde V GMM 0023 hay uno por categoría y se ven los cinco a la vez, en vez
+     de uno solo que se cambiaba desde un modal. Cada bloque es autónomo: su
+     pista es #carrusel-{clave}, se carga por su cuenta y su "Ver más" mira su
+     propia categoría, no un estado global de "categoría activa". */
 
   function categoriaDef(clave) {
     var lista = GMM.config.CATEGORIAS_SUGERENCIA, i;
@@ -4398,50 +4372,43 @@ GMM.app = (function () {
     return lista[0];
   }
 
-  /* Las "top 10" de una categoría, rankeadas por nota REAL de IMDb. TMDB no
-     ordena ni filtra por IMDb, así que: se traen candidatos por la nota de
-     TMDB, se les pide el imdb_id (ficha) y la nota de IMDb (OMDb), y se quedan
-     los mejores con IMDb > umbral. Sin clave de OMDb —o si OMDb no devuelve
-     nada— se cae a los primeros por nota de TMDB, para no depender de OMDb. */
+  function pistaDe(clave) { return $("carrusel-" + clave); }
+
+  /* Marca la nota de TMDB para que la tarjeta la enseñe en la esquina. Es un
+     campo aparte y no el vote_average a secas porque GMM.ui.tarjeta lo usa de
+     interruptor: las cuadrículas de Descubrir traen vote_average igual y ahí no
+     se quiere la insignia. */
+  function conNota(items) {
+    return (items || []).map(function (p) {
+      if (p && typeof p.vote_average === "number") p.tmdbNota = p.vote_average;
+      return p;
+    });
+  }
+
+  /* Los mejores de una categoría con intervalo, por nota de TMDB. Una sola
+     petición: /discover devuelve 20 por página, que es justo el tope de cada
+     carrusel. La nota que ordena la lista es la que luce cada tarjeta. */
   function cargarRanking(def) {
     var opciones = { anoDesde: def.anoDesde, anoHasta: def.anoHasta,
-                     notaMin: GMM.config.IMDB_MIN, porNota: true };
+                     notaMin: GMM.config.NOTA_MIN_CATEGORIA, porNota: true };
     return GMM.tmdb.descubrir(estado.tipo, opciones, 1).then(function (res) {
-      var candidatos = (res.items || []).slice(0, GMM.config.CANDIDATOS_CATEGORIA);
-      var tope = GMM.config.TOP_CATEGORIA;
-      if (!candidatos.length) return [];
-      if (!GMM.tmdb.hayClave() || !GMM.omdb.hayClave()) return candidatos.slice(0, tope);
-
-      /* 1) imdb_id de cada candidato (la ficha lo trae normalizado) */
-      return GMM.util.enLotes(candidatos, GMM.config.CONCURRENCIA, function (c) {
-        return GMM.tmdb.ficha(c.id, estado.tipo).catch(function () { return c; });
-      }).then(function (fichas) {
-        /* 2) nota de IMDb de cada uno (OMDb nunca lanza; fallo -> null) */
-        return GMM.util.enLotes(fichas, GMM.config.CONCURRENCIA, function (f) {
-          return GMM.omdb.notas(f && f.imdb_id).then(function (n) {
-            if (f) f.imdbNota = (n && n.imdb) ? Number(n.imdb) : null;
-            return f;
-          });
-        });
-      }).then(function (fichas) {
-        var mejores = GMM.util.mejoresPorImdb(fichas, tope);
-        return mejores.length ? mejores : candidatos.slice(0, tope);
-      });
+      return GMM.util.mejoresPorNota(res.items || [], GMM.config.TOP_CATEGORIA);
     });
   }
 
   /* Resuelve los títulos de una categoría (respeta el interruptor peli/serie). */
   function itemsCategoria(clave) {
+    var tope = GMM.config.TOP_CATEGORIA;
     if (clave === "tendencia") {
-      return GMM.tmdb.tendencia(estado.tipo).then(function (l) { return l.slice(0, 15); });
+      return GMM.tmdb.tendencia(estado.tipo).then(function (l) { return conNota(l.slice(0, tope)); });
     }
     if (clave === "favoritas") {
       var favs = GMM.listas.obtener("favoritas").filter(function (f) {
         return (f.tipo || "movie") === estado.tipo;
       });
-      return Promise.resolve(favs);
+      return Promise.resolve(conNota(favs.slice(0, tope)));
     }
-    return cargarRanking(categoriaDef(clave));
+    return cargarRanking(categoriaDef(clave)).then(conNota);
   }
 
   function vacioDe(clave) {
@@ -4453,16 +4420,16 @@ GMM.app = (function () {
     return "No hay títulos para esta categoría.";
   }
 
-  function esqueletoCarrusel() {
+  function esqueletoCarrusel(clave) {
     var huesos = "", i;
     for (i = 0; i < 6; i++) {
       huesos += '<div class="hueso" style="flex:0 0 150px;aspect-ratio:2/3;border-radius:14px"></div>';
     }
-    $("carrusel").innerHTML = huesos;
+    pistaDe(clave).innerHTML = huesos;
   }
 
-  function pintarCarrusel(items, vacioTxt) {
-    var cont = $("carrusel");
+  function pintarCarrusel(clave, items, vacioTxt) {
+    var cont = pistaDe(clave);
     if (!items || !items.length) {
       cont.innerHTML = '<div class="carrusel-vacio">' + GMM.util.esc(vacioTxt) + '</div>';
       return;
@@ -4471,38 +4438,51 @@ GMM.app = (function () {
     cont.scrollLeft = 0;
   }
 
+  /* Monta los cinco bloques a partir del config: cabecera con título, su "Ver
+     más" si la categoría tiene intervalo de años, las dos flechas y la pista. */
+  function montarCarruseles() {
+    $("descubrimiento").innerHTML = GMM.config.CATEGORIAS_SUGERENCIA.map(function (def) {
+      return '<div class="carrusel-bloque" data-cat="' + def.clave + '">' +
+        '<div class="carrusel-cab">' +
+          '<h2 class="carrusel-tit">' + GMM.util.esc(def.etiqueta) + '</h2>' +
+          (def.anoDesde
+            ? '<button class="boton-sec btn-vermas" data-vermas="' + def.clave + '">Ver m&aacute;s &#8594;</button>'
+            : "") +
+          '<div class="carrusel-flechas">' +
+            '<button class="carrusel-flecha" data-mover="-1" aria-label="Anterior" title="Anterior">&#8249;</button>' +
+            '<button class="carrusel-flecha" data-mover="1" aria-label="Siguiente" title="Siguiente">&#8250;</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="carrusel" id="carrusel-' + def.clave + '"></div>' +
+      '</div>';
+    }).join("");
+  }
+
   function cargarCarrusel(clave) {
-    estado.categoria = clave;
-    $("carruselTitulo").textContent = categoriaDef(clave).etiqueta;
-    Array.prototype.forEach.call($("sugerenciasCats").children, function (b) {
-      b.classList.toggle("activa", b.getAttribute("data-cat") === clave);
-    });
-    /* "Ver más" solo tiene sentido en las categorías con intervalo de años. */
-    $("btnVerMas").classList.toggle("oculto", !categoriaDef(clave).anoDesde);
-
     var cacheKey = estado.tipo + ":" + clave;
-    if (cacheCarrusel[cacheKey]) { pintarCarrusel(cacheCarrusel[cacheKey], vacioDe(clave)); return; }
+    if (cacheCarrusel[cacheKey]) { pintarCarrusel(clave, cacheCarrusel[cacheKey], vacioDe(clave)); return; }
 
-    esqueletoCarrusel();
+    esqueletoCarrusel(clave);
     itemsCategoria(clave).then(function (items) {
       cacheCarrusel[cacheKey] = items;
-      /* Solo pintamos si sigue vigente lo elegido: una respuesta lenta no debe
-         pisar otra categoría o tipo que el usuario ya haya cambiado. */
-      if (estado.vista === "inicio" && estado.categoria === clave && (estado.tipo + ":" + clave) === cacheKey) {
-        pintarCarrusel(items, vacioDe(clave));
-      }
+      /* Solo pintamos si sigue vigente: una respuesta lenta no debe pisar el
+         tipo que el usuario ya haya cambiado mientras tanto. */
+      if (estado.tipo + ":" + clave === cacheKey) pintarCarrusel(clave, items, vacioDe(clave));
     }).catch(function () {
-      $("carrusel").innerHTML = '<div class="carrusel-vacio">No se pudo cargar. Inténtalo de nuevo.</div>';
+      pistaDe(clave).innerHTML = '<div class="carrusel-vacio">No se pudo cargar. Inténtalo de nuevo.</div>';
     });
   }
 
-  /* Recarga el carrusel de la categoría actual (p. ej. al cambiar el tipo). */
-  function refrescarCarrusel() { cargarCarrusel(estado.categoria); }
+  /* Recarga los cinco (p. ej. al cambiar el interruptor peli/serie). Van en
+     paralelo a propósito: cada uno pinta en cuanto llega, sin esperar al resto. */
+  function refrescarCarrusel() {
+    GMM.config.CATEGORIAS_SUGERENCIA.forEach(function (def) { cargarCarrusel(def.clave); });
+  }
 
-  /* Desplaza el carrusel un paso. Es "infinito": al llegar a un extremo, la
+  /* Desplaza un carrusel un paso. Es "infinito": al llegar a un extremo, la
      flecha da la vuelta al otro (derecha en el final -> principio, y viceversa). */
-  function desplazarCarrusel(dir) {
-    var c = $("carrusel");
+  function desplazarCarrusel(clave, dir) {
+    var c = pistaDe(clave);
     var paso = c.clientWidth * 0.85;
     var enFinal = c.scrollLeft + c.clientWidth >= c.scrollWidth - 4;
     var enInicio = c.scrollLeft <= 4;
@@ -4524,14 +4504,14 @@ GMM.app = (function () {
      "2000 · 10 mejores". Con un solo criterio se pagina de corrido: 20 por
      página y "Página 1 de N". El recorrido por años sigue existiendo, pero solo
      cuando se pide a mano desde el desplegable de orden. */
-  function verMasCategoria() {
-    var def = categoriaDef(estado.categoria);
+  function verMasCategoria(clave) {
+    var def = categoriaDef(clave);
     if (!def.anoDesde) return;
     estado.metodo = "descubrir";
     estado.genero = "";
     estado.anoDesde = String(def.anoDesde);
     estado.anoHasta = String(def.anoHasta || new Date().getFullYear());
-    estado.notaMin = String(GMM.config.IMDB_MIN);   // 6 o más
+    estado.notaMin = String(GMM.config.NOTA_MIN_CATEGORIA);   // 6 o más
     estado.orden = "antigua";                        // del más antiguo
     estado.porNota = false;
     reflejar();
@@ -4589,12 +4569,13 @@ GMM.app = (function () {
     montarGeneros();
     montarAnios();
     montarNotas();
+    montarCarruseles();  // los cinco bloques, antes de cablear sus eventos
     reflejar();          // vuelca interruptor, método, forma, marcador y chips
     conectarEventos();
     GMM.ui.refrescarCabecera();
     GMM.ui.bienvenida();
     fijarPantalla();
-    cargarCarrusel("tendencia");
+    refrescarCarrusel();  // los cinco, en paralelo
 
     if (!GMM.tmdb.hayClave()) {
       setTimeout(function () {

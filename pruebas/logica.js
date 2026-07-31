@@ -377,27 +377,44 @@ m.afirmar("Metascore de reserva cuando no viene en Ratings",
   })());
 
 /* ---------------------------------------------------------------- */
-m.titulo("Carrusel: top 10 por nota de IMDb (GMM.util.mejoresPorImdb)");
+/* Desde V GMM 0023 los carruseles se ordenan por la nota de TMDB, no por la de
+   IMDb: con cinco carruseles de veinte cargando a la vez, el rodeo por OMDb
+   costaba ~120 consultas por visita sobre un tope de 1.000 al día. La nota que
+   ordena la lista es además la que luce cada tarjeta. */
+m.titulo("Carruseles: top por nota de TMDB (GMM.util.mejoresPorNota)");
 
 const cand = [
-  { id: 1, title: "A", imdbNota: 8.7 },
-  { id: 2, title: "B", imdbNota: 5.9 },   // <= 6: fuera
-  { id: 3, title: "C", imdbNota: 7.4 },
-  { id: 4, title: "D", imdbNota: null },  // sin nota: fuera
-  { id: 5, title: "E", imdbNota: 6.0 },   // exactamente 6: fuera (umbral estricto)
-  { id: 6, title: "F", imdbNota: 9.1 }
+  { id: 1, title: "A", vote_average: 8.7 },
+  { id: 2, title: "B", vote_average: 5.9 },   // < 6: fuera
+  { id: 3, title: "C", vote_average: 7.4 },
+  { id: 4, title: "D", vote_average: null },  // sin nota: fuera
+  { id: 5, title: "E", vote_average: 6.0 },   // exactamente 6: dentro (umbral >=)
+  { id: 6, title: "F", vote_average: 9.1 }
 ];
-let mejores = GMM.util.mejoresPorImdb(cand, 10);
-m.afirmar("descarta IMDb <= 6 y los que no tienen nota", mejores.length === 3, "fueron " + mejores.length);
-m.afirmar("ordena de mayor a menor IMDb",
-  mejores.map((x) => x.id).join(",") === "6,1,3", mejores.map((x) => x.id).join(","));
+let mejores = GMM.util.mejoresPorNota(cand, 20);
+m.afirmar("descarta nota < 6 y los que no tienen nota", mejores.length === 4, "fueron " + mejores.length);
+m.afirmar("ordena de mayor a menor nota",
+  mejores.map((x) => x.id).join(",") === "6,1,3,5", mejores.map((x) => x.id).join(","));
 m.afirmar("corta al tope pedido",
-  GMM.util.mejoresPorImdb(cand, 2).map((x) => x.id).join(",") === "6,1");
-m.afirmar("6 exacto no pasa el umbral (> 6, no >=)",
-  !GMM.util.mejoresPorImdb(cand, 10).some((x) => x.imdbNota === 6.0));
+  GMM.util.mejoresPorNota(cand, 2).map((x) => x.id).join(",") === "6,1");
+m.afirmar("6 exacto sí pasa el umbral (>=, es el mismo que pide /discover)",
+  GMM.util.mejoresPorNota(cand, 20).some((x) => x.id === 5));
+m.afirmar("admite un umbral distinto del de config",
+  GMM.util.mejoresPorNota(cand, 20, 8).map((x) => x.id).join(",") === "6,1");
 m.afirmar("lista vacía o sin notas devuelve vacío",
-  GMM.util.mejoresPorImdb([], 10).length === 0 &&
-  GMM.util.mejoresPorImdb([{ id: 9, imdbNota: null }], 10).length === 0);
+  GMM.util.mejoresPorNota([], 20).length === 0 &&
+  GMM.util.mejoresPorNota([{ id: 9, vote_average: null }], 20).length === 0);
+
+/* ---------------------------------------------------------------- */
+m.titulo("Carruseles: uno por categoría (V GMM 0023)");
+
+m.afirmar("hay cinco categorías en el config",
+  GMM.config.CATEGORIAS_SUGERENCIA.length === 5);
+m.afirmar("veinte títulos por carrusel", GMM.config.TOP_CATEGORIA === 20);
+m.afirmar("tres categorías tienen intervalo (las que llevan «Ver más»)",
+  GMM.config.CATEGORIAS_SUGERENCIA.filter((c) => c.anoDesde).length === 3);
+m.afirmar("el umbral de nota de las categorías es 6",
+  GMM.config.NOTA_MIN_CATEGORIA === 6);
 
 /* ---------------------------------------------------------------- */
 m.titulo("Lotes con concurrencia limitada");

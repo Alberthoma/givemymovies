@@ -8,10 +8,10 @@ herramienta aparte, opcional, para comprobar que un cambio no rompió nada.
 Desde la raíz del proyecto:
 
 ```bash
-node pruebas/logica.js      # 120 comprobaciones · sin dependencias · instantáneo
+node pruebas/logica.js      # 125 comprobaciones · sin dependencias · instantáneo
 node pruebas/imagenes.js    #  15 comprobaciones · necesita internet · ~30 s
-node pruebas/interfaz.js    #  78 comprobaciones · necesita playwright-core · ~50 s
-node pruebas/pwa.js         #  19 comprobaciones · necesita playwright-core · ~20 s
+node pruebas/interfaz.js    # 109 comprobaciones · necesita playwright-core · ~60 s
+node pruebas/pwa.js         #  20 comprobaciones · necesita playwright-core · ~20 s
 ```
 
 La primera vez, para la de interfaz:
