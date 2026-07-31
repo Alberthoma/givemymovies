@@ -2941,15 +2941,19 @@ GMM.ui = (function () {
     var titulo = pelicula.title || pelicula.name || "Sin título";
     var ano = GMM.util.ano(pelicula.release_date || pelicula.first_air_date);
     var tipoMedia = pelicula.tipo === "tv" ? "tv" : "movie";
+    /* Nota de TMDB en la esquina, en TODAS las tarjetas —carruseles, Descubrir,
+       «Ver más», filmografía, listas—. `tmdbNota` la marcan los carruseles; el
+       resto trae `vote_average` a secas, y vale igual. Solo se oculta cuando la
+       nota no existe: TMDB devuelve 0 cuando un título aún no tiene votos, así
+       que 0 se trata como "sin nota" y no se pinta. */
+    var nota = typeof pelicula.tmdbNota === "number" ? pelicula.tmdbNota
+             : (typeof pelicula.vote_average === "number" ? pelicula.vote_average : null);
     return '<article class="tarjeta">' +
       '<button class="tarjeta-img" data-abrir="' + pelicula.id + '" data-tipo="' + tipoMedia + '" title="Ver detalle de ' + GMM.util.esc(titulo) + '">' +
         caratula(pelicula.poster_path, titulo) +
       '</button>' +
-      /* Nota de TMDB en la esquina: solo aparece si el ítem la trae marcada
-         (tarjetas de los carruseles del inicio); en las cuadrículas de
-         Descubrir no se pone, para no recargarlas de números. */
-      (typeof pelicula.tmdbNota === "number"
-        ? '<span class="tarjeta-nota">&#9733; ' + pelicula.tmdbNota.toFixed(1) + '</span>'
+      (typeof nota === "number" && nota > 0
+        ? '<span class="tarjeta-nota">&#9733; ' + nota.toFixed(1) + '</span>'
         : "") +
       botonesLista(pelicula, "mini") +
       '<div class="tarjeta-tit">' + GMM.util.esc(titulo) + '</div>' +

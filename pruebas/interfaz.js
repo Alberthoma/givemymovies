@@ -377,6 +377,8 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   await pagina.click("#btnBuscar");
   await pagina.waitForTimeout(500);
   m.afirmar("descubre series de drama", (await pagina.locator(".rejilla .tarjeta").count()) >= 3);
+  m.afirmar("las tarjetas de Descubrir llevan la nota de TMDB (V GMM 0024)",
+    (await pagina.locator("#resultados .tarjeta-nota").count()) >= 3);
   await pagina.screenshot({ path: path.join(CAPTURAS, "06-series.png"), fullPage: true });
 
   /* ---------------------------------------------------------------- */
