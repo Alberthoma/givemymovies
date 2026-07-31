@@ -534,17 +534,35 @@ a:hover { text-decoration: underline; }
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
 }
 .ft-actor { display: flex; align-items: center; gap: 10px; min-width: 0; }
+/* Toda la ficha del actor es un botón que lleva a su filmografía. */
+.ft-actor-btn {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0;
+  background: none; border: 0; padding: 4px; margin: -4px; border-radius: 10px;
+  text-align: left; cursor: pointer; font: inherit; color: inherit;
+  transition: background 0.15s;
+}
+.ft-actor-btn:hover, .ft-actor-btn:focus-visible { background: #1a2632; outline: none; }
+.ft-actor-btn:hover .ft-actor-foto, .ft-actor-btn:focus-visible .ft-actor-foto { border-color: #2ee6a8; }
+.ft-actor-btn:hover .ft-actor-txt b, .ft-actor-btn:focus-visible .ft-actor-txt b { color: #6ff0c4; }
 .ft-actor-foto {
   width: 40px; height: 40px; flex: 0 0 40px; border-radius: 50%;
   object-fit: cover; background: #0e151d; border: 1px solid #22303e;
+  transition: border-color 0.15s;
 }
 .ft-sin-foto {
   display: flex; align-items: center; justify-content: center;
   font-size: 20px; color: #5e768c;
 }
 .ft-actor-txt { min-width: 0; display: flex; flex-direction: column; line-height: 1.3; }
-.ft-actor-txt b { font-size: 14px; color: #e8f0f8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ft-actor-txt b { font-size: 14px; color: #e8f0f8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color 0.15s; }
 .ft-personaje { font-size: 12.5px; color: #8ba0b6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Dirección/Creación: nombre clicable a la filmografía. */
+.ft-persona {
+  background: none; border: 0; padding: 0; font: inherit; cursor: pointer;
+  color: #8fc9ff; text-decoration: underline; text-decoration-style: dotted;
+  text-underline-offset: 2px; transition: color 0.15s;
+}
+.ft-persona:hover, .ft-persona:focus-visible { color: #4aa8ff; outline: none; }
 
 /* --- botones de listas --- */
 .boton-lista {
@@ -1061,7 +1079,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   <footer class="pie">
     <span>givemymovies · datos de disponibilidad vía TMDB / JustWatch</span>
     <span>Tus listas se guardan solo en este navegador</span>
-    <span id="version-app">V GMM 0024</span>
+    <span id="version-app">V GMM 0025</span>
   </footer>
 </div>
 
@@ -2036,9 +2054,22 @@ GMM.util.fichaTecnica = function (peli) {
     return salida;
   }
 
+  /* Como nombresDeCrew, pero conserva el id de la persona: la dirección es
+     "clicable" (lleva a su filmografía), así que necesita el id además del
+     nombre. Se deduplica por nombre. */
+  function personasDeCrew(coincide) {
+    var vistos = {}, salida = [];
+    crew.forEach(function (c) {
+      if (!c || !c.name || !coincide(c) || vistos[c.name]) return;
+      vistos[c.name] = true; salida.push({ nombre: c.name, id: c.id || null });
+    });
+    return salida;
+  }
+
   var direccion = esTv
-    ? (peli.created_by || []).map(function (c) { return c.name; }).filter(Boolean)
-    : nombresDeCrew(function (c) { return c.job === "Director"; });
+    ? (peli.created_by || []).filter(function (c) { return c && c.name; })
+        .map(function (c) { return { nombre: c.name, id: c.id || null }; })
+    : personasDeCrew(function (c) { return c.job === "Director"; });
 
   var guion = nombresDeCrew(function (c) {
     return c.department === "Writing" ||
@@ -2053,7 +2084,7 @@ GMM.util.fichaTecnica = function (peli) {
   var productoras = (peli.production_companies || []).map(function (p) { return p.name; }).filter(Boolean);
 
   var reparto = (credits.cast || []).slice(0, 12).map(function (a) {
-    return { nombre: a.name, personaje: a.character || "", foto: a.profile_path || null };
+    return { nombre: a.name, personaje: a.character || "", foto: a.profile_path || null, id: a.id || null };
   }).filter(function (a) { return a.nombre; });
 
   return {
@@ -3090,8 +3121,21 @@ GMM.ui = (function () {
              '<span class="ft-valor">' + GMM.util.esc(GMM.util.enumerar(valores)) + '</span></div>';
     }
 
+    /* Dirección/Creación: cada persona es un enlace a su filmografía (lleva su
+       id). Si por lo que fuera no llegó el id, queda como texto plano. */
+    function persona(p) {
+      if (p.id) return '<button type="button" class="ft-persona" data-persona="' + p.id +
+        '" title="Ver la filmografía de ' + GMM.util.esc(p.nombre) + '">' + GMM.util.esc(p.nombre) + '</button>';
+      return GMM.util.esc(p.nombre);
+    }
+    function filaPersonas(etiqueta, personas) {
+      if (!personas || !personas.length) return "";
+      return '<div class="ft-fila"><span class="ft-clave">' + etiqueta + '</span>' +
+             '<span class="ft-valor">' + personas.map(persona).join(", ") + '</span></div>';
+    }
+
     var filas =
-      fila(ft.esTv ? "Creación" : "Dirección", ft.direccion) +
+      filaPersonas(ft.esTv ? "Creación" : "Dirección", ft.direccion) +
       fila("Guion", ft.guion) +
       fila("Música", ft.musica) +
       fila("Fotografía", ft.fotografia) +
@@ -3103,13 +3147,21 @@ GMM.ui = (function () {
       reparto = '<div class="ft-reparto"><div class="ft-clave">Reparto</div>' +
         '<ul class="ft-cast">' + ft.reparto.map(function (a) {
           var foto = GMM.config.logo(a.foto);
-          return '<li class="ft-actor">' +
+          /* Foto + nombre + personaje. Toda la ficha es un botón que lleva a la
+             filmografía de esa persona (si trae id); sin id, no es clicable. */
+          var interior =
             (foto
               ? '<img class="ft-actor-foto" src="' + foto + '" alt="" loading="lazy">'
               : '<span class="ft-actor-foto ft-sin-foto" aria-hidden="true">&#128100;</span>') +
             '<span class="ft-actor-txt"><b>' + GMM.util.esc(a.nombre) + '</b>' +
             (a.personaje ? '<span class="ft-personaje">' + GMM.util.esc(a.personaje) + '</span>' : "") +
-            '</span></li>';
+            '</span>';
+          return '<li class="ft-actor">' +
+            (a.id
+              ? '<button type="button" class="ft-actor-btn" data-persona="' + a.id +
+                '" title="Ver la filmografía de ' + GMM.util.esc(a.nombre) + '">' + interior + '</button>'
+              : interior) +
+            '</li>';
         }).join("") + '</ul></div>';
     }
 
@@ -4506,6 +4558,7 @@ GMM.app = (function () {
       var nodo;
 
       if ((nodo = e.target.closest("[data-ir-pagina]"))) { irAPagina(Number(nodo.getAttribute("data-ir-pagina"))); return; }
+      if ((nodo = e.target.closest("[data-persona]"))) { abrirPersona(nodo.getAttribute("data-persona")); return; }
       if ((nodo = e.target.closest("[data-lista]"))) { alternarLista(nodo); return; }
       if ((nodo = e.target.closest("[data-abrir]"))) { abrirDetalle(nodo.getAttribute("data-abrir"), nodo.getAttribute("data-tipo")); return; }
       if ((nodo = e.target.closest("[data-vaciar]"))) { vaciarLista(nodo.getAttribute("data-vaciar")); return; }
@@ -4544,6 +4597,11 @@ GMM.app = (function () {
       var nodo;
       if (e.target === this) { cerrarCapa("capaDetalle"); return; }
       if ((nodo = e.target.closest("[data-cerrar]"))) { cerrarCapa(nodo.getAttribute("data-cerrar")); return; }
+      if ((nodo = e.target.closest("[data-persona]"))) {
+        cerrarCapa("capaDetalle");
+        abrirPersona(nodo.getAttribute("data-persona"));
+        return;
+      }
       if ((nodo = e.target.closest("[data-lista]"))) { alternarLista(nodo); return; }
       if ((nodo = e.target.closest("[data-abrir-completo]"))) {
         cerrarCapa("capaDetalle");

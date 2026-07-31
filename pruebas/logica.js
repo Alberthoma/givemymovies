@@ -451,11 +451,11 @@ const peliFT = {
   production_companies: [{ name: "Warner Bros." }, { name: "Legendary" }],
   credits: {
     cast: [
-      { name: "Actriz 1", character: "Heroína", profile_path: "/a.jpg" },
-      { name: "Actor 2", character: "Villano" }
+      { id: 501, name: "Actriz 1", character: "Heroína", profile_path: "/a.jpg" },
+      { id: 502, name: "Actor 2", character: "Villano" }
     ],
     crew: [
-      { name: "Dir Uno", job: "Director", department: "Directing" },
+      { id: 601, name: "Dir Uno", job: "Director", department: "Directing" },
       { name: "Guionista", job: "Screenplay", department: "Writing" },
       { name: "Compositor", job: "Original Music Composer", department: "Sound" },
       { name: "Foto", job: "Director of Photography", department: "Camera" },
@@ -464,20 +464,23 @@ const peliFT = {
   }
 };
 const ft = GMM.util.fichaTecnica(peliFT);
-m.afirmar("dirección sale del crew con job Director", ft.direccion.join(",") === "Dir Uno");
+m.afirmar("dirección sale del crew con job Director, con su nombre e id",
+  ft.direccion.length === 1 && ft.direccion[0].nombre === "Dir Uno" && ft.direccion[0].id === 601);
 m.afirmar("guion sale del departamento Writing", ft.guion.join(",") === "Guionista");
 m.afirmar("música y fotografía por su job",
   ft.musica.join(",") === "Compositor" && ft.fotografia.join(",") === "Foto");
 m.afirmar("productoras conservan el orden", ft.productoras.join(",") === "Warner Bros.,Legendary");
 m.afirmar("país se traduce por su código ISO", ft.paises.length === 1 && ft.paises[0].length > 2);
-m.afirmar("reparto se corta y guarda personaje y foto",
-  ft.reparto.length === 2 && ft.reparto[0].personaje === "Heroína" && ft.reparto[0].foto === "/a.jpg");
+m.afirmar("reparto se corta y guarda personaje, foto e id (para su filmografía)",
+  ft.reparto.length === 2 && ft.reparto[0].personaje === "Heroína" &&
+  ft.reparto[0].foto === "/a.jpg" && ft.reparto[0].id === 501);
 m.afirmar("tieneFichaTecnica es true cuando hay datos", GMM.util.tieneFichaTecnica(ft) === true);
 
-const serieFT = { tipo: "tv", created_by: [{ name: "Creadora 1" }, { name: "Creador 2" }], credits: { cast: [], crew: [] } };
+const serieFT = { tipo: "tv", created_by: [{ id: 701, name: "Creadora 1" }, { id: 702, name: "Creador 2" }], credits: { cast: [], crew: [] } };
 const ftv = GMM.util.fichaTecnica(serieFT);
-m.afirmar("en serie la dirección es la creación (created_by)",
-  ftv.esTv === true && ftv.direccion.join(",") === "Creadora 1,Creador 2");
+m.afirmar("en serie la dirección es la creación (created_by), con id",
+  ftv.esTv === true && ftv.direccion.map((d) => d.nombre).join(",") === "Creadora 1,Creador 2" &&
+  ftv.direccion[0].id === 701);
 m.afirmar("ficha vacía no tiene ficha técnica que enseñar",
   GMM.util.tieneFichaTecnica(GMM.util.fichaTecnica({})) === false);
 

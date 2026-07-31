@@ -622,6 +622,34 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   await pagina.screenshot({ path: path.join(CAPTURAS, "10-descubrir-movil.png"), fullPage: true });
 
   /* ---------------------------------------------------------------- */
+  m.titulo("Ficha técnica: reparto y dirección llevan a la filmografía (V GMM 0025)");
+  /* En demo las fichas no traen credits, así que se inyecta una ficha de prueba
+     y se stubea la red de abrirPersona: se comprueba el marcado clicable y que
+     al pulsar se pinta la vista de persona. */
+  const persona = await pagina.evaluate(async () => {
+    const peli = {
+      tipo: "movie",
+      credits: {
+        cast: [{ id: 501, name: "Actriz Uno", character: "Heroína", profile_path: "/a.jpg" }],
+        crew: [{ id: 601, name: "Director Uno", job: "Director", department: "Directing" }]
+      }
+    };
+    const html = GMM.ui.fichaTecnicaHtml(peli);
+    const marcado = { cast: html.includes('data-persona="501"'), dir: html.includes('data-persona="601"') };
+    GMM.tmdb.persona = () => Promise.resolve({ name: "Persona Probada", profile_path: null, biography: "" });
+    GMM.tmdb.filmografia = () => Promise.resolve({ interpreta: [{ id: 9, tipo: "movie", title: "T", vote_average: 7 }], dirige: [] });
+    document.getElementById("resultados").innerHTML = html;
+    document.querySelector('#resultados [data-persona="501"]').click();
+    await new Promise((r) => setTimeout(r, 300));
+    const n = document.querySelector(".persona-nombre");
+    return { marcado, abrio: n ? n.textContent : null };
+  });
+  m.afirmar("el reparto y la dirección son botones a su persona",
+    persona.marcado.cast === true && persona.marcado.dir === true, JSON.stringify(persona.marcado));
+  m.afirmar("pulsar un actor abre su filmografía (vista de persona)",
+    persona.abrio === "Persona Probada", JSON.stringify(persona.abrio));
+
+  /* ---------------------------------------------------------------- */
   m.titulo("Errores acumulados en toda la sesión");
   m.afirmar("ninguno", errores.length === 0, errores.slice(0, 4).join(" | "));
 
