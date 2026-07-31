@@ -417,6 +417,88 @@ m.afirmar("el umbral de nota de las categorías es 6",
   GMM.config.NOTA_MIN_CATEGORIA === 6);
 
 /* ---------------------------------------------------------------- */
+m.titulo("Filmografía con facetas: intérprete y dirección (V GMM 0024)");
+
+const creditos = {
+  cast: [
+    { id: 10, title: "Peli A", popularity: 5 },
+    { id: 11, title: "Peli B", popularity: 9 },
+    { id: 10, title: "Peli A (otro papel)", popularity: 3 }  // id repetido: una sola vez
+  ],
+  crew: [
+    { id: 11, title: "Peli B", popularity: 9, job: "Director" }, // dirige Y actúa → cuenta como dirección
+    { id: 20, title: "Peli C", popularity: 7, job: "Director" },
+    { id: 21, title: "Peli D", popularity: 1, job: "Producer" }  // no dirige: se ignora
+  ]
+};
+const fac = GMM.util.filmografiaConFacetas(creditos, "movie");
+m.afirmar("dirige = crew con job Director, ordenado por popularidad",
+  fac.dirige.map((x) => x.id).join(",") === "11,20", fac.dirige.map((x) => x.id).join(","));
+m.afirmar("interpreta deduplica por id y excluye lo que ya dirige",
+  fac.interpreta.map((x) => x.id).join(",") === "10", fac.interpreta.map((x) => x.id).join(","));
+m.afirmar("cada ítem lleva su faceta marcada",
+  fac.dirige.every((x) => x.faceta === "dirige") && fac.interpreta.every((x) => x.faceta === "interpreta"));
+m.afirmar("normaliza el tipo en los ítems", fac.dirige[0].tipo === "movie");
+m.afirmar("créditos vacíos devuelven dos listas vacías",
+  (() => { const f = GMM.util.filmografiaConFacetas({}, "movie"); return f.interpreta.length === 0 && f.dirige.length === 0; })());
+
+/* ---------------------------------------------------------------- */
+m.titulo("Ficha técnica del título (V GMM 0024)");
+
+const peliFT = {
+  tipo: "movie",
+  production_countries: [{ iso_3166_1: "US", name: "United States of America" }],
+  production_companies: [{ name: "Warner Bros." }, { name: "Legendary" }],
+  credits: {
+    cast: [
+      { name: "Actriz 1", character: "Heroína", profile_path: "/a.jpg" },
+      { name: "Actor 2", character: "Villano" }
+    ],
+    crew: [
+      { name: "Dir Uno", job: "Director", department: "Directing" },
+      { name: "Guionista", job: "Screenplay", department: "Writing" },
+      { name: "Compositor", job: "Original Music Composer", department: "Sound" },
+      { name: "Foto", job: "Director of Photography", department: "Camera" },
+      { name: "Ignorado", job: "Gaffer", department: "Lighting" }
+    ]
+  }
+};
+const ft = GMM.util.fichaTecnica(peliFT);
+m.afirmar("dirección sale del crew con job Director", ft.direccion.join(",") === "Dir Uno");
+m.afirmar("guion sale del departamento Writing", ft.guion.join(",") === "Guionista");
+m.afirmar("música y fotografía por su job",
+  ft.musica.join(",") === "Compositor" && ft.fotografia.join(",") === "Foto");
+m.afirmar("productoras conservan el orden", ft.productoras.join(",") === "Warner Bros.,Legendary");
+m.afirmar("país se traduce por su código ISO", ft.paises.length === 1 && ft.paises[0].length > 2);
+m.afirmar("reparto se corta y guarda personaje y foto",
+  ft.reparto.length === 2 && ft.reparto[0].personaje === "Heroína" && ft.reparto[0].foto === "/a.jpg");
+m.afirmar("tieneFichaTecnica es true cuando hay datos", GMM.util.tieneFichaTecnica(ft) === true);
+
+const serieFT = { tipo: "tv", created_by: [{ name: "Creadora 1" }, { name: "Creador 2" }], credits: { cast: [], crew: [] } };
+const ftv = GMM.util.fichaTecnica(serieFT);
+m.afirmar("en serie la dirección es la creación (created_by)",
+  ftv.esTv === true && ftv.direccion.join(",") === "Creadora 1,Creador 2");
+m.afirmar("ficha vacía no tiene ficha técnica que enseñar",
+  GMM.util.tieneFichaTecnica(GMM.util.fichaTecnica({})) === false);
+
+/* ---------------------------------------------------------------- */
+m.titulo("Colecciones de Descubrir: Marvel, DC, Anime, Hindi (V GMM 0024)");
+
+m.afirmar("hay cuatro colecciones en el config", GMM.datos.COLECCIONES.length === 4);
+m.afirmar("cada colección lleva clave, nombre y params",
+  GMM.datos.COLECCIONES.every((c) => c.clave && c.nombre && c.params && Object.keys(c.params).length));
+m.afirmar("esColeccion distingue la clave prefijada de un id de género",
+  GMM.datos.esColeccion("col:marvel") === true && GMM.datos.esColeccion("28") === false && GMM.datos.esColeccion("") === false);
+m.afirmar("coleccion() resuelve por clave", GMM.datos.coleccion("col:marvel").nombre === "Marvel (MCU)");
+m.afirmar("Marvel y DC usan keyword; Anime e Hindi, idioma original",
+  GMM.datos.coleccion("col:marvel").params.with_keywords === "180547" &&
+  GMM.datos.coleccion("col:dc").params.with_keywords.indexOf("229266") !== -1 &&
+  GMM.datos.coleccion("col:anime").params.with_original_language === "ja" &&
+  GMM.datos.coleccion("col:hindi").params.with_original_language === "hi");
+m.afirmar("Anime combina animación con idioma japonés",
+  GMM.datos.coleccion("col:anime").params.with_genres === "16");
+
+/* ---------------------------------------------------------------- */
 m.titulo("Lotes con concurrencia limitada");
 
 let simultaneas = 0, pico = 0;

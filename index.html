@@ -503,6 +503,49 @@ a:hover { text-decoration: underline; }
 
 .ficha-acciones { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
 
+/* --- ficha técnica plegable (dirección, guion, reparto…) --- */
+.ficha-tecnica {
+  margin-top: 18px; border-radius: 14px;
+  background: #131c26; border: 1px solid #22303e; overflow: hidden;
+}
+.ft-cab {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 16px; cursor: pointer; list-style: none;
+  font-size: 15px; font-weight: 700; color: #e8f0f8; user-select: none;
+}
+.ft-cab::-webkit-details-marker { display: none; }
+.ft-cab:hover { background: #1a2632; }
+.ft-flecha { color: #8ba0b6; transition: transform 0.2s; font-size: 13px; }
+.ficha-tecnica[open] .ft-flecha { transform: rotate(180deg); }
+.ft-cuerpo { padding: 4px 16px 16px; }
+.ft-fila {
+  display: flex; flex-wrap: wrap; gap: 4px 12px;
+  padding: 8px 0; border-top: 1px solid #22303e; align-items: baseline;
+}
+.ft-clave {
+  flex: 0 0 120px; font-size: 12px; font-weight: 700; letter-spacing: 0.5px;
+  text-transform: uppercase; color: #8ba0b6;
+}
+.ft-valor { flex: 1 1 220px; min-width: 0; font-size: 14.5px; color: #e8f0f8; }
+.ft-reparto { padding-top: 12px; border-top: 1px solid #22303e; margin-top: 8px; }
+.ft-reparto .ft-clave { display: block; margin-bottom: 10px; }
+.ft-cast {
+  list-style: none; display: grid; gap: 10px 14px;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+.ft-actor { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ft-actor-foto {
+  width: 40px; height: 40px; flex: 0 0 40px; border-radius: 50%;
+  object-fit: cover; background: #0e151d; border: 1px solid #22303e;
+}
+.ft-sin-foto {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; color: #5e768c;
+}
+.ft-actor-txt { min-width: 0; display: flex; flex-direction: column; line-height: 1.3; }
+.ft-actor-txt b { font-size: 14px; color: #e8f0f8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ft-personaje { font-size: 12.5px; color: #8ba0b6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 /* --- botones de listas --- */
 .boton-lista {
   display: inline-flex; align-items: center; gap: 8px;
@@ -1018,7 +1061,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   <footer class="pie">
     <span>givemymovies · datos de disponibilidad vía TMDB / JustWatch</span>
     <span>Tus listas se guardan solo en este navegador</span>
-    <span id="version-app">V GMM 0023</span>
+    <span id="version-app">V GMM 0024</span>
   </footer>
 </div>
 
@@ -1107,7 +1150,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
           <span class="filtro-etiqueta">Buscar por</span>
           <select id="selBusquedaPor">
             <option value="titulo">Título</option>
-            <option value="actor">Actor / actriz</option>
+            <option value="actor">Actor / director</option>
             <option value="trama">Trama / tema</option>
           </select>
         </label>
@@ -1440,6 +1483,37 @@ GMM.datos.GENEROS_SERIE = [
 
 GMM.datos.generos = function (tipo) {
   return tipo === "tv" ? GMM.datos.GENEROS_SERIE : GMM.datos.GENEROS_PELICULA;
+};
+
+/* Colecciones: atajos de Descubrir que NO son géneros de TMDB sino consultas
+   compuestas de /discover (por palabra clave, idioma original o género + idioma).
+   Se ofrecen en el mismo desplegable de Género, en un grupo aparte. La clave va
+   prefijada "col:" para no chocar con los ids numéricos de género —así el mismo
+   campo estado.genero vale para ambos— y cada una lleva los parámetros extra que
+   se fusionan en la consulta.
+
+   Etiquetas honestas (§2): "Marvel (MCU)" y "DC (universo)" porque eso es lo que
+   devuelven las keywords —el universo cinematográfico—, no todo lo basado en el
+   cómic. Los ids están verificados contra themoviedb.org:
+     180547 = "marvel cinematic universe (mcu)"
+     229266 = "dc extended universe (dceu)" · 312528 = "dc universe (dcu)"
+   Anime e Hindi no necesitan id: se resuelven con género + idioma original, que
+   funciona igual para película y serie. */
+GMM.datos.COLECCIONES = [
+  { clave: "col:marvel", nombre: "Marvel (MCU)",     params: { with_keywords: "180547" } },
+  { clave: "col:dc",     nombre: "DC (universo)",    params: { with_keywords: "229266|312528" } },
+  { clave: "col:anime",  nombre: "Anime",           params: { with_genres: "16", with_original_language: "ja" } },
+  { clave: "col:hindi",  nombre: "Bollywood (hindi)", params: { with_original_language: "hi" } }
+];
+
+GMM.datos.esColeccion = function (clave) {
+  return typeof clave === "string" && clave.indexOf("col:") === 0;
+};
+
+GMM.datos.coleccion = function (clave) {
+  var l = GMM.datos.COLECCIONES, i;
+  for (i = 0; i < l.length; i++) if (l[i].clave === clave) return l[i];
+  return null;
 };
 
 /* Nombres de país en español, sin tener que mantener un diccionario. */
@@ -1901,6 +1975,95 @@ GMM.util.normalizarMedia = function (item, tipo) {
   return m;
 };
 
+/* Reparte los créditos de una persona (respuesta de movie_credits/tv_credits)
+   en dos facetas: lo que INTERPRETA (cast) y lo que DIRIGE (crew con job
+   "Director"). Cada lista se ordena por popularidad y se deduplica por id, y un
+   título que dirige y en el que además actúa se cuenta solo como dirección —la
+   faceta más notable al buscar a un director—, de modo que las dos listas no
+   comparten títulos. Pura y sin red, para poder probarla. */
+GMM.util.filmografiaConFacetas = function (credits, tipo) {
+  credits = credits || {};
+  tipo = tipo === "tv" ? "tv" : "movie";
+  function porPopularidad(a, b) { return (b.popularity || 0) - (a.popularity || 0); }
+  function unicosPorId(arr) {
+    var vistos = {}, salida = [];
+    (arr || []).slice().sort(porPopularidad).forEach(function (x) {
+      if (!x || !x.id || vistos[x.id]) return;
+      vistos[x.id] = true;
+      salida.push(x);
+    });
+    return salida;
+  }
+  var dirige = unicosPorId((credits.crew || []).filter(function (c) {
+    return c && c.job === "Director";
+  })).map(function (x) {
+    var m = GMM.util.normalizarMedia(x, tipo); m.faceta = "dirige"; return m;
+  });
+  var idsDirige = {};
+  dirige.forEach(function (m) { idsDirige[m.id] = true; });
+  var interpreta = unicosPorId(credits.cast)
+    .filter(function (x) { return !idsDirige[x.id]; })
+    .map(function (x) {
+      var m = GMM.util.normalizarMedia(x, tipo); m.faceta = "interpreta"; return m;
+    });
+  return { interpreta: interpreta, dirige: dirige };
+};
+
+/* Resume la "ficha técnica" de un título a partir de su ficha ya normalizada
+   (con credits vía append_to_response): dirección/creación, guion, música,
+   fotografía, país, productora y reparto. Pura y sin red: recibe el objeto y
+   devuelve solo texto, para poder probarla y para que la UI se limite a pintar.
+   Los nombres se deduplican conservando el orden en que llegan. */
+GMM.util.fichaTecnica = function (peli) {
+  peli = peli || {};
+  var credits = peli.credits || {};
+  var crew = credits.crew || [];
+  var esTv = peli.tipo === "tv";
+
+  function nombresDeCrew(coincide) {
+    var vistos = {}, salida = [];
+    crew.forEach(function (c) {
+      if (!c || !c.name || !coincide(c) || vistos[c.name]) return;
+      vistos[c.name] = true; salida.push(c.name);
+    });
+    return salida;
+  }
+
+  var direccion = esTv
+    ? (peli.created_by || []).map(function (c) { return c.name; }).filter(Boolean)
+    : nombresDeCrew(function (c) { return c.job === "Director"; });
+
+  var guion = nombresDeCrew(function (c) {
+    return c.department === "Writing" ||
+      c.job === "Screenplay" || c.job === "Writer" || c.job === "Story" || c.job === "Author";
+  });
+  var musica = nombresDeCrew(function (c) { return c.job === "Original Music Composer"; });
+  var fotografia = nombresDeCrew(function (c) { return c.job === "Director of Photography"; });
+
+  var paises = (peli.production_countries || []).map(function (p) {
+    return GMM.datos.nombrePais(p.iso_3166_1) || p.name;
+  }).filter(Boolean);
+  var productoras = (peli.production_companies || []).map(function (p) { return p.name; }).filter(Boolean);
+
+  var reparto = (credits.cast || []).slice(0, 12).map(function (a) {
+    return { nombre: a.name, personaje: a.character || "", foto: a.profile_path || null };
+  }).filter(function (a) { return a.nombre; });
+
+  return {
+    esTv: esTv,
+    direccion: direccion, guion: guion, musica: musica, fotografia: fotografia,
+    paises: paises, productoras: productoras, reparto: reparto
+  };
+};
+
+/* True si la ficha técnica trae algo que enseñar; evita pintar el desplegable
+   vacío cuando la ficha llegó sin credits (p. ej. en el catálogo de ejemplo). */
+GMM.util.tieneFichaTecnica = function (ft) {
+  if (!ft) return false;
+  return !!(ft.direccion.length || ft.guion.length || ft.musica.length ||
+    ft.fotografia.length || ft.paises.length || ft.productoras.length || ft.reparto.length);
+};
+
 /* De una lista de fichas de TMDB, conserva las que llegan al umbral de nota,
    las ordena de mayor a menor y corta a n. Es el selector de los carruseles de
    "top" del inicio. Pura y sin red, para poder probarla.
@@ -2134,13 +2297,13 @@ GMM.tmdb = (function () {
 
   function pelicula(id) {
     if (!hayClave()) return Promise.resolve(GMM.demo.porId(id));
-    return pedir("/movie/" + id, { language: "es-ES", append_to_response: "alternative_titles" })
+    return pedir("/movie/" + id, { language: "es-ES", append_to_response: "alternative_titles,credits" })
       .then(function (d) { return GMM.util.normalizarMedia(d, "movie"); });
   }
 
   function serie(id) {
     if (!hayClave()) return Promise.resolve(GMM.demo.seriePorId(id));
-    return pedir("/tv/" + id, { language: "es-ES", append_to_response: "alternative_titles,external_ids" })
+    return pedir("/tv/" + id, { language: "es-ES", append_to_response: "alternative_titles,external_ids,credits" })
       .then(function (d) { return GMM.util.normalizarMedia(d, "tv"); });
   }
 
@@ -2183,7 +2346,15 @@ GMM.tmdb = (function () {
       "vote_count.gte": pesaLaNota ? GMM.config.VOTOS_MIN_NOTA : GMM.config.VOTOS_MIN,
       page: pagina
     };
-    if (opciones.genero) params.with_genres = opciones.genero;
+    /* El género puede ser un id de TMDB (with_genres) o una colección: un atajo
+       con sus propios parámetros (keyword, idioma original…). Se fusionan tal
+       cual; una colección puede traer su propio with_genres (p. ej. Anime). */
+    if (GMM.datos.esColeccion(opciones.genero)) {
+      var col = GMM.datos.coleccion(opciones.genero);
+      if (col) { for (var k in col.params) if (col.params.hasOwnProperty(k)) params[k] = col.params[k]; }
+    } else if (opciones.genero) {
+      params.with_genres = opciones.genero;
+    }
     if (opciones.notaMin) params["vote_average.gte"] = opciones.notaMin;
 
     if (opciones.ano) {
@@ -2222,23 +2393,25 @@ GMM.tmdb = (function () {
   }
 
   /* Filmografía de cine o de series según el interruptor peli/serie. */
+  /* Filmografía de cine o de series según el interruptor. Devuelve las dos
+     facetas —lo que interpreta y lo que dirige— para que la vista de persona
+     las muestre por separado; así buscar a un director (que apenas figura en
+     "cast") deja de salir casi vacío. El catálogo de ejemplo solo tiene
+     papeles de reparto. */
   function filmografia(id, tipo) {
     var esTv = tipo === "tv";
     if (!hayClave()) {
       var p = GMM.demo.personaPorId(id);
-      if (!p) return Promise.resolve([]);
+      if (!p) return Promise.resolve({ interpreta: [], dirige: [] });
       var ids = esTv ? (p.creditos_tv || []) : (p.creditos || []);
-      return Promise.resolve(ids
+      var interpreta = ids
         .map(function (idMedia) { return esTv ? GMM.demo.seriePorId(idMedia) : GMM.demo.porId(idMedia); })
-        .filter(Boolean));
+        .filter(Boolean)
+        .map(function (m) { var x = GMM.util.normalizarMedia(m, esTv ? "tv" : "movie"); x.faceta = "interpreta"; return x; });
+      return Promise.resolve({ interpreta: interpreta, dirige: [] });
     }
     return pedir("/person/" + id + (esTv ? "/tv_credits" : "/movie_credits"), { language: "es-ES" })
-      .then(function (d) {
-        var reparto = (d.cast || []).slice().sort(function (a, b) {
-          return (b.popularity || 0) - (a.popularity || 0);
-        });
-        return reparto.map(function (x) { return GMM.util.normalizarMedia(x, esTv ? "tv" : "movie"); });
-      });
+      .then(function (d) { return GMM.util.filmografiaConFacetas(d, esTv ? "tv" : "movie"); });
   }
 
   /* El dato central de la app: dónde se puede ver, país por país.
@@ -2840,10 +3013,50 @@ GMM.ui = (function () {
            '<ul class="aka-lista">' + items + '</ul></div>';
   }
 
+  /* ---- "ficha técnica": desplegable con la ficha de créditos ---- */
+  function fichaTecnicaHtml(peli) {
+    var ft = GMM.util.fichaTecnica(peli);
+    if (!GMM.util.tieneFichaTecnica(ft)) return "";
+
+    function fila(etiqueta, valores) {
+      if (!valores || !valores.length) return "";
+      return '<div class="ft-fila"><span class="ft-clave">' + etiqueta + '</span>' +
+             '<span class="ft-valor">' + GMM.util.esc(GMM.util.enumerar(valores)) + '</span></div>';
+    }
+
+    var filas =
+      fila(ft.esTv ? "Creación" : "Dirección", ft.direccion) +
+      fila("Guion", ft.guion) +
+      fila("Música", ft.musica) +
+      fila("Fotografía", ft.fotografia) +
+      fila(ft.paises.length === 1 ? "País" : "Países", ft.paises) +
+      fila(ft.productoras.length === 1 ? "Productora" : "Productoras", ft.productoras);
+
+    var reparto = "";
+    if (ft.reparto.length) {
+      reparto = '<div class="ft-reparto"><div class="ft-clave">Reparto</div>' +
+        '<ul class="ft-cast">' + ft.reparto.map(function (a) {
+          var foto = GMM.config.logo(a.foto);
+          return '<li class="ft-actor">' +
+            (foto
+              ? '<img class="ft-actor-foto" src="' + foto + '" alt="" loading="lazy">'
+              : '<span class="ft-actor-foto ft-sin-foto" aria-hidden="true">&#128100;</span>') +
+            '<span class="ft-actor-txt"><b>' + GMM.util.esc(a.nombre) + '</b>' +
+            (a.personaje ? '<span class="ft-personaje">' + GMM.util.esc(a.personaje) + '</span>' : "") +
+            '</span></li>';
+        }).join("") + '</ul></div>';
+    }
+
+    return '<details class="ficha-tecnica">' +
+      '<summary class="ft-cab"><span>Ficha técnica</span><span class="ft-flecha" aria-hidden="true">&#9662;</span></summary>' +
+      '<div class="ft-cuerpo">' + filas + reparto + '</div>' +
+    '</details>';
+  }
+
   return {
     $: $, aviso: aviso, caratula: caratula, logoPlataforma: logoPlataforma,
     botonesLista: botonesLista, tarjeta: tarjeta, tarjetaPais: tarjetaPais,
-    akaHtml: akaHtml,
+    akaHtml: akaHtml, fichaTecnicaHtml: fichaTecnicaHtml,
     esqueleto: esqueleto, estado: estado, bienvenida: bienvenida,
     refrescarCabecera: refrescarCabecera, refrescarBotonesLista: refrescarBotonesLista
   };
@@ -2871,6 +3084,7 @@ GMM.app = (function () {
     proveedores: null,
     persona: null,
     filmografia: [],
+    filmografiaFacetas: { interpreta: [], dirige: [] }, // reparto / dirección para la vista de persona
     disponibilidad: {},   // "tipo:id" -> respuesta de proveedores
     marcada: -1,          // sugerencia resaltada con el teclado
     /* Método Descubrir */
@@ -3007,6 +3221,14 @@ GMM.app = (function () {
     GMM.datos.generos(estado.tipo).forEach(function (g) {
       html += '<option value="' + g.id + '">' + GMM.util.esc(g.nombre) + '</option>';
     });
+    /* Las colecciones (Marvel, DC, Anime, Hindi) van en su propio grupo: no son
+       géneros de TMDB sino atajos a una consulta compuesta, pero se eligen desde
+       el mismo desplegable. Valen igual para película y serie. */
+    html += '<optgroup label="Colecciones">';
+    GMM.datos.COLECCIONES.forEach(function (c) {
+      html += '<option value="' + c.clave + '">' + GMM.util.esc(c.nombre) + '</option>';
+    });
+    html += '</optgroup>';
     sel.innerHTML = html;
     sel.value = estado.genero;
     /* Si el género elegido no existe para el nuevo tipo, se suelta. */
@@ -3107,7 +3329,7 @@ GMM.app = (function () {
       : (esSerie ? "Buscar una serie en concreto" : "Buscar una película en concreto");
     $("formularioSub").textContent = esDescubrir
       ? "Elige género e intervalo de años, y cómo quieres ordenarlo."
-      : "Busca por título, por actor o actriz, o por su trama.";
+      : "Busca por título, por actor o director, o por su trama.";
     $("btnCambiarMetodo").textContent = esDescubrir
       ? "¿Prefieres buscar una en concreto?"
       : "¿Prefieres descubrir por género?";
@@ -3240,6 +3462,10 @@ GMM.app = (function () {
       '</div>' +
     '</section>';
 
+    /* 2b · ficha técnica plegable (dirección, guion, reparto…). Solo aparece si
+       la ficha trae créditos; en demo, sin ellos, no se pinta. */
+    html += GMM.ui.fichaTecnicaHtml(peli);
+
     /* 3 · aviso sobre cómo se deduce el idioma */
     if (estado.idioma) {
       html += '<div class="nota-idioma">' +
@@ -3355,16 +3581,40 @@ GMM.app = (function () {
               '<div class="progreso-txt" id="textoProgreso"></div>' +
             '</div>';
 
-    html += '<div class="seccion-cab"><h3 class="seccion-tit">Filmografía ' +
-            '<small>ordenada por popularidad</small></h3></div>';
+    var fac = estado.filmografiaFacetas || { interpreta: [], dirige: [] };
 
     if (!pelis.length) {
+      html += '<div class="seccion-cab"><h3 class="seccion-tit">Filmografía</h3></div>';
       html += '<p class="estado-txt">No hemos encontrado ' + palabra + ' para esta persona' +
               (esTv ? " (prueba a cambiar el interruptor a Películas)" : "") + '.</p>';
     } else {
-      html += '<div class="rejilla" id="rejillaFilmografia">' +
-              pelis.map(function (p) { return GMM.ui.tarjeta(p, huecoDisponibilidad(p)); }).join("") +
-              '</div>';
+      /* Dos facetas: lo que dirige primero (es lo que da sentido a buscar a un
+         director) y luego lo que interpreta. Si solo hay una, no se pone la otra
+         cabecera. Cuando conviven ambas se rotula cada bloque; si solo hay
+         reparto, la cabecera simple de siempre. */
+      var hayAmbas = fac.dirige.length && fac.interpreta.length;
+      function rejilla(lista) {
+        return '<div class="rejilla">' +
+          lista.map(function (p) { return GMM.ui.tarjeta(p, huecoDisponibilidad(p)); }).join("") +
+          '</div>';
+      }
+      /* Las dos facetas viven dentro de un mismo contenedor #rejillaFilmografia
+         para que "dónde ver todas" y las pruebas sigan encontrando las tarjetas
+         por un único selector, aunque el bloque esté partido en dos secciones. */
+      var interior = "";
+      if (fac.dirige.length) {
+        interior += '<div class="seccion-cab"><h3 class="seccion-tit">' +
+                (hayAmbas ? "Como director/a " : "Filmografía ") +
+                '<small>' + fac.dirige.length + ' ' + (esTv ? "series" : "películas") +
+                ' · dirección</small></h3></div>' + rejilla(fac.dirige);
+      }
+      if (fac.interpreta.length) {
+        interior += '<div class="seccion-cab"><h3 class="seccion-tit">' +
+                (hayAmbas ? "Como intérprete " : "Filmografía ") +
+                '<small>' + fac.interpreta.length + ' ' + (esTv ? "series" : "películas") +
+                ' · reparto</small></h3></div>' + rejilla(fac.interpreta);
+      }
+      html += '<div id="rejillaFilmografia">' + interior + '</div>';
     }
 
     $("resultados").innerHTML = html;
@@ -3455,7 +3705,11 @@ GMM.app = (function () {
       .then(function (par) {
         if (!par[0]) { GMM.ui.estado("&#128533;", "No encontrada", "No hay ficha para esa persona."); return; }
         estado.persona = par[0];
-        estado.filmografia = (par[1] || []).filter(function (p) { return p && p.id; });
+        var fac = par[1] || { interpreta: [], dirige: [] };
+        estado.filmografiaFacetas = fac;
+        /* La unión —dirección primero, luego interpretación— alimenta el "¿dónde
+           puedo ver sus películas?"; las dos facetas no comparten títulos. */
+        estado.filmografia = fac.dirige.concat(fac.interpreta).filter(function (p) { return p && p.id; });
         pintarPersona();
         window.scrollTo({ top: 0, behavior: "smooth" });
       })
@@ -3596,6 +3850,8 @@ GMM.app = (function () {
         '</div>' +
       '</div>';
 
+      html += GMM.ui.fichaTecnicaHtml(peli);
+
       html += '<div class="resumen' + (frase.vacia ? " vacia" : "") + '" style="margin-bottom:18px">' +
                 '<span class="resumen-icono">' + (frase.vacia ? "&#128533;" : "&#127871;") + '</span>' +
                 '<div class="resumen-txt" style="font-size:15px">' + frase.html + '</div>' +
@@ -3635,9 +3891,14 @@ GMM.app = (function () {
   /* Búsqueda principal                                               */
   /* ---------------------------------------------------------------- */
 
-  /* Nombre en español de un género por su id, para el título del resultado. */
+  /* Nombre en español de un género —o de una colección— por su clave, para el
+     título del resultado. */
   function generoNombre(tipo, id) {
     if (!id) return "";
+    if (GMM.datos.esColeccion(id)) {
+      var col = GMM.datos.coleccion(id);
+      return col ? col.nombre : "";
+    }
     var lista = GMM.datos.generos(tipo), i;
     for (i = 0; i < lista.length; i++) if (lista[i].id === Number(id)) return lista[i].nombre;
     return "";

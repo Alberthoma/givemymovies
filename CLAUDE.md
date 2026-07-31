@@ -2,9 +2,9 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0023`
-**Próxima versión:** `V GMM 0024`
-**Última actualización:** 2026-07-30
+**Versión activa:** `V GMM 0024`
+**Próxima versión:** `V GMM 0025`
+**Última actualización:** 2026-07-31
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies/> · GitHub Pages desde `main`, raíz.
 
@@ -444,14 +444,28 @@ el `og:image`. Y no cojas el primer `<img>` de la página: suele ser un recomend
 **La aplicación no tiene dependencias.** `pruebas/` es una herramienta aparte y opcional.
 
 ```bash
-node pruebas/logica.js      # 125 comprobaciones · sin dependencias · instantáneo
+node pruebas/logica.js      # 145 comprobaciones · sin dependencias · instantáneo
 node pruebas/imagenes.js    #  15 comprobaciones · necesita internet · ~30 s
-node pruebas/interfaz.js    # 109 comprobaciones · playwright-core · ~60 s
+node pruebas/interfaz.js    # 110 comprobaciones · playwright-core · ~60 s
 node pruebas/pwa.js         #  20 comprobaciones · playwright-core · ~20 s
 ```
 
-Última ejecución: **269 comprobaciones, todas correctas**, sin errores de JavaScript en
-consola. Las cuatro suites, en local, el 2026-07-30 sobre la 0023.
+Última ejecución: **290 comprobaciones, todas correctas** en local sobre la 0023 (2026-07-30) más
+lo nuevo de la 0024. La 0024 se cerró en un entorno remoto: `logica.js` pasó **145/145**, e
+`interfaz.js` (110) y `pwa.js` (20) se ejecutaron enlazando el `playwright-core` global —los únicos
+fallos fueron los contadores de «errores acumulados», por recursos que este entorno cerrado no
+sirve (`image.tmdb.org` bloqueado por el proxy y ausencia de `PRIVADO/clave-local.js`),
+**idénticos byte a byte en el respaldo 0023**, así que no son regresión. En local, con clave e
+internet, esos contadores vuelven a cero. El service worker cacheó `gmm-app-v22` correctamente.
+
+> **Correr `interfaz.js`/`pwa.js` en remoto, sin npm** (aprendido en la 0024): aunque
+> `npm install playwright-core` esté bloqueado por la política de red, el entorno suele traer un
+> **`playwright` global** (que incluye `playwright-core`) y **Chromium** ya descargado en
+> `/opt/pw-browsers`. Se enlazan sin tocar los tests: `NODE_PATH="$(npm root -g):$(npm root -g)/playwright/node_modules"`
+> para que `require("playwright-core")` resuelva, y un symlink `~/ms-playwright/chromium-<n> →
+> /opt/pw-browsers/chromium-<n>` para que `buscarChromium()` lo encuentre. Con eso las tres suites
+> corren en remoto; no hace falta esperar a un pase local salvo `imagenes.js` (necesita clave e
+> internet). **Ya no es obligatorio saltárselas como en 0016–0021.**
 
 > **Las versiones 0016 a 0021 se cerraron en un entorno remoto sin acceso a npm**, así que
 > `interfaz.js` y `pwa.js` (que dependen de `playwright-core`) no se ejecutaron allí: solo
@@ -485,7 +499,12 @@ la demo, las listas conscientes del tipo, la búsqueda de series (título y tram
 notas de OMDb (`GMM.omdb.parsear`: respuesta completa, `Response:"False"`, campos ausentes,
 `"N/A"` y el `Metascore` de reserva), y —desde la 0023— el selector de los carruseles
 `GMM.util.mejoresPorNota` (filtra nota ≥ 6, ordena, corta, ignora sin nota, admite otro umbral)
-y la forma del config de categorías. `interfaz.js` recorre el interruptor
+y la forma del config de categorías, y —desde la 0024— la **filmografía con facetas**
+(`GMM.util.filmografiaConFacetas`: reparto vs. dirección, deduplicado, la dirección gana al
+solapamiento), la **ficha técnica** (`GMM.util.fichaTecnica`/`tieneFichaTecnica`: dirección,
+guion, música, fotografía, país, productoras, reparto; y `created_by` en serie) y las
+**colecciones** (`GMM.datos.COLECCIONES`/`esColeccion`/`coleccion`: forma, prefijo `col:` y
+params por colección). `interfaz.js` recorre el interruptor
 peli/serie, la búsqueda de una serie por título, Descubrir con series, los interruptores de
 orden con su paginador por años, —desde la 0021— los métodos plegados, —desde la 0022— el modal
 del formulario (abrir, cerrar con la X), que los dos métodos **midan lo mismo**, que
@@ -493,7 +512,8 @@ del formulario (abrir, cerrar con la X), que los dos métodos **midan lo mismo**
 orden junto a ← con sus dos copias sincronizadas, y que en el móvil el modal **deje margen y no
 ocupe toda la altura**; y —desde la 0023— los **cinco carruseles** (cinco bloques, sus ids de
 pista, sus títulos, «Ver más» solo en los tres con intervalo, que el botón y el modal de
-sugerencias ya no existan, la insignia de **nota de TMDB** y no la de IMDb, y el corte en 20).
+sugerencias ya no existan, la insignia de **nota de TMDB** y no la de IMDb, y el corte en 20);
+y —desde la 0024— que el desplegable de género ofrezca las **cuatro colecciones** en su grupo.
 
 `pwa.js` levanta un servidor local, porque los service workers no funcionan sobre `file://`
 y `localhost` cuenta como origen seguro igual que HTTPS.
@@ -535,6 +555,17 @@ Comprobación manual rápida, si no quieres ejecutar nada:
   y en el modal de detalle, no en las cuadrículas ni en los carruseles. La calificación de
   Descubrir y la insignia de los carruseles son la propia de TMDB (0–10).
 - **Filmografías**: se consultan los 24 títulos más populares, con 5 peticiones simultáneas.
+  Desde V GMM 0024 la filmografía separa **lo que interpreta** de **lo que dirige** (`crew` con
+  `job === "Director"`), de modo que buscar a un director ya no sale casi vacío.
+- **Premios (Oscar, Emmy)**: **no se filtra por premios.** La nota de la 0024 pedía una colección
+  de «premiados/nominados», pero **TMDB no publica datos de premios** —no hay endpoint ni campo—,
+  así que aproximarlo sería inventar. Se decidió (con el usuario) dejarlo fuera; si algún día se
+  retoma, haría falta una fuente aparte (lista curada, o una API de premios) o aceptar una
+  aproximación honesta por nota + votos. Ver el planteamiento en §11.
+- **Colecciones de Descubrir** (desde V GMM 0024): Marvel/DC apuntan al **universo cinematográfico**
+  (keywords MCU/DCEU/DCU), no a todo lo basado en el cómic —de ahí las etiquetas «(MCU)» y
+  «(universo)»—; Anime es animación + idioma japonés y Bollywood, idioma hindi. Es la lectura
+  honesta de lo que devuelve TMDB, no un catálogo exhaustivo.
 - **La clave viaja al navegador**: para publicar en internet haría falta un servidor intermedio.
 
 ---
@@ -557,6 +588,8 @@ Comprobación manual rápida, si no quieres ejecutar nada:
 | **Escape encadenado en un modal** | Con el autocompletado desplegado dentro del modal, Escape lo cerraba **y además** cerraba el modal, perdiendo lo escrito: el manejador de `#entrada` corre antes que el del documento, y este veía la lista ya cerrada. Se corta con `stopPropagation()` en el del campo. Cualquier capa nueva que anide controles con Escape propio tiene el mismo riesgo. |
 | **Un control duplicado se cuenta dos veces** | Los interruptores de orden viven en el formulario **y** en el desplegable de la barra. `reflejarOrden()` casa por `[data-orden]` (bien), pero las pruebas contaban `.orden-op.activa` a secas y sacaban el doble. Acota al contenedor: `#orden .orden-op.activa`. Es la misma lección que las tarjetas del carrusel. |
 | **Lo que el modal deja detrás del velo** | Al mudar el formulario a un modal, todo lo que queda fuera —la barra con el interruptor peli/serie y los dos botones de método— **deja de ser pulsable** mientras esté abierto. No es un fallo de CSS: es lo que hace un modal. Se resolvió nombrando el tipo en el título y añadiendo un enlace para cambiar de método sin cerrar. Antes de mover algo a un modal, mira qué se queda fuera. |
+| **Partir la filmografía se llevó su id** (0024) | Al dividir la filmografía en dos facetas (dirección / reparto) se perdió el `#rejillaFilmografia`, del que dependían **«¿dónde ver todas?»** (itera un solo contenedor) y `interfaz.js` (`#rejillaFilmografia .tarjeta`). Se envuelven las dos secciones en ese mismo id. Al partir un bloque en varios, conserva el contenedor que otros selectores esperan. |
+| **El texto de consola de un recurso 404 es genérico** (0024) | `interfaz.js` filtra el error esperado de `clave-local.js`, pero lo hace por el **texto de consola**, que en un fallo de recurso es solo «Failed to load resource: …» **sin la URL**: el filtro no casa. En local no salta porque `PRIVADO/clave-local.js` existe y hay internet; en un entorno cerrado (sin `PRIVADO/`, con `image.tmdb.org` bloqueado) esos contadores de «errores acumulados» fallan **sin ser regresión**. Compara contra el respaldo antes de dar por rota la interfaz. |
 
 ---
 
@@ -691,6 +724,7 @@ puede ir dentro de `index.html` sin problema.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| V GMM 0024 | 2026-07-31 | **Ficha técnica, filmografía de dirección y colecciones de género.** (1) **Filmografía consciente de la dirección:** `GMM.tmdb.filmografia` deja de mirar solo `cast` y devuelve dos facetas —lo que la persona **interpreta** y lo que **dirige** (`crew` con `job === "Director"`)— vía `GMM.util.filmografiaConFacetas` (pura). La vista de persona las pinta en secciones separadas («Como director/a» / «Como intérprete»); un título que dirige **y** en el que actúa cuenta solo como dirección, y las dos listas no comparten títulos. Con esto **buscar a un director** (Nolan, Spielberg) deja de salir casi vacío —es el «Director» de la nota—. El desplegable pasa a decir «Actor / director». Las dos facetas viven en un mismo `#rejillaFilmografia` para no romper «¿dónde ver todas?» ni las pruebas. (2) **Ficha técnica plegable** en la ficha de un título (y en el modal de detalle): un `<details>` «Ficha técnica» con Dirección/Creación · Guion · Música · Fotografía · País · Productora · **Reparto** (foto + actor + personaje). Se pide con `append_to_response=…,credits` (sin llamada extra), lo extrae `GMM.util.fichaTecnica` (pura) y solo aparece si hay datos —en demo, sin credits, no se pinta—. En serie la «Dirección» es la **Creación** (`created_by`). (3) **Colecciones de género:** el desplegable de Descubrir gana un grupo «Colecciones» con **Marvel (MCU)** · **DC (universo)** · **Anime** · **Bollywood (hindi)** (`GMM.datos.COLECCIONES`, clave prefijada `col:`). No son géneros de TMDB sino atajos a `/discover` (keyword `180547`; `229266\|312528`; género 16 + idioma `ja`; idioma `hi`), que `descubrir` fusiona en la consulta cuando la clave empieza por `col:`. Ids verificados contra themoviedb.org; etiquetas honestas (§2). **Premios (Oscar/Emmy) quedan fuera**: TMDB no publica premios (ver §8). `sw.js` VERSION 21→22. `logica.js` 125→145, `interfaz.js` 109→110, `pwa.js` 20. |
 | V GMM 0023 | 2026-07-30 | **Cinco carruseles en vez de uno, de 20 títulos y con la nota de TMDB.** (1) El inicio pasa de **un carrusel intercambiable a cinco a la vez**, uno por categoría, montados desde `GMM.config.CATEGORIAS_SUGERENCIA` por `montarCarruseles()`: pista `#carrusel-{clave}`, carga en paralelo, flechas propias y **«Ver más» por bloque** en los tres que tienen intervalo. Con ello se retiran el botón **«Dame sugerencias» y su modal** (`#capaSugerencias`), que existían para elegir cuál se veía, y `estado.categoria`. Los cinco cuelgan de **una sola delegación de clic** en `#descubrimiento` (`[data-mover]`, `[data-vermas]`, `[data-abrir]`, `[data-lista]`), porque las pistas se repintan enteras y un listener por flecha habría que recablearlo. (2) **20 títulos por carrusel** (`TOP_CATEGORIA` 10→20), que es justo una página de `/discover`: **una petición por carrusel**. (3) **Insignia con la nota de TMDB** en cada carátula (`.tarjeta-nota`, verde, ★ + nota), en lugar de la de IMDb: `GMM.ui.tarjeta` la pinta solo si el ítem trae `tmdbNota`, así las cuadrículas siguen sin ella. (4) **Se retira el rodeo por OMDb** de los carruseles —`GMM.util.mejoresPorImdb` → `GMM.util.mejoresPorNota`, `IMDB_MIN` → `NOTA_MIN_CATEGORIA`, fuera `CANDIDATOS_CATEGORIA`—: con cinco carruseles de veinte serían ~120 consultas por visita sobre un tope de 1.000/día, y la lista iría ordenada por un número distinto del que muestra la tarjeta. **OMDb sigue en la ficha.** (5) `alternarLista` invalida la caché de *favoritas* y repinta su carrusel, que ahora está siempre a la vista. `sw.js` VERSION 20→21. `logica.js` 120→125, `interfaz.js` 106→109, `pwa.js` 20. |
 | V GMM 0022 | 2026-07-30 | **Rediseño de disposición: los formularios pasan a modales.** (1) Los controles de los dos métodos salen de la página a un **modal-formulario único** (`#capaFormulario`): cuerpo en **una rejilla de dos columnas** con los bloques a `display: contents`, campos **de dos en dos** (los grandes a fila completa), **X** arriba a la derecha y **Buscar centrado** al pie; en el móvil, una columna y con margen alrededor. En el inicio solo quedan **dos botones del mismo tamaño**. (2) Las 5 categorías de «Dame sugerencias» pasan a **otro modal**, una por fila, **todas iguales** y en **azul fijo**; elegir una cierra el modal. (3) **Desplegable de orden junto a la flecha ←**, en su misma fila: reordenar sin volver al formulario (`reflejarOrden` casa por `[data-orden]`, no por id, para las dos copias). (4) **«Ver más» pagina de corrido**: 20 por página y **«Página 1 de N»**, en vez de «2000 · 10 mejores» — se retira `estado.topAnio` y `verMasCategoria` deja de encender `porNota`; **el recorrido año por año de la 0015 se conserva intacto** para cuando se pide a mano. (5) De paso: **300 votos** exigidos siempre que la nota entra en juego (antes solo al ordenar por ella, y «nota ≥ 6 por año» sacaba desconocidos con doce votos), enlace para cambiar de método sin cerrar el modal, autocompletado **en el flujo** dentro del modal, Escape ya no cierra el modal si hay desplegable abierto, y fuera el CSS muerto de `.pestanas`. `sw.js` VERSION 19→20. `logica.js` 120, `interfaz.js` 78→106, `pwa.js` 19→20. |
 | V GMM 0021 | 2026-07-29 | **Métodos plegados por defecto + ⚙ redondo.** (1) La app arranca **sin método** (`estado.metodo = ""`): los controles de «Buscar una en concreto» (`#panelBuscar`, `#chips`) y los de «Descubrir por género» (`#descubrir`) y los filtros comunes (`#filtros`) empiezan **ocultos**, y cada uno se muestra **solo al pulsar su botón**. (2) El botón **⚙ pasa a ser un círculo compacto** (`#btnAjustes`, 34 px, engranaje sin reducir) pegado a la derecha de la barra, que se aprieta en móvil para caber en una línea. Solo HTML/CSS + `reflejar()`. `sw.js` VERSION 18→19. `logica.js` 120. **`interfaz.js`/`pwa.js` no ejecutadas (sin npm); pasar en local.** |

@@ -20,7 +20,7 @@
 
 "use strict";
 
-var VERSION   = 21;
+var VERSION   = 22;
 var CACHE_APP = "gmm-app-v" + VERSION;
 var CACHE_IMG = "gmm-img-v" + VERSION;
 

@@ -371,6 +371,8 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
     !(await pagina.getAttribute("#capaFormulario", "class")).includes("oculto") &&
     (await pagina.locator("#descubrir").isVisible()));
   await pagina.screenshot({ path: path.join(CAPTURAS, "09-modal-descubrir.png"), fullPage: true });
+  m.afirmar("el desplegable de género ofrece las cuatro colecciones (V GMM 0024)",
+    (await pagina.locator('#selGenero optgroup[label="Colecciones"] option').count()) === 4);
   await pagina.selectOption("#selGenero", "18");
   await pagina.click("#btnBuscar");
   await pagina.waitForTimeout(500);

@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.22 · Aplicación V GMM 0022 · 30 de julio de 2026**
+**Documento v1.24 · Aplicación V GMM 0024 · 31 de julio de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies/>
 
 ---
@@ -286,6 +286,14 @@ alternativos por país (campo `alternative_titles` de TMDB, pedido con `append_t
 filtrados a los mercados en español más el inglés y agrupados por título distinto
 (`GMM.util.titulosAlternativos`). Ej.: *Duro de matar* muestra «La jungla de cristal (España)».
 
+**2b · Ficha técnica plegable (V GMM 0024).** Un `<details>` «Ficha técnica» con Dirección
+(o **Creación** —`created_by`— en serie), Guion, Música, Fotografía, País, Productora y
+**Reparto** (foto redonda + actor + personaje, los 12 primeros). Se alimenta del `credits`
+que trae la ficha (`append_to_response=…,credits`, sin llamada extra), lo extrae
+`GMM.util.fichaTecnica` (pura) y **solo aparece si hay datos** —en demo, sin `credits`, no se
+pinta—. Está también en el modal de detalle rápido. El `<details>` nativo es el «desplegable»:
+sin JavaScript propio.
+
 **3 · Botones de listas.** ♥ Favorita · 🔖 Pendiente de ver.
 
 **4 · Aviso de estimación de idioma** (§4.3).
@@ -304,10 +312,16 @@ filtrados a los mercados en español más el inglés y agrupados por título dis
 **7 · Otras coincidencias.** Si la búsqueda devolvió varias películas, muestra la mejor y bajo
 ella una cuadrícula con hasta 12 alternativas.
 
-### 5.3 Resultado: modo actor o actriz
+### 5.3 Resultado: modo actor o director (V GMM 0024)
 
 - Ficha con foto, nombre, número de películas y biografía recortada a ~420 caracteres.
-- **Filmografía** en cuadrícula de carátulas, ordenada por popularidad.
+- **Filmografía en dos facetas:** lo que la persona **dirige** (primero, `crew` con
+  `job === "Director"`) y lo que **interpreta** (`cast`), en secciones separadas —«Como
+  director/a» / «Como intérprete»— cuando conviven ambas. Un título que dirige y en el que
+  además actúa cuenta **solo como dirección**, y las dos listas no comparten títulos. Con esto
+  buscar a un director (que apenas figura en `cast`) deja de salir casi vacío. Lo reparte
+  `GMM.util.filmografiaConFacetas` (pura). Las dos rejillas viven en un mismo
+  `#rejillaFilmografia` para que «¿dónde ver todas?» siga encontrando las tarjetas.
 - Botón **«¿Dónde puedo ver sus películas?»**:
   - Consulta los **24 títulos más populares**.
   - **Máximo 5 peticiones simultáneas.**
@@ -337,7 +351,7 @@ interruptor global (§5.1.1); aquí van cuatro selectores y una fila de orden:
 
 | Control | Obligatorio | Contenido |
 |---|---|---|
-| **Género** | No | «Cualquier género» + la taxonomía de TMDB. **Depende del interruptor**: cine y series usan listas distintas (`GMM.datos.GENEROS_PELICULA` / `GENEROS_SERIE`), así que al cambiar el tipo hay que reconstruir el desplegable |
+| **Género** | No | «Cualquier género» + la taxonomía de TMDB. **Depende del interruptor**: cine y series usan listas distintas (`GMM.datos.GENEROS_PELICULA` / `GENEROS_SERIE`), así que al cambiar el tipo hay que reconstruir el desplegable. Al final, un grupo **«Colecciones»** (V GMM 0024) con **Marvel (MCU)**, **DC (universo)**, **Anime** y **Bollywood (hindi)**: no son géneros de TMDB sino atajos a `/discover` (`GMM.datos.COLECCIONES`, clave prefijada `col:`) que `descubrir` fusiona en la consulta —keyword para Marvel/DC, género 16 + idioma japonés para Anime, idioma hindi para Bollywood—. Valen igual para peli y serie |
 | **Desde** | No | «Cualquier año» + años de hoy hacia atrás |
 | **Hasta** | No | Ídem. Los dos forman un **intervalo**; si se eligen del revés, **enderézalo solo** y avisa, en vez de devolver una lista vacía sin explicación |
 | **Calificación** | No | «Cualquier nota» + `N o más`, con la nota de TMDB (0–10) |
@@ -583,11 +597,12 @@ los bloques en archivos **no exija tocar código**: basta enlazarlos en este ord
 |---|---|
 | Buscar título | `/search/movie` · `/search/tv` (según el interruptor) |
 | Buscar persona | `/search/person` |
-| Filmografía | `/person/{id}/movie_credits` · `/person/{id}/tv_credits` |
-| Ficha película / serie | `/movie/{id}` · `/tv/{id}` (con `append_to_response=alternative_titles`; en series además `,external_ids` para el `imdb_id`) |
+| Filmografía | `/person/{id}/movie_credits` · `/person/{id}/tv_credits` — se usan **`cast`** (lo que interpreta) y **`crew` con `job === "Director"`** (lo que dirige) |
+| Ficha película / serie | `/movie/{id}` · `/tv/{id}` (con `append_to_response=alternative_titles,credits`; en series además `,external_ids` para el `imdb_id`). `credits` alimenta la **ficha técnica** |
 | **Dónde verla** | `/movie/{id}/watch/providers` · `/tv/{id}/watch/providers` ← el dato central |
 | Trama | `/search/keyword` → `/discover/movie?with_keywords=` · `/discover/tv?with_keywords=` |
 | Descubrir por género | `/discover/movie` · `/discover/tv` con `with_genres`, `primary_release_year` / `first_air_date_year`, `vote_average.gte` |
+| **Colecciones** (Marvel/DC/Anime/Hindi) | `/discover/*` con los params de la colección: `with_keywords` (MCU `180547`, DCEU `229266`\|DCU `312528`), o `with_genres=16`+`with_original_language=ja`, o `with_original_language=hi` |
 | Catálogo de plataformas | `/watch/providers/movie` |
 | **Notas IMDb/RT/Metacritic** (OMDb, secundaria y opcional) | `https://www.omdbapi.com/?apikey=…&i={imdb_id}` — clave aparte; sin ella la app va igual |
 | **Tendencia** (carrusel del inicio) | `/trending/movie/week` · `/trending/tv/week` |
@@ -804,7 +819,13 @@ Hay que **decirlos**, no disimularlos:
   conceptos, no con frases largas.
 - **Puntuaciones de IMDb y Rotten Tomatoes**: no están. TMDB no las publica; traerlas
   exigiría OMDb con su propia clave. La calificación de Descubrir es la de TMDB.
-- **Filmografías**: se consultan los 24 títulos más populares, no la obra completa.
+- **Filmografías**: se consultan los 24 títulos más populares, no la obra completa. Desde
+  V GMM 0024 se separan interpretación y dirección (§5.3).
+- **Premios (Oscar, Emmy)**: no se filtra por premios. TMDB no los publica, así que una
+  colección de «premiados/nominados» se dejó **fuera** en la V GMM 0024 (se decidió con el
+  usuario); haría falta una fuente aparte o una aproximación honesta por nota + votos.
+- **Colecciones Marvel/DC**: apuntan al universo cinematográfico (keywords MCU/DCEU/DCU), no a
+  todo lo basado en el cómic; las etiquetas «(MCU)» y «(universo)» lo dicen a propósito.
 - **La clave viaja al navegador**: publicar la web exigiría un servidor intermedio.
 - **El idioma es una estimación**, nunca un dato confirmado (§4.3).
 
@@ -861,6 +882,8 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.24 | V GMM 0024 | 31-07-2026 | **Ficha técnica, filmografía de dirección y colecciones de género.** (1) La **filmografía** de una persona separa lo que **interpreta** de lo que **dirige** (`crew` con `job === "Director"`), vía `GMM.util.filmografiaConFacetas` (pura); la vista de persona las pinta en dos secciones dentro de un mismo `#rejillaFilmografia`, y buscar a un director ya no sale casi vacío. El desplegable de búsqueda pasa a «Actor / director». (2) **Ficha técnica plegable** (`<details>`) en la ficha y en el modal de detalle: Dirección/Creación, Guion, Música, Fotografía, País, Productora y **Reparto** (foto + actor + personaje); se pide con `append_to_response=…,credits` (sin llamada extra) y la extrae `GMM.util.fichaTecnica`; en serie la dirección es `created_by`; en demo (sin credits) no aparece. (3) **Colecciones** en el desplegable de género (grupo «Colecciones»): Marvel (MCU), DC (universo), Anime y Bollywood (hindi) — `GMM.datos.COLECCIONES`, clave `col:`, atajos a `/discover` (keywords MCU/DCEU/DCU, o género 16 + idioma, o idioma original) que `descubrir` fusiona en la consulta. **Premios (Oscar/Emmy) quedan fuera**: TMDB no publica premios. `sw.js` 21→22, `logica.js` 125→145, `interfaz.js` 109→110, `pwa.js` 20. |
+| 1.23 | V GMM 0023 | 30-07-2026 | **Cinco carruseles en el inicio en vez de uno**, uno por categoría y a la vista a la vez, montados desde `GMM.config.CATEGORIAS_SUGERENCIA` por `montarCarruseles()` (pista `#carrusel-{clave}`, carga en paralelo, «Ver más» por bloque); se retiran el botón «Dame sugerencias», su modal y `estado.categoria`. **20 títulos por carrusel** (`TOP_CATEGORIA` 10→20, una petición por carrusel) e **insignia con la nota de TMDB** en cada carátula (`.tarjeta-nota`, solo si el ítem trae `tmdbNota`), retirando el rodeo por OMDb (`mejoresPorImdb`→`mejoresPorNota`). Delegación de clic única en `#descubrimiento`. `sw.js` 20→21, `logica.js` 120→125, `interfaz.js` 106→109. |
 | 1.22 | V GMM 0022 | 30-07-2026 | **Los formularios pasan a modales** (§5.1.1b). Los controles de los dos métodos salen de la página a un **modal-formulario único** (`#capaFormulario`): cuerpo en una rejilla de dos columnas con los bloques a `display: contents`, campos de dos en dos (los grandes a fila completa), X arriba a la derecha, Buscar centrado al pie, y en móvil una columna con margen alrededor. En el inicio solo quedan **dos botones del mismo tamaño**. Las 5 categorías de «Dame sugerencias» pasan a **otro modal**, una por fila, todas iguales y en azul fijo; elegir una lo cierra. **Desplegable de orden junto a la flecha ←** (única excepción a «los filtros se eligen antes de buscar»), con `reflejarOrden()` casando por `[data-orden]` para las dos copias. **«Ver más» pagina de corrido** —20 por página, «Página 1 de N»— porque deja de encender fecha + nota a la vez; el recorrido año por año se conserva intacto para cuando se pide a mano. Además: `vote_count.gte` = 300 siempre que la nota entra en juego, enlace para cambiar de método sin cerrar, autocompletado en el flujo dentro del modal, y Escape que no cierra el modal si hay desplegable abierto. Criterios A41–A48. `sw.js` 19→20, `interfaz.js` 78→106, `pwa.js` 19→20. |
 | 1.21 | V GMM 0021 | 29-07-2026 | **Métodos plegados por defecto + ⚙ redondo.** La app arranca sin método (`estado.metodo = ""`): los controles de «Buscar una en concreto» (`#panelBuscar`/`#chips`), los de «Descubrir por género» (`#descubrir`) y los filtros comunes (`#filtros`) empiezan ocultos y cada uno se muestra solo al pulsar su botón. El botón ⚙ pasa a un círculo compacto (`#btnAjustes`, 34 px) pegado a la derecha, con la barra apretada para caber en una línea en móvil. `sw.js` 18→19. |
 | 1.20 | V GMM 0020 | 29-07-2026 | **Ajustes de disposición.** El interruptor Película/Serie pasa del buscador a la barra bajo el header (izquierda, junto a *Mis listas*; barra en dos grupos). El botón «Ver más» va a la derecha de «Dame sugerencias». La app arranca siempre en «Buscar una en concreto» (el método ya no se restaura de prefs): los controles de «Descubrir por género» quedan ocultos hasta pulsar su botón. `sw.js` 17→18. |
