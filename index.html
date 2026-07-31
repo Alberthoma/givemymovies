@@ -564,6 +564,38 @@ a:hover { text-decoration: underline; }
 }
 .ft-persona:hover, .ft-persona:focus-visible { color: #4aa8ff; outline: none; }
 
+/* --- "Mi copia": enlace a tu archivo del título (biblioteca, Nivel 1) --- */
+.mi-copia {
+  margin-top: 18px; padding: 16px; border-radius: 14px;
+  background: #131c26; border: 1px solid #22303e;
+}
+.mi-copia-cab {
+  font-size: 15px; font-weight: 700; color: #e8f0f8;
+  display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+}
+.mi-copia-fuente {
+  font-size: 11.5px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase;
+  color: #6ff0c4; background: rgba(46, 230, 168, 0.12);
+  border: 1px solid rgba(46, 230, 168, 0.4); border-radius: 999px; padding: 2px 9px;
+}
+.mi-copia-acciones { display: flex; flex-wrap: wrap; gap: 9px; margin-bottom: 12px; }
+.mi-copia a.boton-sec { text-decoration: none; }
+.mi-copia-form { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
+.mi-copia-input {
+  flex: 1 1 260px; min-width: 0; padding: 10px 14px; border-radius: 11px;
+  background: #0b0f14; border: 1px solid #2f4356; color: #e8f0f8;
+  font-size: 14px; font-family: inherit;
+}
+.mi-copia-input:focus { outline: none; border-color: #4aa8ff; }
+.mi-copia-input::placeholder { color: #5e768c; }
+.mi-copia-nota { margin-top: 10px; font-size: 12.5px; color: #8ba0b6; line-height: 1.5; }
+
+/* Botones de reproducir/descargar en las tarjetas de "Mis compras". */
+.tarjeta-copia { display: flex; gap: 8px; margin-top: 8px; }
+.tarjeta-copia a.boton-sec {
+  flex: 1 1 0; justify-content: center; text-decoration: none; padding: 8px 10px; font-size: 16px;
+}
+
 /* --- botones de listas --- */
 .boton-lista {
   display: inline-flex; align-items: center; gap: 8px;
@@ -1015,6 +1047,10 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
         <span aria-hidden="true">&#9733;</span> Mis listas
         <span class="contador-listas vacio" id="contadorListas">0</span>
       </button>
+      <button class="boton-cabecera" id="btnBiblioteca" title="Los títulos de los que tienes copia">
+        <span aria-hidden="true">&#128193;</span> Mis compras
+        <span class="contador-listas vacio" id="contadorBiblioteca">0</span>
+      </button>
       <!-- Interruptor global: ¿película o serie? Tiñe los acentos. -->
       <div class="tipo-switch" id="tipoSwitch" role="group" aria-label="¿Películas o series?">
         <button class="tipo-op" data-tipo="tv">Series</button>
@@ -1079,7 +1115,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   <footer class="pie">
     <span>givemymovies · datos de disponibilidad vía TMDB / JustWatch</span>
     <span>Tus listas se guardan solo en este navegador</span>
-    <span id="version-app">V GMM 0025</span>
+    <span id="version-app">V GMM 0026</span>
   </footer>
 </div>
 
@@ -1283,10 +1319,11 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
 var GMM = {};
 
 GMM.config = {
-  CLAVE_API:     "gmm_tmdb_key",
-  CLAVE_OMDB:    "gmm_omdb_key",
-  CLAVE_PREFS:   "gmm_prefs",
-  CLAVE_LISTAS:  "gmm_listas",
+  CLAVE_API:        "gmm_tmdb_key",
+  CLAVE_OMDB:       "gmm_omdb_key",
+  CLAVE_PREFS:      "gmm_prefs",
+  CLAVE_LISTAS:     "gmm_listas",
+  CLAVE_BIBLIOTECA: "gmm_biblioteca",
 
   API:      "https://api.themoviedb.org/3",
   API_OMDB: "https://www.omdbapi.com/",
@@ -2094,6 +2131,27 @@ GMM.util.fichaTecnica = function (peli) {
   };
 };
 
+/* Interpreta el enlace que el usuario guarda a su copia de un título (Nivel 1
+   de "Mi biblioteca"). Si es un enlace de Google Drive, saca el id del archivo y
+   arma las URLs de ver y de descargar directa; si es cualquier otro (Mega, un
+   servidor propio, un enlace directo), se usa tal cual para ambas. Pura y sin
+   red: solo manipula la cadena, para poder probarla. Devuelve null si va vacío. */
+GMM.util.enlaceCopia = function (url) {
+  url = String(url || "").trim();
+  if (!url) return null;
+  var esDrive = /(?:drive|docs)\.google\.com/.test(url);
+  var m = url.match(/\/file\/d\/([-\w]{10,})/) || url.match(/[?&]id=([-\w]{10,})/);
+  if (esDrive && m) {
+    var id = m[1];
+    return {
+      tipo: "drive",
+      reproducir: "https://drive.google.com/file/d/" + id + "/view",
+      descargar: "https://drive.google.com/uc?export=download&id=" + id
+    };
+  }
+  return { tipo: "otro", reproducir: url, descargar: url };
+};
+
 /* Une ids de palabra clave para el parámetro with_keywords de /discover: mezcla
    los resueltos en vivo con los de reserva, descarta vacíos y duplicados y los
    une con "|" (que TMDB interpreta como O lógico). Pura, para poder probarla. */
@@ -2896,6 +2954,79 @@ GMM.listas = (function () {
 
 
 /* ══════════════════════════════════════════════════════════════════════
+   BLOQUE JS 7b — MI BIBLIOTECA (mis compras)         → futuro js/biblioteca.js
+
+   "Nivel 1" de vincular la app con tus archivos: por cada título compras, se
+   guarda EN EL NAVEGADOR un enlace a tu copia (Google Drive, Mega o tu propio
+   servidor). No sube ni descarga nada por su cuenta; solo recuerda el enlace y
+   lo abre en una pestaña para reproducir o descargar. El "Nivel 2" (que la app
+   busque sola en tu Drive y reproduzca dentro) queda pendiente (ver CLAUDE.md
+   §11). Se indexa por "tipo:id" como las listas: una peli y una serie pueden
+   compartir id numérico en TMDB. ══════════════════════════════════════════ */
+
+GMM.biblioteca = (function () {
+  var datos = null;
+
+  function cargar() {
+    if (datos) return datos;
+    datos = GMM.util.leerJSON(GMM.config.CLAVE_BIBLIOTECA, null);
+    if (!datos || typeof datos !== "object" || Array.isArray(datos)) datos = {};
+    return datos;
+  }
+
+  function guardarDisco() {
+    if (!GMM.util.guardarJSON(GMM.config.CLAVE_BIBLIOTECA, cargar())) {
+      GMM.ui.aviso("No se pudo guardar tu biblioteca en este navegador", "error");
+    }
+  }
+
+  function clave(id, tipoMedia) { return (tipoMedia === "tv" ? "tv" : "movie") + ":" + Number(id); }
+
+  /* Guarda (o actualiza) el enlace a tu copia de un título. Guarda una copia
+     mínima de la ficha para poder pintar "Mis compras" sin volver a la API. */
+  function guardar(pelicula, enlace) {
+    var texto = String(enlace || "").trim();
+    if (!texto) return false;
+    cargar()[clave(pelicula.id, pelicula.tipo)] = {
+      id: Number(pelicula.id),
+      tipo: pelicula.tipo === "tv" ? "tv" : "movie",
+      title: pelicula.title || pelicula.name || "Sin título",
+      poster_path: pelicula.poster_path || null,
+      release_date: pelicula.release_date || pelicula.first_air_date || "",
+      original_language: pelicula.original_language || "",
+      enlace: texto,
+      guardada: new Date().toISOString()
+    };
+    guardarDisco();
+    return true;
+  }
+
+  function quitar(id, tipoMedia) {
+    var k = clave(id, tipoMedia);
+    if (cargar()[k]) { delete cargar()[k]; guardarDisco(); }
+  }
+
+  function entrada(id, tipoMedia) { return cargar()[clave(id, tipoMedia)] || null; }
+  function tiene(id, tipoMedia) { return !!entrada(id, tipoMedia); }
+
+  /* Todas las copias, de la más reciente a la más antigua. */
+  function todas() {
+    var m = cargar(), salida = [], k;
+    for (k in m) if (m.hasOwnProperty(k)) salida.push(m[k]);
+    salida.sort(function (a, b) { return String(b.guardada || "").localeCompare(String(a.guardada || "")); });
+    return salida;
+  }
+
+  function total() { return todas().length; }
+
+  return {
+    guardar: guardar, quitar: quitar, entrada: entrada, tiene: tiene,
+    todas: todas, total: total, clave: clave
+  };
+})();
+
+
+/* ══════════════════════════════════════════════════════════════════════
    BLOQUE JS 8 — INTERFAZ Y PINTADO                       → futuro js/ui.js
    ══════════════════════════════════════════════════════════════════════ */
 
@@ -3063,6 +3194,13 @@ GMM.ui = (function () {
     contador.textContent = total;
     contador.className = "contador-listas" + (total ? "" : " vacio");
 
+    var totalBib = GMM.biblioteca.total();
+    var contadorBib = $("contadorBiblioteca");
+    if (contadorBib) {
+      contadorBib.textContent = totalBib;
+      contadorBib.className = "contador-listas" + (totalBib ? "" : " vacio");
+    }
+
     /* Punto de estado: verde si hay clave (datos en vivo), naranja en demo. */
     var punto = $("pastillaModo");
     if (GMM.tmdb.hayClave()) {
@@ -3171,10 +3309,50 @@ GMM.ui = (function () {
     '</details>';
   }
 
+  /* ---- "Mi copia": el enlace a tu archivo del título (Nivel 1) ---- */
+  function miCopiaHtml(pelicula) {
+    var tipoMedia = pelicula.tipo === "tv" ? "tv" : "movie";
+    var guardada = GMM.biblioteca.entrada(pelicula.id, tipoMedia);
+    /* Igual que los botones de lista, la ficha mínima viaja en el DOM para que
+       Guardar/Quitar no dependan de tener el objeto peli a mano. */
+    var datos = ' data-peli="' + GMM.util.esc(JSON.stringify({
+      id: pelicula.id, tipo: tipoMedia, title: pelicula.title || pelicula.name,
+      poster_path: pelicula.poster_path,
+      release_date: pelicula.release_date || pelicula.first_air_date,
+      original_language: pelicula.original_language
+    })) + '"';
+
+    var acciones = "", fuente = "";
+    if (guardada) {
+      var e = GMM.util.enlaceCopia(guardada.enlace);
+      fuente = ' <span class="mi-copia-fuente">' + (e && e.tipo === "drive" ? "Google Drive" : "enlace guardado") + '</span>';
+      if (e) {
+        acciones = '<div class="mi-copia-acciones">' +
+          '<a class="boton-sec acento" href="' + GMM.util.esc(e.reproducir) + '" target="_blank" rel="noopener">&#9654; Reproducir</a>' +
+          '<a class="boton-sec" href="' + GMM.util.esc(e.descargar) + '" target="_blank" rel="noopener"' +
+            (e.tipo === "drive" ? "" : " download") + '>&#11015; Descargar</a>' +
+          '<button class="boton-sec peligro" data-copia-quitar>&#128465; Quitar</button>' +
+        '</div>';
+      }
+    }
+
+    return '<div class="mi-copia"' + datos + '>' +
+      '<div class="mi-copia-cab"><span aria-hidden="true">&#128193;</span> Mi copia' + fuente + '</div>' +
+      acciones +
+      '<div class="mi-copia-form">' +
+        '<input class="mi-copia-input" type="url" inputmode="url" spellcheck="false" ' +
+          'placeholder="Pega el enlace de tu Drive, Mega o servidor…" value="' + GMM.util.esc(guardada ? guardada.enlace : "") + '">' +
+        '<button class="boton-sec acento" data-copia-guardar>' + (guardada ? "Actualizar enlace" : "Guardar mi copia") + '</button>' +
+      '</div>' +
+      '<div class="mi-copia-nota">Guarda el enlace a tu copia (Google Drive, Mega o tu servidor). ' +
+        '&#9654; y &#11015; la abren en una pesta&ntilde;a nueva. La b&uacute;squeda autom&aacute;tica en Drive llegar&aacute; en el Nivel 2.</div>' +
+    '</div>';
+  }
+
   return {
     $: $, aviso: aviso, caratula: caratula, logoPlataforma: logoPlataforma,
     botonesLista: botonesLista, tarjeta: tarjeta, tarjetaPais: tarjetaPais,
-    akaHtml: akaHtml, fichaTecnicaHtml: fichaTecnicaHtml,
+    akaHtml: akaHtml, fichaTecnicaHtml: fichaTecnicaHtml, miCopiaHtml: miCopiaHtml,
     esqueleto: esqueleto, estado: estado, bienvenida: bienvenida,
     refrescarCabecera: refrescarCabecera, refrescarBotonesLista: refrescarBotonesLista
   };
@@ -3584,6 +3762,9 @@ GMM.app = (function () {
        la ficha trae créditos; en demo, sin ellos, no se pinta. */
     html += GMM.ui.fichaTecnicaHtml(peli);
 
+    /* 2c · "Mi copia": el enlace a tu archivo del título (biblioteca, Nivel 1). */
+    html += GMM.ui.miCopiaHtml(peli);
+
     /* 3 · aviso sobre cómo se deduce el idioma */
     if (estado.idioma) {
       html += '<div class="nota-idioma">' +
@@ -3926,6 +4107,73 @@ GMM.app = (function () {
   }
 
   /* ---------------------------------------------------------------- */
+  /* Vista: mis compras (biblioteca)                                  */
+  /* ---------------------------------------------------------------- */
+
+  /* Botones de reproducir/descargar de una tarjeta de "Mis compras". */
+  function copiaHtml(item) {
+    var e = GMM.util.enlaceCopia(item.enlace);
+    if (!e) return "";
+    return '<div class="tarjeta-copia">' +
+      '<a class="boton-sec acento" href="' + GMM.util.esc(e.reproducir) + '" target="_blank" rel="noopener" title="Reproducir">&#9654;</a>' +
+      '<a class="boton-sec" href="' + GMM.util.esc(e.descargar) + '" target="_blank" rel="noopener"' +
+        (e.tipo === "drive" ? "" : " download") + ' title="Descargar">&#11015;</a>' +
+    '</div>';
+  }
+
+  function pintarBiblioteca() {
+    var items = GMM.biblioteca.todas();
+
+    if (!items.length) {
+      GMM.ui.estado("&#128193;", "Aún no has guardado compras",
+        "Abre la ficha de una película o serie y, en «Mi copia», pega el enlace a tu archivo (Google Drive, Mega o tu servidor). Aparecerá aquí con sus botones de reproducir y descargar.");
+      estado.vista = "biblioteca";
+      fijarPantalla();
+      return;
+    }
+
+    var html = '<div class="seccion-cab">' +
+      '<h3 class="seccion-tit">&#128193; Mis compras <small>' + items.length + '</small></h3>' +
+      '</div>' +
+      '<p class="estado-txt" style="margin:-6px 0 18px">Tus copias guardadas. &#9654; reproduce y &#11015; descarga, cada una en una pesta&ntilde;a nueva. Toca la car&aacute;tula para ver la ficha.</p>' +
+      '<div class="rejilla">' +
+        items.map(function (p) { return GMM.ui.tarjeta(p, copiaHtml(p)); }).join("") +
+      '</div>';
+
+    $("resultados").innerHTML = html;
+    estado.vista = "biblioteca";
+    fijarPantalla();
+  }
+
+  /* Guardar / quitar la copia desde el bloque "Mi copia" (ficha o modal).
+     Devuelve true si el clic era suyo. Repinta solo ese bloque en el sitio,
+     sin rehacer toda la vista. */
+  function alPulsarCopia(e) {
+    var g = e.target.closest("[data-copia-guardar]");
+    var q = e.target.closest("[data-copia-quitar]");
+    if (!g && !q) return false;
+    var bloque = (g || q).closest(".mi-copia");
+    if (!bloque) return true;
+    var peli;
+    try { peli = JSON.parse(bloque.getAttribute("data-peli")); } catch (err) { return true; }
+    if (g) {
+      var input = bloque.querySelector(".mi-copia-input");
+      var valor = input ? input.value.trim() : "";
+      if (!valor) { GMM.ui.aviso("Pega primero el enlace a tu copia", "info"); if (input) input.focus(); return true; }
+      GMM.biblioteca.guardar(peli, valor);
+      GMM.ui.aviso("Copia guardada en Mis compras", "ok");
+    } else {
+      GMM.biblioteca.quitar(peli.id, peli.tipo);
+      GMM.ui.aviso("Copia quitada de Mis compras", "info");
+    }
+    bloque.outerHTML = GMM.ui.miCopiaHtml(peli);
+    GMM.ui.refrescarCabecera();
+    /* Si estamos en la vista de "Mis compras", quitar/actualizar debe reflejarse. */
+    if (estado.vista === "biblioteca") pintarBiblioteca();
+    return true;
+  }
+
+  /* ---------------------------------------------------------------- */
   /* Modal de detalle                                                 */
   /* ---------------------------------------------------------------- */
 
@@ -3969,6 +4217,8 @@ GMM.app = (function () {
       '</div>';
 
       html += GMM.ui.fichaTecnicaHtml(peli);
+
+      html += GMM.ui.miCopiaHtml(peli);
 
       html += '<div class="resumen' + (frase.vacia ? " vacia" : "") + '" style="margin-bottom:18px">' +
                 '<span class="resumen-icono">' + (frase.vacia ? "&#128533;" : "&#127871;") + '</span>' +
@@ -4557,6 +4807,7 @@ GMM.app = (function () {
     $("resultados").addEventListener("click", function (e) {
       var nodo;
 
+      if (alPulsarCopia(e)) return;
       if ((nodo = e.target.closest("[data-ir-pagina]"))) { irAPagina(Number(nodo.getAttribute("data-ir-pagina"))); return; }
       if ((nodo = e.target.closest("[data-persona]"))) { abrirPersona(nodo.getAttribute("data-persona")); return; }
       if ((nodo = e.target.closest("[data-lista]"))) { alternarLista(nodo); return; }
@@ -4597,6 +4848,7 @@ GMM.app = (function () {
       var nodo;
       if (e.target === this) { cerrarCapa("capaDetalle"); return; }
       if ((nodo = e.target.closest("[data-cerrar]"))) { cerrarCapa(nodo.getAttribute("data-cerrar")); return; }
+      if (alPulsarCopia(e)) return;
       if ((nodo = e.target.closest("[data-persona]"))) {
         cerrarCapa("capaDetalle");
         abrirPersona(nodo.getAttribute("data-persona"));
@@ -4634,6 +4886,11 @@ GMM.app = (function () {
     /* --- cabecera --- */
     $("btnListas").addEventListener("click", function () {
       pintarListas();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    $("btnBiblioteca").addEventListener("click", function () {
+      pintarBiblioteca();
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
 
@@ -4741,6 +4998,7 @@ GMM.app = (function () {
     if (estado.vista === "pelicula") pintarPelicula();
     else if (estado.vista === "persona") pintarPersona();
     else if (estado.vista === "listas") pintarListas();
+    else if (estado.vista === "biblioteca") pintarBiblioteca();
   }
 
   /* ---------------------------------------------------------------- */

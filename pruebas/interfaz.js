@@ -650,6 +650,35 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
     persona.abrio === "Persona Probada", JSON.stringify(persona.abrio));
 
   /* ---------------------------------------------------------------- */
+  m.titulo("Mi copia y Mis compras (V GMM 0026, Nivel 1)");
+  const bib = await pagina.evaluate(async () => {
+    const peli = { id: 999001, tipo: "movie", title: "Prueba Copia", poster_path: null };
+    document.getElementById("resultados").innerHTML = GMM.ui.miCopiaHtml(peli);
+    document.querySelector("#resultados .mi-copia-input").value = "https://drive.google.com/file/d/TEST123abcd/view";
+    document.querySelector("#resultados [data-copia-guardar]").click();
+    await new Promise((r) => setTimeout(r, 60));
+    return {
+      reproducir: !!document.querySelector('#resultados .mi-copia-acciones a[href="https://drive.google.com/file/d/TEST123abcd/view"]'),
+      descargar: !!document.querySelector('#resultados .mi-copia-acciones a[href*="uc?export=download&id=TEST123abcd"]'),
+      enModelo: GMM.biblioteca.tiene(999001, "movie"),
+      contador: document.getElementById("contadorBiblioteca").textContent
+    };
+  });
+  m.afirmar("guardar la copia muestra ▶ Reproducir y ⬇ Descargar (Drive)",
+    bib.reproducir && bib.descargar, JSON.stringify(bib));
+  m.afirmar("la copia queda guardada y el contador de Mis compras sube",
+    bib.enModelo === true && bib.contador === "1", JSON.stringify(bib));
+
+  /* La barra vive tras el velo si el modal del formulario quedó abierto; se
+     cierra para poder pulsar «Mis compras» (como haría el usuario). */
+  await pagina.evaluate(() => { const c = document.getElementById("capaFormulario"); if (c) c.classList.add("oculto"); });
+  await pagina.click("#btnBiblioteca");
+  await pagina.waitForTimeout(200);
+  m.afirmar("«Mis compras» lista la copia con su botón de reproducir",
+    (await pagina.locator("#resultados .tarjeta").count()) >= 1 &&
+    (await pagina.locator('#resultados .tarjeta-copia a[href="https://drive.google.com/file/d/TEST123abcd/view"]').count()) === 1);
+
+  /* ---------------------------------------------------------------- */
   m.titulo("Errores acumulados en toda la sesión");
   m.afirmar("ninguno", errores.length === 0, errores.slice(0, 4).join(" | "));
 

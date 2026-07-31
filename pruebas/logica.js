@@ -165,6 +165,41 @@ try { GMM.listas.importar('{"cosa":1}'); } catch (e) { rechazado = true; }
 m.afirmar("rechaza un JSON con formato ajeno", rechazado);
 
 /* ---------------------------------------------------------------- */
+m.titulo("Mi biblioteca: enlaces a mis copias (V GMM 0026, Nivel 1)");
+
+const peliCopia = { id: 157336, tipo: "movie", title: "Interestelar", poster_path: "/p.jpg" };
+const serieCopia = { id: 157336, tipo: "tv", name: "Otra con el mismo id" };
+m.afirmar("empieza vacía", GMM.biblioteca.total() === 0);
+m.afirmar("guardar exige un enlace no vacío", GMM.biblioteca.guardar(peliCopia, "   ") === false);
+m.afirmar("guarda el enlace de una peli", GMM.biblioteca.guardar(peliCopia, "https://drive.google.com/file/d/AAA/view") === true);
+m.afirmar("la recupera con su enlace", GMM.biblioteca.entrada(157336, "movie").enlace.indexOf("AAA") !== -1);
+m.afirmar("indexa por tipo:id (peli y serie con el mismo id no se pisan)",
+  !GMM.biblioteca.tiene(157336, "tv") &&
+  GMM.biblioteca.guardar(serieCopia, "https://mega.nz/xyz") === true &&
+  GMM.biblioteca.total() === 2);
+m.afirmar("actualizar reemplaza el enlace, no duplica",
+  GMM.biblioteca.guardar(peliCopia, "https://mega.nz/nueva") === true &&
+  GMM.biblioteca.total() === 2 &&
+  GMM.biblioteca.entrada(157336, "movie").enlace === "https://mega.nz/nueva");
+m.afirmar("persiste en localStorage", (global.__almacen["gmm_biblioteca"] || "").includes("mega.nz/nueva"));
+GMM.biblioteca.quitar(157336, "movie");
+m.afirmar("quitar la elimina", !GMM.biblioteca.tiene(157336, "movie") && GMM.biblioteca.total() === 1);
+m.afirmar("todas() devuelve las entradas guardadas", GMM.biblioteca.todas().length === 1);
+
+m.titulo("Interpretación del enlace de la copia (GMM.util.enlaceCopia)");
+const eDrive = GMM.util.enlaceCopia("https://drive.google.com/file/d/1AbC-dEfGhIJ/view?usp=sharing");
+m.afirmar("un enlace de Drive saca el id y arma ver + descargar directa",
+  eDrive.tipo === "drive" &&
+  eDrive.reproducir === "https://drive.google.com/file/d/1AbC-dEfGhIJ/view" &&
+  eDrive.descargar === "https://drive.google.com/uc?export=download&id=1AbC-dEfGhIJ");
+m.afirmar("Drive con open?id también se reconoce",
+  GMM.util.enlaceCopia("https://drive.google.com/open?id=ZZZ-1234567").tipo === "drive");
+const eOtro = GMM.util.enlaceCopia("https://mega.nz/file/abc#clave");
+m.afirmar("cualquier otro enlace se usa tal cual para ver y descargar",
+  eOtro.tipo === "otro" && eOtro.reproducir === "https://mega.nz/file/abc#clave" && eOtro.descargar === eOtro.reproducir);
+m.afirmar("enlace vacío devuelve null", GMM.util.enlaceCopia("  ") === null);
+
+/* ---------------------------------------------------------------- */
 m.titulo("Utilidades");
 
 m.afirmar("enumerar 3 elementos", GMM.util.enumerar(["A", "B", "C"]) === "A, B y C");

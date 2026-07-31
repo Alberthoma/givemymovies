@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.25 · Aplicación V GMM 0025 · 31 de julio de 2026**
+**Documento v1.26 · Aplicación V GMM 0026 · 31 de julio de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies/>
 
 ---
@@ -295,6 +295,15 @@ pinta—. Está también en el modal de detalle rápido. El `<details>` nativo e
 sin JavaScript propio. **Desde V GMM 0025, el reparto y la dirección son clicables:** tocar la
 foto o el nombre de un actor/actriz, o el nombre del director/creador, abre la vista de persona
 con toda su filmografía (`abrirPersona`); por eso `fichaTecnica` conserva el `id` de cada persona.
+
+**2c · Mi copia (V GMM 0026, «Mi biblioteca» Nivel 1).** Una sección **«Mi copia»** donde el
+usuario pega el **enlace a su archivo** del título (Google Drive, Mega o su propio servidor). Se
+guarda en el navegador (`gmm_biblioteca`, indexado por `tipo:id`) y aparecen **▶ Reproducir** y
+**⬇ Descargar**, que abren el enlace en una pestaña nueva. `GMM.util.enlaceCopia` (pura) reconoce
+los enlaces de Drive (saca el id y arma la URL de ver y la de descarga directa) y deja el resto tal
+cual. Un botón **«Mis compras»** en la barra abre una cuadrícula con todo lo guardado. Es todo
+cliente: sin API, sin OAuth, sin librerías; funciona en doble clic y en la web. El **Nivel 2** —que
+la app busque sola en Drive y reproduzca dentro, vía OAuth— queda **pendiente** (plan en CLAUDE.md §11.3).
 
 **3 · Botones de listas.** ♥ Favorita · 🔖 Pendiente de ver.
 
@@ -630,6 +639,7 @@ en demo que en vivo.
 | `gmm_omdb_key` | Clave de la API de OMDb (opcional; notas de IMDb/RT/Metacritic) |
 | `gmm_prefs` | Modo, plataforma, país e idioma |
 | `gmm_listas` | `{ favoritas: [], pendientes: [] }` |
+| `gmm_biblioteca` | `{ "tipo:id": { title, poster_path, enlace, guardada, … } }` — «Mis compras» (V GMM 0026) |
 
 **OMDb como fuente secundaria opcional (V GMM 0016).** Módulo `GMM.omdb` (bloque JS 5b, futuro
 `js/omdb.js`), hermano de `GMM.tmdb`. `parsear(json)` → `{ imdb, rt, meta }` tolerando `"N/A"`
@@ -885,6 +895,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.26 | V GMM 0026 | 31-07-2026 | **«Mi biblioteca / Mis compras» (Nivel 1).** Por cada título, en su ficha y en el modal de detalle, una sección **«Mi copia»** donde pegas el **enlace a tu archivo** (Google Drive, Mega o tu servidor); se guarda en `localStorage` (`gmm_biblioteca`, por `tipo:id`) y aparecen **▶ Reproducir** y **⬇ Descargar**, que abren el enlace en pestaña nueva. Botón **«Mis compras»** en la barra → cuadrícula con lo guardado. Módulo `GMM.biblioteca` (bloque 7b) y helper puro `GMM.util.enlaceCopia` (de un enlace de Drive saca el id y arma ver + descarga directa; el resto se usa tal cual). Todo cliente, sin API/OAuth/librerías: va en doble clic y en la web. **Nivel 2 (buscar en Drive y reproducir dentro, vía OAuth) pendiente** (plan en CLAUDE.md §11.3). `sw.js` 23→24, `logica.js` 147→160, `interfaz.js` 113→116, `pwa.js` 20. |
 | 1.25 | V GMM 0025 | 31-07-2026 | **El reparto y la dirección de la ficha técnica llevan a la filmografía.** Tocar la foto o el nombre de un actor/actriz, o el nombre del director/creador, abre la vista de persona con toda su filmografía (`abrirPersona`). `GMM.util.fichaTecnica` conserva ahora el **id de persona**: `direccion` pasa a `{nombre, id}` (el `created_by` de serie también lo trae) y cada `reparto` lleva `id`. En la UI, el reparto es un `<button data-persona>` y la dirección otro; sin id quedan como texto. Se cablea con una delegación `[data-persona]` en `#resultados` y otra en `#capaDetalle` (que cierra el modal antes de abrir la persona). `sw.js` 22→23, `interfaz.js` 111→113. |
 | 1.24 | V GMM 0024 | 31-07-2026 | **Ficha técnica, filmografía de dirección y colecciones de género.** (1) La **filmografía** de una persona separa lo que **interpreta** de lo que **dirige** (`crew` con `job === "Director"`), vía `GMM.util.filmografiaConFacetas` (pura); la vista de persona las pinta en dos secciones dentro de un mismo `#rejillaFilmografia`, y buscar a un director ya no sale casi vacío. El desplegable de búsqueda pasa a «Actor / director». (2) **Ficha técnica plegable** (`<details>`) en la ficha y en el modal de detalle: Dirección/Creación, Guion, Música, Fotografía, País, Productora y **Reparto** (foto + actor + personaje); se pide con `append_to_response=…,credits` (sin llamada extra) y la extrae `GMM.util.fichaTecnica`; en serie la dirección es `created_by`; en demo (sin credits) no aparece. (3) **Colecciones** en el desplegable de género (grupo «Colecciones»): Marvel, DC, Anime y Bollywood (hindi) — `GMM.datos.COLECCIONES`, clave `col:`, atajos a `/discover` que `descubrir` fusiona en la consulta. **Marvel y DC abarcan toda la franquicia** basada en el cómic (X-Men, Spider-Man, Deadpool…), no solo el universo cinematográfico: la keyword del cómic se **resuelve por nombre en vivo** (`/search/keyword`, cacheado) porque su id no es estable —`9715` es «superhero»—, con los ids de universo (MCU/DCEU/DCU) de reserva; `GMM.util.combinarKeywords` los une. Anime = género 16 + idioma japonés; Bollywood = idioma hindi. **Premios (Oscar/Emmy) quedan fuera**: TMDB no publica premios. (4) **La nota de TMDB se pinta en todas las cuadrículas** (Descubrir, «Ver más», filmografía, listas), no solo en los carruseles: `GMM.ui.tarjeta` cae al `vote_average` y solo la oculta si es 0 (sin votos). `sw.js` 21→22, `logica.js` 125→147, `interfaz.js` 109→111, `pwa.js` 20. |
 | 1.23 | V GMM 0023 | 30-07-2026 | **Cinco carruseles en el inicio en vez de uno**, uno por categoría y a la vista a la vez, montados desde `GMM.config.CATEGORIAS_SUGERENCIA` por `montarCarruseles()` (pista `#carrusel-{clave}`, carga en paralelo, «Ver más» por bloque); se retiran el botón «Dame sugerencias», su modal y `estado.categoria`. **20 títulos por carrusel** (`TOP_CATEGORIA` 10→20, una petición por carrusel) e **insignia con la nota de TMDB** en cada carátula (`.tarjeta-nota`, solo si el ítem trae `tmdbNota`), retirando el rodeo por OMDb (`mejoresPorImdb`→`mejoresPorNota`). Delegación de clic única en `#descubrimiento`. `sw.js` 20→21, `logica.js` 120→125, `interfaz.js` 106→109. |
