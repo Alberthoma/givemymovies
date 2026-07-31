@@ -9,6 +9,7 @@
    ┌─────────────────────────┬───────────────────────────────────────────┐
    │ api.themoviedb.org      │ SOLO RED. Nunca se cachea.                │
    │ www.omdbapi.com         │ SOLO RED: las notas cambian con el tiempo.│
+   │ *.googleapis.com, Drive │ SOLO RED (otro origen): API de Drive N.2. │
    │ image.tmdb.org          │ Caché primero: una carátula no cambia.    │
    │ Navegación (index.html) │ Red primero, caché si no hay conexión.    │
    │ Resto del propio sitio  │ Caché primero: iconos, manifiesto.        │
@@ -20,7 +21,7 @@
 
 "use strict";
 
-var VERSION   = 24;
+var VERSION   = 25;
 var CACHE_APP = "gmm-app-v" + VERSION;
 var CACHE_IMG = "gmm-img-v" + VERSION;
 

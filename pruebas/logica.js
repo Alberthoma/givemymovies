@@ -199,6 +199,26 @@ m.afirmar("cualquier otro enlace se usa tal cual para ver y descargar",
   eOtro.tipo === "otro" && eOtro.reproducir === "https://mega.nz/file/abc#clave" && eOtro.descargar === eOtro.reproducir);
 m.afirmar("enlace vacío devuelve null", GMM.util.enlaceCopia("  ") === null);
 
+m.titulo("Google Drive: helpers puros del Nivel 2 (V GMM 0027)");
+const tok = GMM.util.leerTokenHash("#access_token=ABC123&expires_in=3600&token_type=Bearer");
+m.afirmar("lee el token del hash y calcula su caducidad futura",
+  tok.token === "ABC123" && tok.expira > Date.now() && tok.expira <= Date.now() + 3600 * 1000);
+m.afirmar("sin access_token devuelve null",
+  GMM.util.leerTokenHash("#state=x&error=denied") === null && GMM.util.leerTokenHash("") === null);
+m.afirmar("expires_in ausente cae a 1 hora",
+  Math.abs(GMM.util.leerTokenHash("#access_token=Z").expira - (Date.now() + 3600 * 1000)) < 2000);
+m.afirmar("la consulta de Drive pide vídeos por nombre y escapa las comillas",
+  GMM.util.consultaDrive("O'Brien") === "name contains 'O\\'Brien' and mimeType contains 'video/' and trashed = false");
+const authUrl = GMM.util.urlAuthDrive("CID.apps", "https://alberthoma.github.io/givemymovies/");
+m.afirmar("la URL de OAuth usa flujo implícito, scope de solo lectura y el client id",
+  authUrl.indexOf("accounts.google.com/o/oauth2/v2/auth") !== -1 &&
+  authUrl.indexOf("response_type=token") !== -1 &&
+  authUrl.indexOf(encodeURIComponent("https://www.googleapis.com/auth/drive.readonly")) !== -1 &&
+  authUrl.indexOf("client_id=CID.apps") !== -1);
+m.afirmar("el visor de Drive apunta al preview del archivo",
+  GMM.drive.urlPreview("XYZ") === "https://drive.google.com/file/d/XYZ/preview" &&
+  GMM.drive.enlaceVer("XYZ") === "https://drive.google.com/file/d/XYZ/view");
+
 /* ---------------------------------------------------------------- */
 m.titulo("Utilidades");
 

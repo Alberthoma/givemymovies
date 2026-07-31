@@ -596,6 +596,23 @@ a:hover { text-decoration: underline; }
   flex: 1 1 0; justify-content: center; text-decoration: none; padding: 8px 10px; font-size: 16px;
 }
 
+/* Búsqueda en Drive (Nivel 2) dentro de "Mi copia". */
+.mi-copia-drive-cab { margin-bottom: 10px; }
+.mi-copia-drive { margin-bottom: 12px; }
+.drive-lista { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.drive-item {
+  display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between;
+  padding: 9px 12px; border-radius: 10px; background: #0b0f14; border: 1px solid #22303e;
+}
+.drive-nombre { flex: 1 1 200px; min-width: 0; font-size: 13.5px; color: #e8f0f8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.drive-acc { display: flex; gap: 8px; flex-wrap: wrap; }
+.drive-acc .boton-sec { padding: 7px 12px; font-size: 13px; }
+
+/* Reproductor: el visor de Drive embebido, en 16:9. */
+.modal.reproductor { max-width: 960px; width: 96vw; }
+.repro-marco { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 12px; overflow: hidden; }
+.repro-marco iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
 /* --- botones de listas --- */
 .boton-lista {
   display: inline-flex; align-items: center; gap: 8px;
@@ -1115,7 +1132,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   <footer class="pie">
     <span>givemymovies · datos de disponibilidad vía TMDB / JustWatch</span>
     <span>Tus listas se guardan solo en este navegador</span>
-    <span id="version-app">V GMM 0026</span>
+    <span id="version-app">V GMM 0027</span>
   </footer>
 </div>
 
@@ -1159,6 +1176,26 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
         <li>Pídela en <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noopener">omdbapi.com/apikey.aspx</a> (plan <b>FREE!</b>).</li>
         <li><b>Activa</b> la clave desde el enlace que llega a tu correo.</li>
         <li>Pégala arriba.</li>
+      </ol>
+
+      <div style="border-top:1px solid #22303e;margin:20px 0 16px"></div>
+      <div class="campo-modal">
+        <label for="entradaGdrive">Google Drive <span style="color:#5e768c;font-weight:400">(opcional · Nivel 2)</span></label>
+        <input id="entradaGdrive" type="text" placeholder="Pega aquí tu Client ID de Google (…apps.googleusercontent.com)" spellcheck="false">
+      </div>
+      <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-top:2px">
+        <button class="boton-sec acento" id="btnConectarDrive">&#128273; Conectar con Drive</button>
+        <span id="estadoDrive" style="font-size:13px;color:#8ba0b6"></span>
+      </div>
+      <p style="font-size:13.5px;color:#8ba0b6;margin-top:10px">
+        <b>Opcional.</b> Conecta tu Google Drive para que la app <b>busque sola</b> tus copias por título
+        y las reproduzca dentro. Solo funciona en la <b>web publicada (HTTPS)</b>, no con doble clic, y
+        pide permiso de <b>solo lectura</b>. Sin esto sigues pudiendo pegar el enlace a mano (Nivel 1). Gratis:
+      </p>
+      <ol class="pasos">
+        <li>En <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">console.cloud.google.com</a> crea un proyecto y <b>activa la Google Drive API</b>.</li>
+        <li>Crea un <b>ID de cliente de OAuth</b> tipo <b>Aplicación web</b> y añade el origen <b>https://alberthoma.github.io</b>.</li>
+        <li>Pega aquí el <b>Client ID</b> y pulsa <b>Conectar con Drive</b>.</li>
       </ol>
 
       <div style="border-top:1px solid #22303e;margin:20px 0 16px"></div>
@@ -1290,6 +1327,18 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   </div>
 </div>
 
+<!-- Reproductor: el visor de Google Drive dentro de la app (Nivel 2). El iframe
+     usa la sesión de Google del navegador; no expone el token. -->
+<div class="capa oculto" id="capaReproductor">
+  <div class="modal ancho reproductor" role="dialog" aria-modal="true" aria-labelledby="tituloReproductor">
+    <div class="modal-cab">
+      <h3 class="modal-tit" id="tituloReproductor">Reproducir</h3>
+      <button class="modal-cerrar" data-cerrar="capaReproductor" aria-label="Cerrar">&#10005;</button>
+    </div>
+    <div class="modal-cuerpo" id="cuerpoReproductor"></div>
+  </div>
+</div>
+
 <div class="avisos" id="avisos" aria-live="polite"></div>
 
 <!-- Clave de TMDB cargada automáticamente. El archivo vive en PRIVADO/,
@@ -1324,6 +1373,7 @@ GMM.config = {
   CLAVE_PREFS:      "gmm_prefs",
   CLAVE_LISTAS:     "gmm_listas",
   CLAVE_BIBLIOTECA: "gmm_biblioteca",
+  CLAVE_GDRIVE_ID:  "gmm_gdrive_client_id",
 
   API:      "https://api.themoviedb.org/3",
   API_OMDB: "https://www.omdbapi.com/",
@@ -2150,6 +2200,47 @@ GMM.util.enlaceCopia = function (url) {
     };
   }
   return { tipo: "otro", reproducir: url, descargar: url };
+};
+
+/* --- Helpers de Google Drive (Nivel 2), puros y testables --- */
+
+/* Lee el fragmento (location.hash) al que Google devuelve el token del flujo
+   implícito: "#access_token=…&expires_in=3600&token_type=Bearer". Devuelve
+   { token, expira } (expira en epoch ms) o null si no hay token. */
+GMM.util.leerTokenHash = function (hash) {
+  hash = String(hash || "");
+  if (hash.charAt(0) === "#") hash = hash.slice(1);
+  if (!hash) return null;
+  var par = {}, partes = hash.split("&"), i, kv;
+  for (i = 0; i < partes.length; i++) {
+    kv = partes[i].split("=");
+    if (kv[0]) par[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || "");
+  }
+  if (!par.access_token) return null;
+  var segundos = Number(par.expires_in) || 3600;
+  return { token: par.access_token, expira: Date.now() + segundos * 1000 };
+};
+
+/* Arma el parámetro q de /drive/v3/files: vídeos cuyo nombre contiene el título,
+   sin la papelera. Escapa las comillas simples, que en la sintaxis de Drive se
+   duplican. Pura. */
+GMM.util.consultaDrive = function (titulo) {
+  var t = String(titulo || "").trim().replace(/'/g, "\\'");
+  return "name contains '" + t + "' and mimeType contains 'video/' and trashed = false";
+};
+
+/* URL de autorización de Google (flujo implícito, response_type=token). Pura:
+   recibe clientId y redirectUri y devuelve la URL a la que redirigir. */
+GMM.util.urlAuthDrive = function (clientId, redirectUri) {
+  var p = [
+    "client_id=" + encodeURIComponent(clientId),
+    "redirect_uri=" + encodeURIComponent(redirectUri),
+    "response_type=token",
+    "scope=" + encodeURIComponent("https://www.googleapis.com/auth/drive.readonly"),
+    "include_granted_scopes=true",
+    "prompt=consent"
+  ];
+  return "https://accounts.google.com/o/oauth2/v2/auth?" + p.join("&");
 };
 
 /* Une ids de palabra clave para el parámetro with_keywords de /discover: mezcla
@@ -3027,6 +3118,100 @@ GMM.biblioteca = (function () {
 
 
 /* ══════════════════════════════════════════════════════════════════════
+   BLOQUE JS 7c — GOOGLE DRIVE (Nivel 2)                 → futuro js/drive.js
+
+   "Nivel 2" de la biblioteca: conecta con TU Google Drive para buscar solos tus
+   archivos por título y reproducirlos dentro. Sin SDK de Google (es librería):
+   OAuth por FLUJO IMPLÍCITO (redirige a Google, vuelve con el token en el hash)
+   y la API REST de Drive con fetch a pelo. Permiso de SOLO LECTURA. El token
+   vive en sessionStorage y caduca a la hora; solo hace falta para BUSCAR (la
+   descarga/reproducción usan tu sesión de Google del navegador). Solo va sobre
+   HTTPS: en file:// no hay origen válido para OAuth. ══════════════════════════ */
+
+GMM.drive = (function () {
+  var TOKEN = "gmm_gdrive_token", EXP = "gmm_gdrive_exp";
+
+  function seguro() { return location.protocol === "https:" || location.hostname === "localhost"; }
+
+  function clientId() { return (localStorage.getItem(GMM.config.CLAVE_GDRIVE_ID) || "").trim(); }
+  function guardarClientId(v) {
+    try {
+      v = String(v || "").trim();
+      if (v) localStorage.setItem(GMM.config.CLAVE_GDRIVE_ID, v);
+      else localStorage.removeItem(GMM.config.CLAVE_GDRIVE_ID);
+    } catch (e) {}
+  }
+
+  function guardarToken(t) {
+    try { sessionStorage.setItem(TOKEN, t.token); sessionStorage.setItem(EXP, String(t.expira)); } catch (e) {}
+  }
+  function token() {
+    try {
+      var t = sessionStorage.getItem(TOKEN), e = Number(sessionStorage.getItem(EXP));
+      if (t && e && Date.now() < e) return t;
+    } catch (err) {}
+    return null;
+  }
+  function conectado() { return !!token(); }
+  function desconectar() {
+    try { sessionStorage.removeItem(TOKEN); sessionStorage.removeItem(EXP); } catch (e) {}
+  }
+
+  function redirectUri() { return location.origin + location.pathname; }
+
+  /* Si Google acaba de devolver el token en el hash, lo guarda y limpia la URL
+     para que no quede el token a la vista ni se reprocese al recargar. */
+  function capturarToken() {
+    var t = GMM.util.leerTokenHash(location.hash);
+    if (!t) return false;
+    guardarToken(t);
+    try { history.replaceState(null, "", redirectUri() + location.search); }
+    catch (e) { location.hash = ""; }
+    return true;
+  }
+
+  function conectar() {
+    var id = clientId();
+    if (!id) { GMM.ui.aviso("Pega antes tu Client ID de Google en Ajustes", "info"); return false; }
+    if (!seguro()) {
+      GMM.ui.aviso("Conectar con Drive solo funciona en la web publicada (https), no con doble clic", "error");
+      return false;
+    }
+    location.href = GMM.util.urlAuthDrive(id, redirectUri());
+    return true;
+  }
+
+  /* Busca vídeos por título en el Drive del usuario. Nunca lanza: si falla o el
+     token caducó (401), desconecta y devuelve []. */
+  function buscar(titulo) {
+    var t = token();
+    if (!t) return Promise.resolve([]);
+    var url = "https://www.googleapis.com/drive/v3/files?q=" +
+      encodeURIComponent(GMM.util.consultaDrive(titulo)) +
+      "&fields=" + encodeURIComponent("files(id,name,mimeType,size)") +
+      "&pageSize=10&orderBy=name";
+    return fetch(url, { headers: { Authorization: "Bearer " + t } })
+      .then(function (r) {
+        if (r.status === 401) { desconectar(); return { files: [] }; }
+        return r.ok ? r.json() : { files: [] };
+      })
+      .then(function (d) { return d.files || []; })
+      .catch(function () { return []; });
+  }
+
+  function urlPreview(id) { return "https://drive.google.com/file/d/" + id + "/preview"; }
+  function enlaceVer(id) { return "https://drive.google.com/file/d/" + id + "/view"; }
+
+  return {
+    seguro: seguro, clientId: clientId, guardarClientId: guardarClientId,
+    conectado: conectado, conectar: conectar, desconectar: desconectar,
+    capturarToken: capturarToken, buscar: buscar,
+    urlPreview: urlPreview, enlaceVer: enlaceVer
+  };
+})();
+
+
+/* ══════════════════════════════════════════════════════════════════════
    BLOQUE JS 8 — INTERFAZ Y PINTADO                       → futuro js/ui.js
    ══════════════════════════════════════════════════════════════════════ */
 
@@ -3336,16 +3521,31 @@ GMM.ui = (function () {
       }
     }
 
+    /* Nivel 2: si Drive está conectado, un botón para que la app busque sola
+       esta copia por su título. Los resultados se pintan en el contenedor. */
+    var drive = "";
+    if (GMM.drive.conectado()) {
+      drive = '<div class="mi-copia-drive-cab">' +
+          '<button class="boton-sec" data-drive-buscar>&#128269; Buscar en mi Drive</button>' +
+        '</div>' +
+        '<div class="mi-copia-drive" data-drive-resultados></div>';
+    }
+
     return '<div class="mi-copia"' + datos + '>' +
       '<div class="mi-copia-cab"><span aria-hidden="true">&#128193;</span> Mi copia' + fuente + '</div>' +
       acciones +
+      drive +
       '<div class="mi-copia-form">' +
         '<input class="mi-copia-input" type="url" inputmode="url" spellcheck="false" ' +
           'placeholder="Pega el enlace de tu Drive, Mega o servidor…" value="' + GMM.util.esc(guardada ? guardada.enlace : "") + '">' +
         '<button class="boton-sec acento" data-copia-guardar>' + (guardada ? "Actualizar enlace" : "Guardar mi copia") + '</button>' +
       '</div>' +
       '<div class="mi-copia-nota">Guarda el enlace a tu copia (Google Drive, Mega o tu servidor). ' +
-        '&#9654; y &#11015; la abren en una pesta&ntilde;a nueva. La b&uacute;squeda autom&aacute;tica en Drive llegar&aacute; en el Nivel 2.</div>' +
+        '&#9654; y &#11015; la abren en una pesta&ntilde;a nueva.' +
+        (GMM.drive.conectado()
+          ? ' Con Drive conectado, <b>Buscar en mi Drive</b> la encuentra sola.'
+          : ' Conecta tu Google Drive en &#9881; para que la app la busque sola (Nivel 2).') +
+      '</div>' +
     '</div>';
   }
 
@@ -4173,6 +4373,65 @@ GMM.app = (function () {
     return true;
   }
 
+  /* ---- Nivel 2: buscar en Drive, reproducir dentro, guardar el hallazgo ---- */
+  function resultadosDriveHtml(files) {
+    if (!files.length) {
+      return '<p class="mi-copia-nota">No encontr&eacute; ese t&iacute;tulo entre tus v&iacute;deos de Drive. ' +
+             'Revisa que el archivo se llame parecido al t&iacute;tulo.</p>';
+    }
+    return '<ul class="drive-lista">' + files.map(function (f) {
+      return '<li class="drive-item">' +
+        '<span class="drive-nombre" title="' + GMM.util.esc(f.name) + '">' + GMM.util.esc(f.name) + '</span>' +
+        '<span class="drive-acc">' +
+          '<button class="boton-sec acento" data-drive-ver="' + GMM.util.esc(f.id) + '" data-drive-nombre="' + GMM.util.esc(f.name) + '">&#9654; Reproducir</button>' +
+          '<button class="boton-sec" data-drive-guardar="' + GMM.util.esc(f.id) + '">Guardar</button>' +
+        '</span></li>';
+    }).join("") + '</ul>';
+  }
+
+  function reproducirDrive(id, nombre) {
+    $("tituloReproductor").textContent = nombre || "Reproducir";
+    $("cuerpoReproductor").innerHTML =
+      '<div class="repro-marco"><iframe src="' + GMM.util.esc(GMM.drive.urlPreview(id)) +
+      '" allow="autoplay; fullscreen" allowfullscreen></iframe></div>';
+    $("capaReproductor").classList.remove("oculto");
+  }
+
+  function alPulsarDrive(e) {
+    var buscar = e.target.closest("[data-drive-buscar]");
+    var ver = e.target.closest("[data-drive-ver]");
+    var guardar = e.target.closest("[data-drive-guardar]");
+    if (!buscar && !ver && !guardar) return false;
+
+    if (ver) { reproducirDrive(ver.getAttribute("data-drive-ver"), ver.getAttribute("data-drive-nombre")); return true; }
+
+    var bloque = e.target.closest(".mi-copia");
+    if (!bloque) return true;
+    var peli;
+    try { peli = JSON.parse(bloque.getAttribute("data-peli")); } catch (err) { return true; }
+
+    if (buscar) {
+      var cont = bloque.querySelector("[data-drive-resultados]");
+      if (cont) cont.innerHTML = '<p class="mi-copia-nota">Buscando en tu Drive&hellip;</p>';
+      buscar.disabled = true;
+      GMM.drive.buscar(peli.title || peli.name).then(function (files) {
+        buscar.disabled = false;
+        if (cont) cont.innerHTML = resultadosDriveHtml(files);
+      });
+      return true;
+    }
+
+    if (guardar) {
+      GMM.biblioteca.guardar(peli, GMM.drive.enlaceVer(guardar.getAttribute("data-drive-guardar")));
+      GMM.ui.aviso("Copia de Drive guardada en Mis compras", "ok");
+      bloque.outerHTML = GMM.ui.miCopiaHtml(peli);
+      GMM.ui.refrescarCabecera();
+      if (estado.vista === "biblioteca") pintarBiblioteca();
+      return true;
+    }
+    return true;
+  }
+
   /* ---------------------------------------------------------------- */
   /* Modal de detalle                                                 */
   /* ---------------------------------------------------------------- */
@@ -4246,7 +4505,12 @@ GMM.app = (function () {
     });
   }
 
-  function cerrarCapa(id) { $(id).classList.add("oculto"); }
+  function cerrarCapa(id) {
+    $(id).classList.add("oculto");
+    /* Al cerrar el reproductor hay que vaciar el iframe: si no, el vídeo de
+       Drive sigue sonando por detrás. */
+    if (id === "capaReproductor") { var c = $("cuerpoReproductor"); if (c) c.innerHTML = ""; }
+  }
   function abrirCapa(id) { $(id).classList.remove("oculto"); }
 
   /* El desplegable de orden de la barra de resultados. */
@@ -4808,6 +5072,7 @@ GMM.app = (function () {
       var nodo;
 
       if (alPulsarCopia(e)) return;
+      if (alPulsarDrive(e)) return;
       if ((nodo = e.target.closest("[data-ir-pagina]"))) { irAPagina(Number(nodo.getAttribute("data-ir-pagina"))); return; }
       if ((nodo = e.target.closest("[data-persona]"))) { abrirPersona(nodo.getAttribute("data-persona")); return; }
       if ((nodo = e.target.closest("[data-lista]"))) { alternarLista(nodo); return; }
@@ -4849,6 +5114,7 @@ GMM.app = (function () {
       if (e.target === this) { cerrarCapa("capaDetalle"); return; }
       if ((nodo = e.target.closest("[data-cerrar]"))) { cerrarCapa(nodo.getAttribute("data-cerrar")); return; }
       if (alPulsarCopia(e)) return;
+      if (alPulsarDrive(e)) return;
       if ((nodo = e.target.closest("[data-persona]"))) {
         cerrarCapa("capaDetalle");
         abrirPersona(nodo.getAttribute("data-persona"));
@@ -4865,7 +5131,7 @@ GMM.app = (function () {
     /* Las capas con formulario se cierran con la X, pulsando el fondo o con
        Escape. Mismo comportamiento en las dos, para que no haya que aprenderse
        una excepción por modal. */
-    ["capaAjustes", "capaFormulario"].forEach(function (id) {
+    ["capaAjustes", "capaFormulario", "capaReproductor"].forEach(function (id) {
       $(id).addEventListener("click", function (e) {
         var nodo;
         if (e.target === this) { cerrarCapa(id); return; }
@@ -4875,6 +5141,7 @@ GMM.app = (function () {
 
     document.addEventListener("keydown", function (e) {
       if (e.key !== "Escape") return;
+      cerrarCapa("capaReproductor");
       cerrarCapa("capaDetalle");
       cerrarCapa("capaAjustes");
       /* Si el autocompletado estaba desplegado, su propio manejador ya se ha
@@ -4897,9 +5164,20 @@ GMM.app = (function () {
     /* --- flecha volver a la búsqueda --- */
     $("btnVolver").addEventListener("click", irAInicio);
 
+    function reflejarEstadoDrive() {
+      var el = $("estadoDrive");
+      if (!el) return;
+      if (GMM.drive.conectado()) { el.textContent = "Conectado ✓"; el.style.color = "#6ff0c4"; }
+      else if (!GMM.drive.seguro()) { el.textContent = "Solo en la web (https), no con doble clic"; el.style.color = "#ffb37d"; }
+      else if (GMM.drive.clientId()) { el.textContent = "Sin conectar"; el.style.color = "#8ba0b6"; }
+      else { el.textContent = "Pega tu Client ID y conecta"; el.style.color = "#8ba0b6"; }
+    }
+
     $("btnAjustes").addEventListener("click", function () {
       $("entradaClave").value = GMM.tmdb.clave();
       $("entradaClaveOmdb").value = GMM.omdb.clave();
+      $("entradaGdrive").value = GMM.drive.clientId();
+      reflejarEstadoDrive();
       $("capaAjustes").classList.remove("oculto");
       $("entradaClave").focus();
     });
@@ -4908,10 +5186,19 @@ GMM.app = (function () {
       var valor = $("entradaClave").value.trim();
       GMM.tmdb.guardarClave(valor);
       GMM.omdb.guardarClave($("entradaClaveOmdb").value);
+      GMM.drive.guardarClientId($("entradaGdrive").value);
       cerrarCapa("capaAjustes");
       GMM.ui.refrescarCabecera();
       montarPlataformas();
       GMM.ui.aviso(valor ? "Clave guardada. Ya usas datos en vivo." : "Clave borrada. Vuelves al modo demo.", "ok");
+    });
+
+    /* Conectar con Drive: guarda el Client ID que haya en el campo y arranca el
+       login de Google (redirige y vuelve con el token). */
+    $("btnConectarDrive").addEventListener("click", function () {
+      GMM.drive.guardarClientId($("entradaGdrive").value);
+      reflejarEstadoDrive();
+      GMM.drive.conectar();
     });
 
     $("entradaClave").addEventListener("keydown", function (e) {
@@ -5205,6 +5492,12 @@ GMM.app = (function () {
 
   function iniciar() {
     cargarPrefs();
+
+    /* Si volvemos del login de Google, el token viene en el hash: lo guardamos
+       y limpiamos la URL antes de pintar nada. */
+    if (GMM.drive.capturarToken()) {
+      setTimeout(function () { GMM.ui.aviso("Google Drive conectado ✓", "ok"); }, 600);
+    }
 
     montarIdiomas();
     montarPaises();

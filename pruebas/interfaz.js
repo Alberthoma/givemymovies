@@ -679,6 +679,36 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
     (await pagina.locator('#resultados .tarjeta-copia a[href="https://drive.google.com/file/d/TEST123abcd/view"]').count()) === 1);
 
   /* ---------------------------------------------------------------- */
+  m.titulo("Buscar en mi Drive dentro de «Mi copia» (V GMM 0027, Nivel 2, stub)");
+  const drive = await pagina.evaluate(async () => {
+    /* Sin Client ID real no se puede hacer OAuth; se stubea Drive conectado y
+       una búsqueda que devuelve un archivo, para probar el cableado de la UI. */
+    GMM.drive.conectado = () => true;
+    GMM.drive.buscar = () => Promise.resolve([{ id: "FILE9", name: "Prueba (2020).mkv", mimeType: "video/x-matroska" }]);
+    const peli = { id: 999002, tipo: "movie", title: "Prueba", poster_path: null };
+    document.getElementById("resultados").innerHTML = GMM.ui.miCopiaHtml(peli);
+    const hayBoton = !!document.querySelector('#resultados [data-drive-buscar]');
+    document.querySelector('#resultados [data-drive-buscar]').click();
+    await new Promise((r) => setTimeout(r, 80));
+    const hayResultado = !!document.querySelector('#resultados [data-drive-ver="FILE9"]');
+    document.querySelector('#resultados [data-drive-ver="FILE9"]').click();
+    const reproAbierto = !document.getElementById("capaReproductor").classList.contains("oculto");
+    const iframeSrc = (document.querySelector("#cuerpoReproductor iframe") || {}).src || "";
+    document.querySelector('#resultados [data-drive-guardar="FILE9"]').click();
+    const ent = GMM.biblioteca.entrada(999002, "movie");
+    /* Cerrar el visor para no dejar el iframe pidiendo a Drive. */
+    document.getElementById("capaReproductor").classList.add("oculto");
+    document.getElementById("cuerpoReproductor").innerHTML = "";
+    return { hayBoton, hayResultado, reproAbierto, iframeSrc, guardado: !!ent, enlace: ent ? ent.enlace : "" };
+  });
+  m.afirmar("con Drive conectado aparece «🔎 Buscar en mi Drive»", drive.hayBoton === true, JSON.stringify(drive));
+  m.afirmar("la búsqueda pinta el archivo encontrado", drive.hayResultado === true);
+  m.afirmar("Reproducir abre el visor de Drive embebido (iframe /preview)",
+    drive.reproAbierto === true && drive.iframeSrc.indexOf("/file/d/FILE9/preview") !== -1, JSON.stringify(drive));
+  m.afirmar("Guardar deja el hallazgo como Mi copia (enlace de Drive)",
+    drive.guardado === true && drive.enlace.indexOf("/file/d/FILE9/view") !== -1, JSON.stringify(drive));
+
+  /* ---------------------------------------------------------------- */
   m.titulo("Errores acumulados en toda la sesión");
   m.afirmar("ninguno", errores.length === 0, errores.slice(0, 4).join(" | "));
 
