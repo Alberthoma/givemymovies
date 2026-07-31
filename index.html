@@ -607,6 +607,7 @@ a:hover { text-decoration: underline; }
 .drive-nombre { flex: 1 1 200px; min-width: 0; font-size: 13.5px; color: #e8f0f8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .drive-acc { display: flex; gap: 8px; flex-wrap: wrap; }
 .drive-acc .boton-sec { padding: 7px 12px; font-size: 13px; }
+.drive-acc a.boton-sec { text-decoration: none; }
 
 /* Reproductor: el visor de Drive embebido, en 16:9. */
 .modal.reproductor { max-width: 960px; width: 96vw; }
@@ -3200,13 +3201,14 @@ GMM.drive = (function () {
   }
 
   function urlPreview(id) { return "https://drive.google.com/file/d/" + id + "/preview"; }
+  function urlDescarga(id) { return "https://drive.google.com/uc?export=download&id=" + id; }
   function enlaceVer(id) { return "https://drive.google.com/file/d/" + id + "/view"; }
 
   return {
     seguro: seguro, clientId: clientId, guardarClientId: guardarClientId,
     conectado: conectado, conectar: conectar, desconectar: desconectar,
     capturarToken: capturarToken, buscar: buscar,
-    urlPreview: urlPreview, enlaceVer: enlaceVer
+    urlPreview: urlPreview, urlDescarga: urlDescarga, enlaceVer: enlaceVer
   };
 })();
 
@@ -4380,11 +4382,13 @@ GMM.app = (function () {
              'Revisa que el archivo se llame parecido al t&iacute;tulo.</p>';
     }
     return '<ul class="drive-lista">' + files.map(function (f) {
+      var id = GMM.util.esc(f.id);
       return '<li class="drive-item">' +
         '<span class="drive-nombre" title="' + GMM.util.esc(f.name) + '">' + GMM.util.esc(f.name) + '</span>' +
         '<span class="drive-acc">' +
-          '<button class="boton-sec acento" data-drive-ver="' + GMM.util.esc(f.id) + '" data-drive-nombre="' + GMM.util.esc(f.name) + '">&#9654; Reproducir</button>' +
-          '<button class="boton-sec" data-drive-guardar="' + GMM.util.esc(f.id) + '">Guardar</button>' +
+          '<button class="boton-sec acento" data-drive-ver="' + id + '" data-drive-nombre="' + GMM.util.esc(f.name) + '">&#9654; Reproducir</button>' +
+          '<a class="boton-sec" href="' + GMM.util.esc(GMM.drive.urlDescarga(f.id)) + '" target="_blank" rel="noopener">&#11015; Descargar</a>' +
+          '<button class="boton-sec" data-drive-guardar="' + id + '" title="Asigna este archivo a la ficha (reproducir y descargar)">Guardar en la ficha</button>' +
         '</span></li>';
     }).join("") + '</ul>';
   }

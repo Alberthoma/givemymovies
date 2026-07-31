@@ -215,8 +215,9 @@ m.afirmar("la URL de OAuth usa flujo implícito, scope de solo lectura y el clie
   authUrl.indexOf("response_type=token") !== -1 &&
   authUrl.indexOf(encodeURIComponent("https://www.googleapis.com/auth/drive.readonly")) !== -1 &&
   authUrl.indexOf("client_id=CID.apps") !== -1);
-m.afirmar("el visor de Drive apunta al preview del archivo",
+m.afirmar("el visor, la descarga directa y el enlace de ficha de Drive",
   GMM.drive.urlPreview("XYZ") === "https://drive.google.com/file/d/XYZ/preview" &&
+  GMM.drive.urlDescarga("XYZ") === "https://drive.google.com/uc?export=download&id=XYZ" &&
   GMM.drive.enlaceVer("XYZ") === "https://drive.google.com/file/d/XYZ/view");
 
 /* ---------------------------------------------------------------- */

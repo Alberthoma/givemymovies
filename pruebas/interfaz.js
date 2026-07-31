@@ -691,6 +691,7 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
     document.querySelector('#resultados [data-drive-buscar]').click();
     await new Promise((r) => setTimeout(r, 80));
     const hayResultado = !!document.querySelector('#resultados [data-drive-ver="FILE9"]');
+    const hayDescarga = !!document.querySelector('#resultados .drive-acc a[href*="uc?export=download&id=FILE9"]');
     document.querySelector('#resultados [data-drive-ver="FILE9"]').click();
     const reproAbierto = !document.getElementById("capaReproductor").classList.contains("oculto");
     const iframeSrc = (document.querySelector("#cuerpoReproductor iframe") || {}).src || "";
@@ -699,10 +700,10 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
     /* Cerrar el visor para no dejar el iframe pidiendo a Drive. */
     document.getElementById("capaReproductor").classList.add("oculto");
     document.getElementById("cuerpoReproductor").innerHTML = "";
-    return { hayBoton, hayResultado, reproAbierto, iframeSrc, guardado: !!ent, enlace: ent ? ent.enlace : "" };
+    return { hayBoton, hayResultado, hayDescarga, reproAbierto, iframeSrc, guardado: !!ent, enlace: ent ? ent.enlace : "" };
   });
   m.afirmar("con Drive conectado aparece «🔎 Buscar en mi Drive»", drive.hayBoton === true, JSON.stringify(drive));
-  m.afirmar("la búsqueda pinta el archivo encontrado", drive.hayResultado === true);
+  m.afirmar("la búsqueda pinta el archivo encontrado, con ⬇ Descargar directo", drive.hayResultado === true && drive.hayDescarga === true, JSON.stringify(drive));
   m.afirmar("Reproducir abre el visor de Drive embebido (iframe /preview)",
     drive.reproAbierto === true && drive.iframeSrc.indexOf("/file/d/FILE9/preview") !== -1, JSON.stringify(drive));
   m.afirmar("Guardar deja el hallazgo como Mi copia (enlace de Drive)",
