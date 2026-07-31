@@ -1492,16 +1492,23 @@ GMM.datos.generos = function (tipo) {
    campo estado.genero vale para ambos— y cada una lleva los parámetros extra que
    se fusionan en la consulta.
 
-   Etiquetas honestas (§2): "Marvel (MCU)" y "DC (universo)" porque eso es lo que
-   devuelven las keywords —el universo cinematográfico—, no todo lo basado en el
-   cómic. Los ids están verificados contra themoviedb.org:
+   Marvel y DC quieren TODA la franquicia (películas y series basadas en el cómic:
+   X-Men, Spider-Man, Deadpool… no solo el universo cinematográfico). La keyword
+   del cómic base ("marvel comic" / "dc comics") es la que lo etiqueta, pero su id
+   no es estable ni fácil de verificar sin clave —9715, por ejemplo, resultó ser
+   "superhero", no "marvel comic"—. Por eso NO se fija el id: se **resuelve por
+   nombre en vivo** con /search/keyword (misma tubería que la búsqueda por trama),
+   y se le suman como red de seguridad los ids del universo cinematográfico, esos
+   sí verificados contra themoviedb.org:
      180547 = "marvel cinematic universe (mcu)"
      229266 = "dc extended universe (dceu)" · 312528 = "dc universe (dcu)"
-   Anime e Hindi no necesitan id: se resuelven con género + idioma original, que
-   funciona igual para película y serie. */
+   Anime e Hindi no necesitan keyword: se resuelven con género + idioma original,
+   que funciona igual para película y serie. */
 GMM.datos.COLECCIONES = [
-  { clave: "col:marvel", nombre: "Marvel (MCU)",     params: { with_keywords: "180547" } },
-  { clave: "col:dc",     nombre: "DC (universo)",    params: { with_keywords: "229266|312528" } },
+  { clave: "col:marvel", nombre: "Marvel",
+    keywordsPorNombre: ["marvel comic"], keywordsFallback: ["180547"], params: {} },
+  { clave: "col:dc",     nombre: "DC",
+    keywordsPorNombre: ["dc comics"], keywordsFallback: ["229266", "312528"], params: {} },
   { clave: "col:anime",  nombre: "Anime",           params: { with_genres: "16", with_original_language: "ja" } },
   { clave: "col:hindi",  nombre: "Bollywood (hindi)", params: { with_original_language: "hi" } }
 ];
@@ -2056,6 +2063,21 @@ GMM.util.fichaTecnica = function (peli) {
   };
 };
 
+/* Une ids de palabra clave para el parámetro with_keywords de /discover: mezcla
+   los resueltos en vivo con los de reserva, descarta vacíos y duplicados y los
+   une con "|" (que TMDB interpreta como O lógico). Pura, para poder probarla. */
+GMM.util.combinarKeywords = function (resueltos, reserva) {
+  var todas = (resueltos || []).concat(reserva || []);
+  var vistos = {}, salida = [];
+  todas.forEach(function (x) {
+    if (x === null || x === undefined) return;
+    var s = String(x).trim();
+    if (!s || vistos[s]) return;
+    vistos[s] = true; salida.push(s);
+  });
+  return salida.join("|");
+};
+
 /* True si la ficha técnica trae algo que enseñar; evita pintar el desplegable
    vacío cuando la ficha llegó sin credits (p. ej. en el catálogo de ejemplo). */
 GMM.util.tieneFichaTecnica = function (ft) {
@@ -2312,6 +2334,36 @@ GMM.tmdb = (function () {
     return tipo === "tv" ? serie(id) : pelicula(id);
   }
 
+  /* Resuelve el id de una palabra clave por su nombre (con caché en memoria),
+     para las colecciones Marvel/DC. No se fija el id porque no es estable; se
+     pregunta a /search/keyword y se elige la coincidencia más ajustada. Nunca
+     lanza: si falla o no hay, devuelve "". */
+  var cacheKeyword = {};
+  function idPorNombreKeyword(nombre) {
+    var clave = GMM.util.normalizar(nombre);
+    if (cacheKeyword[clave] !== undefined) return Promise.resolve(cacheKeyword[clave]);
+    return pedir("/search/keyword", { query: nombre }).then(function (d) {
+      var res = d.results || [];
+      /* Preferimos el que se llama exactamente igual; si no, el primero (TMDB
+         los devuelve por relevancia). */
+      var exacto = res.filter(function (k) { return GMM.util.normalizar(k.name) === clave; })[0];
+      var elegido = exacto || res[0];
+      var id = elegido ? String(elegido.id) : "";
+      cacheKeyword[clave] = id;
+      return id;
+    }).catch(function () { cacheKeyword[clave] = ""; return ""; });
+  }
+
+  /* with_keywords de una colección: resuelve sus keywords por nombre y les suma
+     las de reserva ya verificadas. Devuelve la cadena "id|id" lista para /discover. */
+  function keywordsDeColeccion(col) {
+    var nombres = col.keywordsPorNombre || [];
+    if (!nombres.length) return Promise.resolve(GMM.util.combinarKeywords([], col.keywordsFallback));
+    return Promise.all(nombres.map(idPorNombreKeyword)).then(function (ids) {
+      return GMM.util.combinarKeywords(ids, col.keywordsFallback);
+    });
+  }
+
   /* Sección "Descubrir": pide por criterios en vez de por texto.
      TMDB no busca en la sinopsis, pero /discover filtra por género, fecha y
      nota, que es justo lo que pide esta sección. Devuelve una página (con el
@@ -2347,11 +2399,13 @@ GMM.tmdb = (function () {
       page: pagina
     };
     /* El género puede ser un id de TMDB (with_genres) o una colección: un atajo
-       con sus propios parámetros (keyword, idioma original…). Se fusionan tal
-       cual; una colección puede traer su propio with_genres (p. ej. Anime). */
-    if (GMM.datos.esColeccion(opciones.genero)) {
-      var col = GMM.datos.coleccion(opciones.genero);
-      if (col) { for (var k in col.params) if (col.params.hasOwnProperty(k)) params[k] = col.params[k]; }
+       con sus propios parámetros (idioma original, género…). Se fusionan tal
+       cual; una colección puede traer su propio with_genres (p. ej. Anime).
+       Marvel/DC además necesitan resolver sus keywords por nombre (asíncrono),
+       que se aplica luego en "preparar". */
+    var col = GMM.datos.esColeccion(opciones.genero) ? GMM.datos.coleccion(opciones.genero) : null;
+    if (col) {
+      for (var k in col.params) if (col.params.hasOwnProperty(k)) params[k] = col.params[k];
     } else if (opciones.genero) {
       params.with_genres = opciones.genero;
     }
@@ -2373,7 +2427,15 @@ GMM.tmdb = (function () {
       params[campoFecha + ".lte"] = hoy;
     }
 
-    return pedir("/discover/" + mtipo, params).then(function (d) { return comoPagina(d, mtipo, pagina); });
+    /* Marvel/DC: resolvemos sus keywords (por nombre + reserva) antes de pedir;
+       el resto de colecciones y géneros no necesitan este paso. */
+    var preparar = (col && (col.keywordsPorNombre || col.keywordsFallback))
+      ? keywordsDeColeccion(col).then(function (kw) { if (kw) params.with_keywords = kw; })
+      : Promise.resolve();
+
+    return preparar.then(function () {
+      return pedir("/discover/" + mtipo, params).then(function (d) { return comoPagina(d, mtipo, pagina); });
+    });
   }
 
   /* Lo que está en tendencia esta semana, para el carrusel del inicio. Respeta

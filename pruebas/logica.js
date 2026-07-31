@@ -485,18 +485,26 @@ m.afirmar("ficha vacía no tiene ficha técnica que enseñar",
 m.titulo("Colecciones de Descubrir: Marvel, DC, Anime, Hindi (V GMM 0024)");
 
 m.afirmar("hay cuatro colecciones en el config", GMM.datos.COLECCIONES.length === 4);
-m.afirmar("cada colección lleva clave, nombre y params",
-  GMM.datos.COLECCIONES.every((c) => c.clave && c.nombre && c.params && Object.keys(c.params).length));
 m.afirmar("esColeccion distingue la clave prefijada de un id de género",
   GMM.datos.esColeccion("col:marvel") === true && GMM.datos.esColeccion("28") === false && GMM.datos.esColeccion("") === false);
-m.afirmar("coleccion() resuelve por clave", GMM.datos.coleccion("col:marvel").nombre === "Marvel (MCU)");
-m.afirmar("Marvel y DC usan keyword; Anime e Hindi, idioma original",
-  GMM.datos.coleccion("col:marvel").params.with_keywords === "180547" &&
-  GMM.datos.coleccion("col:dc").params.with_keywords.indexOf("229266") !== -1 &&
+m.afirmar("coleccion() resuelve por clave", GMM.datos.coleccion("col:marvel").nombre === "Marvel");
+m.afirmar("Marvel y DC resuelven su keyword del cómic por nombre, con reserva verificada",
+  GMM.datos.coleccion("col:marvel").keywordsPorNombre.indexOf("marvel comic") !== -1 &&
+  GMM.datos.coleccion("col:marvel").keywordsFallback.indexOf("180547") !== -1 &&
+  GMM.datos.coleccion("col:dc").keywordsPorNombre.indexOf("dc comics") !== -1 &&
+  GMM.datos.coleccion("col:dc").keywordsFallback.indexOf("229266") !== -1);
+m.afirmar("Anime e Hindi se resuelven con idioma original (sin keyword)",
   GMM.datos.coleccion("col:anime").params.with_original_language === "ja" &&
-  GMM.datos.coleccion("col:hindi").params.with_original_language === "hi");
-m.afirmar("Anime combina animación con idioma japonés",
-  GMM.datos.coleccion("col:anime").params.with_genres === "16");
+  GMM.datos.coleccion("col:anime").params.with_genres === "16" &&
+  GMM.datos.coleccion("col:hindi").params.with_original_language === "hi" &&
+  !GMM.datos.coleccion("col:hindi").keywordsPorNombre);
+
+m.afirmar("combinarKeywords une resueltos y reserva, sin vacíos ni duplicados",
+  GMM.util.combinarKeywords(["9715", ""], ["180547", "9715"]) === "9715|180547");
+m.afirmar("combinarKeywords tolera nulos y devuelve solo la reserva si no hay resueltos",
+  GMM.util.combinarKeywords([null, undefined], ["229266", "312528"]) === "229266|312528");
+m.afirmar("combinarKeywords vacío por ambos lados es cadena vacía",
+  GMM.util.combinarKeywords([], []) === "");
 
 /* ---------------------------------------------------------------- */
 m.titulo("Lotes con concurrencia limitada");
