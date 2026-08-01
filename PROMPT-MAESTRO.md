@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.28 · Aplicación V GMM 0028 · 31 de julio de 2026**
+**Documento v1.29 · Aplicación V GMM 0028 · 31 de julio de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies/>
 
 ---
@@ -812,16 +812,21 @@ sirve una carátula distinta según el locale.
 |---|---|
 | `index.html` | La aplicación completa. Versión en el pie, en `#version-app`, formato `V GMM XXXX` |
 | `README.md` | Manual: cómo obtener la clave de TMDB, los tres modos, guía de fraccionamiento, límites |
-| `CLAUDE.md` | Contexto para sesiones futuras. **Fuente de verdad de la versión** |
+| `CLAUDE.md` | Contexto para sesiones futuras. **Fuente de verdad de la versión.** Se carga entero en cada sesión, así que solo lleva lo que se consulta a menudo |
+| `HISTORIAL.md` | Detalle completo de cada versión. `CLAUDE.md` §12 lleva únicamente la línea corta que la identifica |
 | `PROMPT-MAESTRO.md` | Este documento |
 | `manifest.json`, `sw.js`, `iconos/` | Lo que hace la app instalable en el móvil (§5.7) |
 | `pruebas/` | `cargar.js`, `logica.js`, `imagenes.js`, `interfaz.js`, `pwa.js`, `clave.js`, `LEEME.md` |
 | `.gitignore` | Excluye `node_modules` de las pruebas y las capturas |
 
 Más un **skill de cierre de versión** en `~/.claude/skills/givemymovies-commit/SKILL.md`, que
-tras cada cambio sube la versión del pie, actualiza `CLAUDE.md` y este documento, ejecuta las
-pruebas que correspondan y ofrece el commit. Existe porque estos dos documentos no se
-actualizan solos y quedan desfasados en cuanto alguien se despista.
+tras cada cambio sube la versión del pie, actualiza `CLAUDE.md`, `HISTORIAL.md` y este
+documento, ejecuta las pruebas que correspondan y ofrece el commit. Existe porque estos
+documentos no se actualizan solos y quedan desfasados en cuanto alguien se despista.
+
+**El historial va en dos sitios y hay que escribir en los dos:** la línea corta en `CLAUDE.md`
+§12 y la fila detallada en `HISTORIAL.md`. Están separados porque `CLAUDE.md` se carga entero
+en cada sesión de trabajo y el detalle pesaba casi un cuarto de él sin hacer falta casi nunca.
 
 ---
 
@@ -889,7 +894,8 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 5. **Anota la línea en §15.**
 6. **Mantén el estilo de instrucción**, en imperativo. Esto no es un diario: es lo que permite
    reconstruir el proyecto.
-7. **Sincroniza con `CLAUDE.md`**, con el que comparte varias secciones.
+7. **Sincroniza con `CLAUDE.md`**, con el que comparte varias secciones, y **anota el detalle
+   de la versión en `HISTORIAL.md`** (en `CLAUDE.md` §12 va solo la línea corta).
 8. **Nunca borres el porqué de §4.3.** Es el corazón del proyecto.
 
 ---
@@ -898,6 +904,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.29 | V GMM 0028 | 31-07-2026 | **Solo documentación, la app no cambia.** El detalle de cada versión sale de `CLAUDE.md` §12 a un **`HISTORIAL.md`** nuevo, y §12 se queda con una línea por versión. Motivo: `CLAUDE.md` se carga entero en cada sesión de trabajo y el historial era casi un cuarto de su peso sin consultarse casi nunca. El skill `givemymovies-commit` pasa a exigir las dos anotaciones —línea corta y detalle— y a actualizar `PROMPT-MAESTRO.md` **por secciones**, no leyéndolo entero, por el mismo motivo. |
 | 1.28 | V GMM 0028 | 31-07-2026 | **Arreglo Nivel 2:** el token de Drive pasa de `sessionStorage` a **`localStorage`**. En iOS la sessionStorage se borra al cerrar la app (y no se comparte entre Safari y la app instalada), así que la conexión a Drive se perdía y el botón «Buscar en mi Drive» desaparecía. En localStorage aguanta hasta que el token caduca (1 h). `sw.js` 25→26. |
 | 1.27 | V GMM 0027 | 31-07-2026 | **«Mi biblioteca» Nivel 2: Google Drive.** Con Drive conectado, en «Mi copia» un botón **🔎 Buscar en mi Drive** busca el título entre tus vídeos (`/drive/v3/files`) y por resultado ofrece **▶ Reproducir** (visor de Drive en `<iframe>/preview`), **⬇ Descargar** (directo) y **Guardar en la ficha** (le asigna el enlace de Drive al título; así no pegas enlaces a mano). Módulo `GMM.drive` (bloque 7c): **OAuth por flujo implícito sin librería** (`response_type=token`, scope `drive.readonly`), token en `sessionStorage` (1 h). Helpers puros `GMM.util.leerTokenHash`/`consultaDrive`/`urlAuthDrive`. Config nueva en ⚙: **Client ID de Google** (`gmm_gdrive_client_id`) + **Conectar con Drive**. Modal `#capaReproductor`. **Solo en HTTPS** (no doble clic); el token solo hace falta para buscar. Requiere que el usuario cree su Client ID en Google Cloud. `sw.js` 24→25, `logica.js` 160→166, `interfaz.js` 116→120, `pwa.js` 20. |
 | 1.26 | V GMM 0026 | 31-07-2026 | **«Mi biblioteca / Mis compras» (Nivel 1).** Por cada título, en su ficha y en el modal de detalle, una sección **«Mi copia»** donde pegas el **enlace a tu archivo** (Google Drive, Mega o tu servidor); se guarda en `localStorage` (`gmm_biblioteca`, por `tipo:id`) y aparecen **▶ Reproducir** y **⬇ Descargar**, que abren el enlace en pestaña nueva. Botón **«Mis compras»** en la barra → cuadrícula con lo guardado. Módulo `GMM.biblioteca` (bloque 7b) y helper puro `GMM.util.enlaceCopia` (de un enlace de Drive saca el id y arma ver + descarga directa; el resto se usa tal cual). Todo cliente, sin API/OAuth/librerías: va en doble clic y en la web. **Nivel 2 (buscar en Drive y reproducir dentro, vía OAuth) pendiente** (plan en CLAUDE.md §11.3). `sw.js` 23→24, `logica.js` 147→160, `interfaz.js` 113→116, `pwa.js` 20. |
