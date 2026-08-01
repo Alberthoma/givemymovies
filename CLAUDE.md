@@ -4,7 +4,7 @@
 
 **Versión activa:** `V GMM 0028`
 **Próxima versión:** `V GMM 0029`
-**Última actualización:** 2026-07-31
+**Última actualización:** 2026-08-01
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies/> · GitHub Pages desde `main`, raíz.
 
@@ -15,8 +15,31 @@
 > también desde un entorno remoto y efímero. Detalle en `respaldos/LEEME.md`.
 
 > **Después de cualquier cambio, ejecuta el skill `givemymovies-commit`.** Sube la versión,
-> actualiza este archivo y `PROMPT-MAESTRO.md`, y pasa las pruebas. No lo hagas a mano:
-> el protocolo tiene pasos que es fácil olvidar.
+> actualiza este archivo, `HISTORIAL.md` y `PROMPT-MAESTRO.md`, y pasa las pruebas. No lo hagas
+> a mano: el protocolo tiene pasos que es fácil olvidar.
+>
+> **Guardar y publicar son dos actos separados.** «commit», «guarda» o «cierra la versión» hacen
+> todo el protocolo y **paran en el commit local**. Solo «publica», «sube» o «push» hacen el
+> `push` — y como Pages sirve desde `main`, eso **actualiza la web para cualquiera**. Ante la
+> duda, parar en el commit: publicar de más no se deshace.
+
+### Cómo orientarte sin gastar contexto
+
+**Este archivo se carga entero y solo, al arrancar la sesión.** No hace falta pedir que «te
+pongas en contexto» ni que «leas el proyecto»: ya está hecho, y gratis. Todo lo demás se abre
+**solo cuando la pregunta lo exige** — está separado justo para eso:
+
+| Si hace falta… | Abre |
+|---|---|
+| Tocar el código | Nada más que esto. Localiza con Grep en `index.html` y lee **solo el rango**: entero son ~78.000 tokens |
+| Saber **por qué** se hizo algo en una versión | `HISTORIAL.md` |
+| Retomar un tema aparcado (login, proxy, premios) | `PENDIENTES.md` |
+| Cerrar una versión | El skill `givemymovies-commit`, que trae el protocolo |
+| Reconstruir el proyecto entero | `PROMPT-MAESTRO.md`, **por secciones, nunca entero** |
+
+Los guardarraíles que impiden romper algo están **aquí**, en §4 y §9. Si vas a tocar el modal,
+los carruseles, el orden de Descubrir o las pruebas, léelos antes: cada uno dice qué no hacer y
+por qué se decidió así.
 
 ---
 
