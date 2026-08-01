@@ -620,6 +620,12 @@ Comprobación manual rápida, si no quieres ejecutar nada:
 | `PRIVADO/` | **Solo local, jamás versionado.** Credenciales y clave de TMDB |
 | `respaldos/` | **Versionado en git.** Copia de la app completa por versión, hecha antes de modificarla, como red de seguridad. Ver `respaldos/LEEME.md` |
 
+**Acota las búsquedas para excluir `respaldos/`.** Son ~25.600 líneas de `index.html` duplicado
+(una copia entera por versión), así que un Grep de código sin acotar devuelve **cada resultado
+seis veces** —el del archivo vivo y cinco de los respaldos— y gasta contexto en repetirse. Busca
+en `index.html` directamente, o excluye esa carpeta. Lo mismo vale para `index.html` entero:
+son ~78.000 tokens, **nunca lo leas de una vez**; localiza con Grep y lee solo el rango.
+
 **Nunca escribas secretos fuera de `PRIVADO/`.** El repositorio es público y git conserva
 para siempre lo que se commitea, aunque después se borre. Si añades otro archivo con datos
 sensibles, comprueba antes que está excluido: `git check-ignore -v ruta/al/archivo`.
