@@ -217,9 +217,8 @@ fila de orden, los chips). Detalles que hay que conservar:
 
 - El empaquetado es **`grid-auto-flow: row dense`** a propósito: con el campo de texto a fila
   completa quedaría un hueco a su lado, y así lo rellena el filtro siguiente.
-- `.oculto` **hay que repetirlo** para esos bloques (`.forma .panel-buscar.oculto`, …): el
-  selector de `display: contents` es más específico y, sin ello, un bloque oculto seguiría
-  enseñando sus campos.
+- `.oculto` **hay que repetirlo** para esos bloques (`.forma .panel-buscar.oculto`, …), porque
+  `display: contents` le gana en especificidad. El porqué, en §9.
 - En Descubrir los campos son impares y «País» cerraría media fila: se estira a fila completa.
 - **El autocompletado no puede flotar dentro del modal** (`position: static`): el cuerpo hace
   scroll y lo recortaría. Se muestra en el flujo, empujando lo que venga debajo.
@@ -235,8 +234,7 @@ para algo tan corriente.
 
 **Escape cierra el modal, salvo si el autocompletado está desplegado**, en cuyo caso cierra solo
 el desplegable. Lo resuelve el manejador de `#entrada` con `stopPropagation()`, no el del
-documento: el del campo corre antes, y sin cortar la propagación el modal se cerraba también y se
-perdía lo escrito.
+documento. El porqué, en §9.
 
 **El modal de sugerencias se retiró en la 0023.** Existía para elegir cuál de las cinco categorías
 se veía en el único carrusel; con los cinco a la vista ya no elegía nada.
@@ -257,8 +255,7 @@ formulario para algo tan corriente era el paso de más que se quería quitar.
 **Los tres interruptores de orden existen por duplicado** —el del formulario (`#orden`) y el del
 desplegable (`#ordenPanel`)— y por eso `reflejarOrden()` **casa por atributo `[data-orden]`, no
 por id**: así las dos copias dicen siempre lo mismo sin sincronizarlas a mano, y un solo manejador
-(`alPulsarOrden`) sirve a ambas. **Cuidado al contar en las pruebas:** `.orden-op.activa` a secas
-cuenta el doble; hay que acotar a `#orden`.
+(`alPulsarOrden`) sirve a ambas. **Al contar en las pruebas hay que acotar a `#orden`**; ver §9.
 
 **`disponibilidad` se indexa por `"tipo:id"`, no por id a secas.** Una película y una serie
 pueden compartir id numérico en TMDB, y la lista de pendientes ya puede mezclar ambas: usar
@@ -562,20 +559,18 @@ Comprobación manual rápida, si no quieres ejecutar nada:
 - **Precios** de alquiler y compra: TMDB no los publica; requiere la API de pago de JustWatch.
 - **Búsqueda por trama**: TMDB no busca dentro de la sinopsis. Se usan palabras clave, que
   funcionan con conceptos pero no con frases largas.
-- **Series en las cuatro búsquedas** (desde V GMM 0006): el interruptor peli/serie manda en
-  título, actor, trama y Descubrir. Antes (V GMM 0005) las series solo entraban por Descubrir.
-- **Puntuaciones de otras plataformas** (IMDb, Rotten Tomatoes, Metacritic): **integradas en
-  V GMM 0016** vía OMDb (`GMM.omdb`), con su segunda clave **opcional**. Aparecen en la ficha
-  y en el modal de detalle, no en las cuadrículas ni en los carruseles. La calificación de
-  Descubrir y la insignia de los carruseles son la propia de TMDB (0–10).
+- **Puntuaciones de IMDb / RT / Metacritic**: solo en la ficha y en el modal de detalle, **nunca**
+  en las cuadrículas ni en los carruseles — serían decenas de consultas contra el tope de 1.000
+  al día de OMDb. Ahí la nota que se ve es la de TMDB (0–10).
 - **Filmografías**: se consultan los 24 títulos más populares, con 5 peticiones simultáneas.
-  Desde V GMM 0024 la filmografía separa **lo que interpreta** de **lo que dirige** (`crew` con
-  `job === "Director"`), de modo que buscar a un director ya no sale casi vacío.
-- **Premios (Oscar, Emmy)**: **no se filtra por premios.** La nota de la 0024 pedía una colección
-  de «premiados/nominados», pero **TMDB no publica datos de premios** —no hay endpoint ni campo—,
-  así que aproximarlo sería inventar. Se decidió (con el usuario) dejarlo fuera; si algún día se
-  retoma, haría falta una fuente aparte (lista curada, o una API de premios) o aceptar una
-  aproximación honesta por nota + votos. Ver el planteamiento en §11.
+- **Premios (Oscar, Emmy)**: **no se filtra por premios**, porque TMDB no los publica —ni
+  endpoint ni campo— y aproximarlo sería inventar. Descartado con el usuario; ver `PENDIENTES.md` §3.
+- **Google Drive (Nivel 2)**: **solo funciona sobre HTTPS** (en `file://` no hay origen válido
+  para OAuth; el Nivel 1, el enlace manual, sí va en local). Exige que el usuario **cree su
+  Client ID** en Google Cloud (tipo *Aplicación web*, origen `https://alberthoma.github.io`, con
+  la Drive API activada). El token del **flujo implícito caduca a la hora** y hay que reconectar.
+  **Mega queda fuera** del automático: su cifrado de extremo a extremo exige su SDK, que es una
+  librería. El diseño completo, en `HISTORIAL.md` (apéndice del Nivel 2).
 - **Colecciones de Descubrir** (desde V GMM 0024): Marvel/DC abarcan **toda la franquicia** basada
   en el cómic (X-Men, Spider-Man, Deadpool…), no solo el universo cinematográfico. La keyword del
   cómic no tiene id estable/verificable sin clave (`9715` es «superhero», no «marvel comic»), así
@@ -617,7 +612,8 @@ Comprobación manual rápida, si no quieres ejecutar nada:
 | `index.html` | La aplicación completa. Versión en el pie, en `#version-app` |
 | `README.md` | Manual de usuario: clave de TMDB, modos, guía de fraccionamiento |
 | `CLAUDE.md` | Este archivo. **Se carga entero en cada sesión: mantenlo denso.** Lo que solo se consulta de vez en cuando va aparte |
-| `HISTORIAL.md` | Detalle completo de cada versión. §12 de aquí lleva solo la línea corta. **Al cerrar una versión se escribe en los dos** |
+| `HISTORIAL.md` | Detalle completo de cada versión, más el apéndice de diseño del Nivel 2 de Drive. §12 de aquí lleva solo la línea corta. **Al cerrar una versión se escribe en los dos** |
+| `PENDIENTES.md` | Los temas abiertos, desarrollados. §11 de aquí lleva solo el estado en una línea |
 | `PROMPT-MAESTRO.md` | Prompt que reconstruye el proyecto entero. **Actualízalo con cada cambio.** No lo leas entero: trabaja por secciones (~22.000 tokens) |
 | `pruebas/` | Herramienta de verificación, opcional y con dependencias propias |
 | `.gitignore` | Excluye `node_modules`, capturas y **`PRIVADO/`** |
@@ -633,9 +629,10 @@ sensibles, comprueba antes que está excluido: `git check-ignore -v ruta/al/arch
 (`Alberthoma <albertomatosgil@gmail.com>`), porque la global es un correo de relleno —
 al hacer `git config` en este proyecto, usa siempre el ámbito local, nunca `--global`.
 
-GitHub Pages **no está activado**. Si se activa, la app quedaría accesible por URL, pero
-la clave de TMDB de quien la use seguiría viviendo en su propio navegador: cada visitante
-tendría que poner la suya, o haría falta el servidor intermedio de §8.
+**GitHub Pages está activado** desde la V GMM 0004 (`main`, raíz) →
+<https://alberthoma.github.io/givemymovies/>. La clave de TMDB de cada visitante vive en **su
+propio** navegador, así que quien abra el sitio tendría que poner la suya; ahorrárselo exigiría
+el proxy de `PENDIENTES.md` §1.
 
 **Clave de TMDB:** para comprobar que una clave funciona sin exponerla en una conversación,
 `node pruebas/clave.js TU_CLAVE`. La app usa la **API Key (v3 auth)**, 32 caracteres
@@ -645,145 +642,15 @@ hexadecimales — no el *Read Access Token*, que empieza por `eyJ` y no sirve aq
 
 ## 11. PENDIENTES
 
-Dos temas abiertos, ninguno urgente. **No los abordes por iniciativa propia**: están aquí
-para que la decisión esté preparada cuando el usuario los retome.
+**El desarrollo de cada uno está en `PENDIENTES.md`** (se separó el 2026-08-01: son ensayos de
+decisión —tablas de opciones, pros y contras— que solo hacen falta el día que se retoma el tema,
+y aquí pesaban en cada sesión). **No los abordes por iniciativa propia.**
 
-### 11.1 — La clave de TMDB en el móvil
-
-**Planteado el 28-07-2026. Sin resolver.**
-
-El usuario quiere abrir la app desde su móvil. Para eso hay que publicarla (GitHub Pages o
-similar), y de ahí su pregunta: si la clave no se sube al repositorio, ¿cómo funciona allí?
-
-### Aclaración que cambia el problema
-
-**La clave no necesita viajar en el repositorio.** La app la lee del `localStorage` del
-navegador donde se abre, no del código. Publicar el código y pegar la clave una vez en el ⚙
-del móvil basta: ese dispositivo la recuerda indefinidamente.
-
-`PRIVADO/clave-local.js` es solo un atajo para el PC del usuario; no es el mecanismo.
-
-### Dato que hay que tener presente antes de decidir
-
-**Un repositorio privado NO da una web privada.** GitHub Pages publica el sitio de forma
-abierta aunque el repositorio sea privado; el control de acceso solo existe en Enterprise.
-Y publicar Pages desde un repositorio privado exige plan de pago. Conviene confirmar las
-condiciones vigentes antes de apostar por esa vía.
-
-### Opciones, de menos a más esfuerzo
-
-| Opción | Cómo funciona | Coste | Riesgo de la clave |
-|---|---|---|---|
-| **A · Pegarla en el móvil** *(recomendada)* | Publicar solo el código. Una vez en el ⚙ del móvil y listo | Cero. Ya está implementado | Ninguno |
-| **B · Clave en el código + Pages** | Hardcodear la clave y publicar | Cero | **Expuesta a todo internet**, y en el historial de git para siempre |
-| **C · Proxy propio** | Función serverless (Cloudflare Workers, Vercel, Netlify) que guarda la clave y reenvía a TMDB. La app llama al proxy | Un servicio más que mantener; hay planes gratuitos | Ninguno: la clave nunca llega al navegador |
-| **D · Publicar fuera de git** | Netlify Drop o variable de entorno inyectada al desplegar | Bajo | Bajo, según el proveedor |
-
-**A resuelve el caso de uso real** —una persona, unos pocos dispositivos— sin infraestructura.
-**C es la respuesta correcta** si algún día la usa alguien más que él, porque cada visitante
-necesitaría su propia clave con la opción A.
-
-**No implementar B.** Si el usuario insiste, avisar de que la clave queda pública y de que
-habría que regenerarla al retirarla.
-
----
-
-### 11.2 — Login y sincronización de las listas entre dispositivos
-
-**Planteado el 28-07-2026. Sin resolver.** El usuario apunta a Firebase.
-
-**El problema real.** `gmm_listas` vive en `localStorage`, que es **por navegador y por
-dispositivo**. Lo que guarde en el móvil no aparece en el PC ni al revés: son dos listas
-distintas con el mismo nombre. Además, borrar los datos del sitio se las lleva. Hoy el único
-puente es exportar e importar el JSON a mano desde ⚙.
-
-**Lo que haría falta**, en orden:
-
-1. **Login.** El propio usuario lo dedujo, y es correcto: sin saber quién es, no hay «mis
-   listas» — el servidor no sabría de quién son. Es el primer paso, no un extra.
-   - **Recomendado: acceso con Google.** En un móvil es un toque, sin contraseña que
-     recordar ni que custodiar. Firebase Auth lo da hecho.
-   - *Acceso anónimo* de Firebase: cero fricción, pero la identidad muere si borra los datos
-     del navegador, que es justo el problema que se quiere resolver. **No sirve solo.**
-   - *Correo y contraseña*: implica gestionar recuperación de contraseña y almacenar
-     credenciales. Más trabajo y más responsabilidad, sin ventaja aquí.
-   - Impacto en la interfaz: un botón de acceso en la cabecera y el aviso de que, sin
-     identificarse, las listas siguen siendo solo de ese dispositivo. **La app debe seguir
-     funcionando sin login**, como hoy: iniciar sesión añade sincronización, no la condiciona.
-2. **Almacén.** Un documento por usuario con las dos listas.
-3. **Fusión sensata.** Si añade algo en el móvil sin conexión y algo distinto en el PC, al
-   volver deben quedar las dos cosas, no la última que escriba. Cada entrada ya guarda
-   `anadida`, así que fusionar por `id` conservando la fecha más antigua resuelve el caso.
-4. **Seguir funcionando sin conexión.** `localStorage` pasa a ser la copia local y la nube el
-   espejo, no al revés. Si falla la red, la app no debe romperse.
-
-**Opciones**
-
-| Opción | A favor | En contra |
+| Tema | Estado | En una línea |
 |---|---|---|
-| **Firebase (Firestore + Auth)** | El usuario ya lo usa en Foresee: cuenta creada y conceptos conocidos. Plan gratuito de sobra para esto | Ver el choque con R3, abajo |
-| **Supabase** | Equivalente, con API REST muy limpia | Un servicio más que aprender |
-| **Solo exportar/importar** | Ya está hecho, cero infraestructura | Manual, y es fácil olvidarse |
-
-**El choque a resolver antes de empezar:** el SDK de Firebase **es una librería**, y este
-proyecto prohíbe las librerías (§3, R3). Hay salida: Firestore tiene **API REST**, así que se
-puede hablar con él usando `fetch` a pelo y mantener la regla intacta. Es algo más de código,
-pero conserva lo que define al proyecto. **Plantéaselo al usuario antes de meter un SDK.**
-
-**Dato que le tranquilizará:** la configuración web de Firebase (`apiKey`, `projectId`…)
-**está pensada para ser pública** — no es un secreto como la clave de TMDB. La seguridad no
-viene de esconderla, sino de las reglas de Firestore y de la autenticación. O sea: eso sí
-puede ir dentro de `index.html` sin problema.
-
----
-
-### 11.3 — «Mi biblioteca» Nivel 2: buscar y reproducir tu Drive dentro de la app
-
-**IMPLEMENTADO en la V GMM 0027** (Nivel 1 en la 0026). El diseño de abajo es el que se construyó;
-se conserva como referencia. Lo que sigue pendiente **por parte del usuario** es la configuración
-en Google Cloud (crear el Client ID) para poder activarlo; sin eso, la búsqueda automática no
-aparece y solo funciona el enlace manual del Nivel 1. Módulo `GMM.drive` (bloque JS 7c).
-
-**Qué añade sobre el Nivel 1.** Hoy el usuario pega a mano el enlace a su copia. El Nivel 2 haría
-que, al abrir una ficha, la app **busque sola** ese título en **su Google Drive** y ofrezca
-**reproducirlo dentro de la app** (no en una pestaña), además de guardar el hallazgo en `gmm_biblioteca`.
-
-**Diseño previsto (sin librerías, coherente con R3):**
-
-- **Módulo nuevo `GMM.drive`** (bloque JS aparte): OAuth + búsqueda + helpers. Nada de SDK de Google
-  (es librería): se habla con la API REST a pelo con `fetch`.
-- **OAuth por flujo implícito** (`response_type=token` contra `accounts.google.com/o/oauth2/v2/auth`),
-  que es el **único sin librería ni secreto** para un sitio estático. Devuelve el token en el
-  fragmento (`#access_token=…&expires_in=3600`); la app lo lee de `location.hash` y lo guarda en
-  `localStorage` (era `sessionStorage`, pero en iOS se perdía al cerrar la app; ver V GMM 0028).
-  Scope mínimo: `drive.readonly`.
-- **Config nueva:** el usuario pega su **Client ID** de Google en ⚙ (`gmm_gdrive_client_id`), y un
-  botón **«Conectar con Drive»**. Estado de conexión visible.
-- **Búsqueda:** `GET https://www.googleapis.com/drive/v3/files?q=name contains '<título>' and mimeType contains 'video/'`
-  con `Authorization: Bearer <token>`; se cruza con el título (y quizá el año) del TMDB.
-- **Reproducción dentro:** modal con un `<iframe src="https://drive.google.com/file/d/<id>/preview">`
-  (usa la sesión de Google del navegador; no expone el token). Descarga: `uc?export=download&id=<id>`.
-- **UI:** en la sección «Mi copia», si Drive está conectado, un botón **«🔎 Buscar en mi Drive»** que
-  al encontrarlo ofrece reproducir/guardar; el hallazgo se guarda como enlace (reutiliza el Nivel 1).
-
-**Condiciones y límites que hay que dejar claros al usuario (ya se le adelantaron):**
-
-1. **Solo funciona en la web publicada (HTTPS).** Con doble clic (`file://`) no hay origen válido
-   para OAuth. El Nivel 1 sí sigue funcionando en `file://`.
-2. **El usuario debe crear un Client ID** en Google Cloud Console (tipo *Aplicación web*), añadir el
-   **origen** `https://alberthoma.github.io`, y **activar la Google Drive API**. Sin eso, no hay Nivel 2.
-3. **Flujo implícito:** el token **caduca a la hora** (reconectar) y Google lo **desaconseja a futuro**
-   (empuja su librería GIS, prohibida aquí). Si algún día Google corta el implícito, haría falta un
-   **mini-proxy propio** (función serverless) para el intercambio de código — y eso ya es infra aparte,
-   como el proxy de §11.1.
-4. **Contenido mixto:** reproducir desde un **servidor local `http://`** dentro de la web HTTPS está
-   **bloqueado** por el navegador; por eso el Nivel 2 se centra en Drive (HTTPS) y lo local se queda en
-   «abrir enlace» (Nivel 1).
-5. **Mega queda fuera** del automático: su cifrado de extremo a extremo exige su SDK. Solo enlace manual.
-
-**No se ha tocado nada de esto en el código todavía.** El Nivel 1 dejó el terreno preparado:
-`GMM.biblioteca` ya guarda enlaces por `tipo:id`, así que el Nivel 2 solo tiene que **encontrar** el
-enlace en vez de pedírselo al usuario.
+| **1 · La clave de TMDB en el móvil** | **Resuelto** por la vía A desde la 0004 | La clave vive en el `localStorage` de cada dispositivo, no en el repositorio: se pega una vez en el ⚙ y basta. Solo volvería a abrirse si la usara alguien más que el usuario, y entonces la respuesta es un **proxy** (nunca hardcodear la clave) |
+| **2 · Login y sincronización de listas** | **Abierto** | `gmm_listas` es por dispositivo, así que móvil y PC llevan listas distintas. Haría falta login (Google) + almacén + fusión por `id`. Firebase choca con la regla «sin librerías» (R3), pero **Firestore tiene API REST** y se puede usar con `fetch` a pelo. Plantéaselo antes de meter un SDK |
+| **3 · Premios (Oscar, Emmy)** | **Descartado** con el usuario | TMDB no publica datos de premios: no hay endpoint ni campo, y aproximarlo sería inventar. Haría falta otra fuente |
 
 ---
 

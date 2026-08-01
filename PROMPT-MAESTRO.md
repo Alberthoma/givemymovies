@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.29 · Aplicación V GMM 0028 · 31 de julio de 2026**
+**Documento v1.30 · Aplicación V GMM 0028 · 1 de agosto de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies/>
 
 ---
@@ -305,7 +305,8 @@ cual. Un botón **«Mis compras»** en la barra abre una cuadrícula con todo lo
 cliente: sin API, sin OAuth, sin librerías; funciona en doble clic y en la web. **Nivel 2 (V GMM
 0027):** con Google Drive conectado en ⚙ (tu Client ID; solo en la web HTTPS), un botón **🔎 Buscar
 en mi Drive** encuentra el archivo por título y lo **reproduce dentro** (visor de Drive en un iframe)
-o lo guarda como enlace. Módulo `GMM.drive` con OAuth de flujo implícito sin librería (ver CLAUDE.md §11.3).
+o lo guarda como enlace. Módulo `GMM.drive` con OAuth de flujo implícito sin librería (el diseño
+completo, en el apéndice de `HISTORIAL.md`; las condiciones vigentes, en `CLAUDE.md` §8).
 
 **3 · Botones de listas.** ♥ Favorita · 🔖 Pendiente de ver.
 
@@ -813,7 +814,8 @@ sirve una carátula distinta según el locale.
 | `index.html` | La aplicación completa. Versión en el pie, en `#version-app`, formato `V GMM XXXX` |
 | `README.md` | Manual: cómo obtener la clave de TMDB, los tres modos, guía de fraccionamiento, límites |
 | `CLAUDE.md` | Contexto para sesiones futuras. **Fuente de verdad de la versión.** Se carga entero en cada sesión, así que solo lleva lo que se consulta a menudo |
-| `HISTORIAL.md` | Detalle completo de cada versión. `CLAUDE.md` §12 lleva únicamente la línea corta que la identifica |
+| `HISTORIAL.md` | Detalle completo de cada versión, más el apéndice de diseño del Nivel 2 de Drive. `CLAUDE.md` §12 lleva únicamente la línea corta que la identifica |
+| `PENDIENTES.md` | Los temas abiertos, desarrollados (clave en el móvil, login y sincronización, premios). `CLAUDE.md` §11 lleva solo el estado en una línea |
 | `PROMPT-MAESTRO.md` | Este documento |
 | `manifest.json`, `sw.js`, `iconos/` | Lo que hace la app instalable en el móvil (§5.7) |
 | `pruebas/` | `cargar.js`, `logica.js`, `imagenes.js`, `interfaz.js`, `pwa.js`, `clave.js`, `LEEME.md` |
@@ -859,7 +861,7 @@ Hay que **decirlos**, no disimularlos:
    —acceso con Google es lo más liviano en móvil— y un almacén en la nube. **La app debe
    seguir funcionando sin identificarse:** iniciar sesión añade sincronización, no la
    condiciona. **Cuidado con R3:** el SDK de Firebase es una librería; su API REST permite
-   hacerlo con `fetch` a pelo y conservar la regla. Ver `CLAUDE.md` §11.2.
+   hacerlo con `fetch` a pelo y conservar la regla. Ver `PENDIENTES.md` §2.
 2. **Puntuaciones de IMDb y Rotten Tomatoes.** TMDB no las da; requeriría OMDb con su propia
    clave. Se planteó y se aparcó (ver §15 y `CLAUDE.md`).
 3. **Enlace compartible.** Codificar la búsqueda en la URL.
@@ -904,6 +906,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.30 | V GMM 0028 | 01-08-2026 | **Solo documentación, la app no cambia.** Segunda pasada de aligerado de `CLAUDE.md`: los temas abiertos salen a **`PENDIENTES.md`** (§11 se queda con una tabla de estado), el diseño ya construido del Nivel 2 de Drive se va al apéndice de `HISTORIAL.md`, y se retira la duplicación entre §4 y §9 dejando el desarrollo en §9. **Correcciones de contenido falso:** §10 afirmaba que GitHub Pages «no está activado» contradiciendo la cabecera —lo está desde la 0004—, y §8 listaba como «límites conocidos» tres cosas que ya no lo eran (series en las cuatro búsquedas, puntuaciones de otras plataformas, filmografía de dirección); §8 gana en cambio las condiciones reales del Nivel 2 de Drive. `CLAUDE.md`: 58.786 → 50.770 caracteres. |
 | 1.29 | V GMM 0028 | 31-07-2026 | **Solo documentación, la app no cambia.** El detalle de cada versión sale de `CLAUDE.md` §12 a un **`HISTORIAL.md`** nuevo, y §12 se queda con una línea por versión. Motivo: `CLAUDE.md` se carga entero en cada sesión de trabajo y el historial era casi un cuarto de su peso sin consultarse casi nunca. El skill `givemymovies-commit` pasa a exigir las dos anotaciones —línea corta y detalle— y a actualizar `PROMPT-MAESTRO.md` **por secciones**, no leyéndolo entero, por el mismo motivo. |
 | 1.28 | V GMM 0028 | 31-07-2026 | **Arreglo Nivel 2:** el token de Drive pasa de `sessionStorage` a **`localStorage`**. En iOS la sessionStorage se borra al cerrar la app (y no se comparte entre Safari y la app instalada), así que la conexión a Drive se perdía y el botón «Buscar en mi Drive» desaparecía. En localStorage aguanta hasta que el token caduca (1 h). `sw.js` 25→26. |
 | 1.27 | V GMM 0027 | 31-07-2026 | **«Mi biblioteca» Nivel 2: Google Drive.** Con Drive conectado, en «Mi copia» un botón **🔎 Buscar en mi Drive** busca el título entre tus vídeos (`/drive/v3/files`) y por resultado ofrece **▶ Reproducir** (visor de Drive en `<iframe>/preview`), **⬇ Descargar** (directo) y **Guardar en la ficha** (le asigna el enlace de Drive al título; así no pegas enlaces a mano). Módulo `GMM.drive` (bloque 7c): **OAuth por flujo implícito sin librería** (`response_type=token`, scope `drive.readonly`), token en `sessionStorage` (1 h). Helpers puros `GMM.util.leerTokenHash`/`consultaDrive`/`urlAuthDrive`. Config nueva en ⚙: **Client ID de Google** (`gmm_gdrive_client_id`) + **Conectar con Drive**. Modal `#capaReproductor`. **Solo en HTTPS** (no doble clic); el token solo hace falta para buscar. Requiere que el usuario cree su Client ID en Google Cloud. `sw.js` 24→25, `logica.js` 160→166, `interfaz.js` 116→120, `pwa.js` 20. |
