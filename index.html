@@ -1133,7 +1133,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   <footer class="pie">
     <span>givemymovies · datos de disponibilidad vía TMDB / JustWatch</span>
     <span>Tus listas se guardan solo en este navegador</span>
-    <span id="version-app">V GMM 0027</span>
+    <span id="version-app">V GMM 0028</span>
   </footer>
 </div>
 
@@ -3125,7 +3125,7 @@ GMM.biblioteca = (function () {
    archivos por título y reproducirlos dentro. Sin SDK de Google (es librería):
    OAuth por FLUJO IMPLÍCITO (redirige a Google, vuelve con el token en el hash)
    y la API REST de Drive con fetch a pelo. Permiso de SOLO LECTURA. El token
-   vive en sessionStorage y caduca a la hora; solo hace falta para BUSCAR (la
+   vive en localStorage y caduca a la hora; solo hace falta para BUSCAR (la
    descarga/reproducción usan tu sesión de Google del navegador). Solo va sobre
    HTTPS: en file:// no hay origen válido para OAuth. ══════════════════════════ */
 
@@ -3143,19 +3143,23 @@ GMM.drive = (function () {
     } catch (e) {}
   }
 
+  /* El token se guarda en localStorage, no en sessionStorage: en iOS la
+     sessionStorage se borra al cerrar la app (y no se comparte entre Safari y
+     la app instalada), así que la conexión se perdía en cuanto salías. En
+     localStorage aguanta hasta que caduca (1 h), que es el límite real. */
   function guardarToken(t) {
-    try { sessionStorage.setItem(TOKEN, t.token); sessionStorage.setItem(EXP, String(t.expira)); } catch (e) {}
+    try { localStorage.setItem(TOKEN, t.token); localStorage.setItem(EXP, String(t.expira)); } catch (e) {}
   }
   function token() {
     try {
-      var t = sessionStorage.getItem(TOKEN), e = Number(sessionStorage.getItem(EXP));
+      var t = localStorage.getItem(TOKEN), e = Number(localStorage.getItem(EXP));
       if (t && e && Date.now() < e) return t;
     } catch (err) {}
     return null;
   }
   function conectado() { return !!token(); }
   function desconectar() {
-    try { sessionStorage.removeItem(TOKEN); sessionStorage.removeItem(EXP); } catch (e) {}
+    try { localStorage.removeItem(TOKEN); localStorage.removeItem(EXP); } catch (e) {}
   }
 
   function redirectUri() { return location.origin + location.pathname; }

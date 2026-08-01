@@ -2,8 +2,8 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0027`
-**Próxima versión:** `V GMM 0028`
+**Versión activa:** `V GMM 0028`
+**Próxima versión:** `V GMM 0029`
 **Última actualización:** 2026-07-31
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies/> · GitHub Pages desde `main`, raíz.
@@ -383,7 +383,7 @@ mejores» que el usuario rechazó. Si algún día se toca `verMasCategoria`, **n
 | `gmm_prefs` | Modo, plataforma, país, idioma y los criterios de Descubrir (género, intervalo de años, nota, orden) |
 | `gmm_listas` | `{ favoritas: [], pendientes: [] }` |
 | `gmm_biblioteca` | `{ "tipo:id": { title, poster_path, enlace, guardada, … } }` — «Mis compras», el enlace a tu copia por título |
-| `gmm_gdrive_client_id` | Client ID de Google para el Nivel 2 (Drive). El **token** de acceso vive aparte en `sessionStorage` (`gmm_gdrive_token`/`_exp`, 1 h) |
+| `gmm_gdrive_client_id` | Client ID de Google para el Nivel 2 (Drive). El **token** de acceso vive en `localStorage` (`gmm_gdrive_token`/`_exp`, 1 h; en `sessionStorage` se perdía al cerrar la app en iOS — ver V GMM 0028) |
 
 ---
 
@@ -459,13 +459,13 @@ node pruebas/interfaz.js    # 120 comprobaciones · playwright-core · ~60 s
 node pruebas/pwa.js         #  20 comprobaciones · playwright-core · ~20 s
 ```
 
-Las versiones 0024–0027 se cerraron en un entorno remoto enlazando el `playwright-core` global
+Las versiones 0024–0028 se cerraron en un entorno remoto enlazando el `playwright-core` global
 (ver el recuadro de abajo): `logica.js` pasó **166/166**, e `interfaz.js` (**120**) y `pwa.js`
 (**20**) corrieron con Chromium del sistema. Los únicos fallos fueron los contadores de «errores
 acumulados», por recursos que este entorno cerrado no sirve (`image.tmdb.org` bloqueado por el
 proxy y ausencia de `PRIVADO/clave-local.js`), **idénticos byte a byte en los respaldos**, así que
 no son regresión. En local, con clave e internet, esos contadores vuelven a cero. El service worker
-cacheó `gmm-app-v25` correctamente. **El OAuth real de Drive (Nivel 2) no se puede probar en
+cacheó `gmm-app-v26` correctamente. **El OAuth real de Drive (Nivel 2) no se puede probar en
 remoto** —necesita el Client ID del usuario y su sesión de Google sobre HTTPS—, así que sus tests
 stubean `GMM.drive`; la verificación de punta a punta la hace el usuario en la web publicada.
 
@@ -754,7 +754,8 @@ que, al abrir una ficha, la app **busque sola** ese título en **su Google Drive
 - **OAuth por flujo implícito** (`response_type=token` contra `accounts.google.com/o/oauth2/v2/auth`),
   que es el **único sin librería ni secreto** para un sitio estático. Devuelve el token en el
   fragmento (`#access_token=…&expires_in=3600`); la app lo lee de `location.hash` y lo guarda en
-  `sessionStorage`. Scope mínimo: `drive.readonly`.
+  `localStorage` (era `sessionStorage`, pero en iOS se perdía al cerrar la app; ver V GMM 0028).
+  Scope mínimo: `drive.readonly`.
 - **Config nueva:** el usuario pega su **Client ID** de Google en ⚙ (`gmm_gdrive_client_id`), y un
   botón **«Conectar con Drive»**. Estado de conexión visible.
 - **Búsqueda:** `GET https://www.googleapis.com/drive/v3/files?q=name contains '<título>' and mimeType contains 'video/'`
@@ -790,6 +791,7 @@ enlace en vez de pedírselo al usuario.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| V GMM 0028 | 2026-07-31 | **Arreglo del Nivel 2: la conexión a Drive aguanta.** El token de Drive pasa de `sessionStorage` a **`localStorage`** (`GMM.drive`). En iOS la `sessionStorage` se borra al cerrar la app —y no se comparte entre Safari y la app instalada—, así que tras conectar con Drive el botón **🔎 Buscar en mi Drive** desaparecía en cuanto salías o cambiabas de contexto (`conectado()` volvía a `false`). En `localStorage` la conexión persiste hasta que el token caduca (1 h), que es el límite real del flujo implícito. Sin cambios de UI ni de flujo. `sw.js` VERSION 25→26. `logica.js` 166, `interfaz.js` 120, `pwa.js` 20. |
 | V GMM 0027 | 2026-07-31 | **«Mi biblioteca» Nivel 2: buscar en tu Google Drive y reproducir dentro.** Con Drive conectado, en «Mi copia» aparece **🔎 Buscar en mi Drive**: busca ese título entre tus vídeos (`/drive/v3/files?q=name contains…`) y por cada resultado ofrece **▶ Reproducir** (visor de Drive en un `<iframe>/preview`, dentro de la app), **⬇ Descargar** (directo, `uc?export=download`) y **Guardar en la ficha** (le asigna el enlace de Drive al título, que entonces muestra reproducir y descargar por el Nivel 1, sin pegar nada a mano). Módulo nuevo `GMM.drive` (bloque JS 7c): OAuth por **flujo implícito sin librería** (`response_type=token`, scope `drive.readonly`), token en `sessionStorage` (1 h). Helpers puros en `GMM.util`: `leerTokenHash` (token del `location.hash`), `consultaDrive` (el `q`, escapando comillas), `urlAuthDrive` (la URL de OAuth). Config nueva en ⚙: **Client ID de Google** (`gmm_gdrive_client_id`) + botón **Conectar con Drive** + estado. Modal reproductor nuevo (`#capaReproductor`, iframe 16:9; al cerrar se vacía para no dejar el vídeo sonando). **Solo funciona en HTTPS** (en `file://` no hay origen para OAuth); el token solo hace falta para buscar (descargar/reproducir usan la sesión de Google del navegador). **Requiere que el usuario cree su Client ID** en Google Cloud (Aplicación web, origen `https://alberthoma.github.io`, Drive API activada). Mega/servidor local siguen en enlace manual (Nivel 1). `sw.js` VERSION 24→25 (Google es solo-red por ser otro origen). `logica.js` 160→166, `interfaz.js` 116→120 (Drive stubeado), `pwa.js` 20. |
 | V GMM 0026 | 2026-07-31 | **«Mi biblioteca / Mis compras»: vincular la app con tus copias (Nivel 1).** Por cada título, en su ficha (y en el modal de detalle) hay una sección **«Mi copia»** donde pegas un **enlace a tu archivo** (Google Drive, Mega o tu servidor); se guarda en el navegador (`gmm_biblioteca`) y aparecen **▶ Reproducir** y **⬇ Descargar**, que abren el enlace en una pestaña nueva. Un botón **«Mis compras»** en la barra abre una cuadrícula con todo lo guardado. Módulo nuevo `GMM.biblioteca` (bloque JS 7b, indexado por `tipo:id` como las listas) y helper puro `GMM.util.enlaceCopia` (de un enlace de Drive saca el id y arma las URLs de ver y de descarga directa; cualquier otro se usa tal cual). Todo cliente, sin API, sin OAuth, sin librerías: funciona en doble clic y en la web. **El Nivel 2 (que la app busque sola en tu Drive y reproduzca dentro, vía OAuth) queda pendiente** con su plan en §11.3. `sw.js` VERSION 23→24. `logica.js` 147→160, `interfaz.js` 113→116, `pwa.js` 20. |
 | V GMM 0025 | 2026-07-31 | **El reparto y la dirección de la ficha técnica llevan a la filmografía.** En la ficha técnica (ficha completa y modal de detalle), tocar la **foto o el nombre de un actor/actriz**, o el **nombre del director/creador**, abre la **vista de persona** con toda su filmografía (`abrirPersona`). Para ello `GMM.util.fichaTecnica` ahora conserva el **id de persona**: `direccion` pasa de nombres sueltos a `{nombre, id}` (el `created_by` de serie también trae id) y cada entrada de `reparto` lleva `id`. En la UI, el reparto es un `<button class="ft-actor-btn" data-persona>` y la dirección un `<button class="ft-persona" data-persona>`; sin id quedan como texto. Se cablea con **una línea de delegación `[data-persona]`** en `#resultados` y otra en `#capaDetalle` (que cierra el modal antes de abrir la persona), reutilizando el `abrirPersona` de siempre. `sw.js` VERSION 22→23. `logica.js` 147 (dirección/reparto con id), `interfaz.js` 111→113 (ficha inyectada + clic), `pwa.js` 20. |

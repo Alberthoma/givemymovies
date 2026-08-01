@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.27 · Aplicación V GMM 0027 · 31 de julio de 2026**
+**Documento v1.28 · Aplicación V GMM 0028 · 31 de julio de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies/>
 
 ---
@@ -642,7 +642,7 @@ en demo que en vivo.
 | `gmm_prefs` | Modo, plataforma, país e idioma |
 | `gmm_listas` | `{ favoritas: [], pendientes: [] }` |
 | `gmm_biblioteca` | `{ "tipo:id": { title, poster_path, enlace, guardada, … } }` — «Mis compras» (V GMM 0026) |
-| `gmm_gdrive_client_id` | Client ID de Google, Nivel 2 (V GMM 0027). El token va en `sessionStorage` (1 h) |
+| `gmm_gdrive_client_id` | Client ID de Google, Nivel 2 (V GMM 0027). El token va en `localStorage` (1 h; era `sessionStorage`, ver V GMM 0028) |
 
 **OMDb como fuente secundaria opcional (V GMM 0016).** Módulo `GMM.omdb` (bloque JS 5b, futuro
 `js/omdb.js`), hermano de `GMM.tmdb`. `parsear(json)` → `{ imdb, rt, meta }` tolerando `"N/A"`
@@ -898,6 +898,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.28 | V GMM 0028 | 31-07-2026 | **Arreglo Nivel 2:** el token de Drive pasa de `sessionStorage` a **`localStorage`**. En iOS la sessionStorage se borra al cerrar la app (y no se comparte entre Safari y la app instalada), así que la conexión a Drive se perdía y el botón «Buscar en mi Drive» desaparecía. En localStorage aguanta hasta que el token caduca (1 h). `sw.js` 25→26. |
 | 1.27 | V GMM 0027 | 31-07-2026 | **«Mi biblioteca» Nivel 2: Google Drive.** Con Drive conectado, en «Mi copia» un botón **🔎 Buscar en mi Drive** busca el título entre tus vídeos (`/drive/v3/files`) y por resultado ofrece **▶ Reproducir** (visor de Drive en `<iframe>/preview`), **⬇ Descargar** (directo) y **Guardar en la ficha** (le asigna el enlace de Drive al título; así no pegas enlaces a mano). Módulo `GMM.drive` (bloque 7c): **OAuth por flujo implícito sin librería** (`response_type=token`, scope `drive.readonly`), token en `sessionStorage` (1 h). Helpers puros `GMM.util.leerTokenHash`/`consultaDrive`/`urlAuthDrive`. Config nueva en ⚙: **Client ID de Google** (`gmm_gdrive_client_id`) + **Conectar con Drive**. Modal `#capaReproductor`. **Solo en HTTPS** (no doble clic); el token solo hace falta para buscar. Requiere que el usuario cree su Client ID en Google Cloud. `sw.js` 24→25, `logica.js` 160→166, `interfaz.js` 116→120, `pwa.js` 20. |
 | 1.26 | V GMM 0026 | 31-07-2026 | **«Mi biblioteca / Mis compras» (Nivel 1).** Por cada título, en su ficha y en el modal de detalle, una sección **«Mi copia»** donde pegas el **enlace a tu archivo** (Google Drive, Mega o tu servidor); se guarda en `localStorage` (`gmm_biblioteca`, por `tipo:id`) y aparecen **▶ Reproducir** y **⬇ Descargar**, que abren el enlace en pestaña nueva. Botón **«Mis compras»** en la barra → cuadrícula con lo guardado. Módulo `GMM.biblioteca` (bloque 7b) y helper puro `GMM.util.enlaceCopia` (de un enlace de Drive saca el id y arma ver + descarga directa; el resto se usa tal cual). Todo cliente, sin API/OAuth/librerías: va en doble clic y en la web. **Nivel 2 (buscar en Drive y reproducir dentro, vía OAuth) pendiente** (plan en CLAUDE.md §11.3). `sw.js` 23→24, `logica.js` 147→160, `interfaz.js` 113→116, `pwa.js` 20. |
 | 1.25 | V GMM 0025 | 31-07-2026 | **El reparto y la dirección de la ficha técnica llevan a la filmografía.** Tocar la foto o el nombre de un actor/actriz, o el nombre del director/creador, abre la vista de persona con toda su filmografía (`abrirPersona`). `GMM.util.fichaTecnica` conserva ahora el **id de persona**: `direccion` pasa a `{nombre, id}` (el `created_by` de serie también lo trae) y cada `reparto` lleva `id`. En la UI, el reparto es un `<button data-persona>` y la dirección otro; sin id quedan como texto. Se cablea con una delegación `[data-persona]` en `#resultados` y otra en `#capaDetalle` (que cierra el modal antes de abrir la persona). `sw.js` 22→23, `interfaz.js` 111→113. |
