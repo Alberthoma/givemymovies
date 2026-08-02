@@ -151,6 +151,15 @@ hoy con tus filtros de idioma y plataforma.
 
 Como viven solo en este navegador, en ⚙ tienes **Exportar** e **Importar** para hacer copia.
 
+### Llevarlas a otro dispositivo (opcional)
+
+Junto al ⚙, un botón de **cuenta** te deja crear una cuenta con correo y contraseña (o entrar si
+ya la tienes, o recuperarla si la olvidaste). Es **totalmente opcional**: sin iniciar sesión la
+app funciona exactamente igual que siempre. Lo único que cambia al iniciar sesión es que tus
+listas dejan de ser solo de este navegador: se guardan también en la nube y, si entras con la
+misma cuenta en el móvil, aparecen las mismas favoritas y pendientes — sin borrar lo que ya
+tuviera cada dispositivo, se juntan las dos.
+
 ---
 
 ## Sobre el idioma: léelo, importa
@@ -200,8 +209,12 @@ Cada banner indica a qué archivo correspondería si algún día quieres separar
 | 5b · Acceso a OMDb | `js/omdb.js` | Notas de IMDb/RT/Metacritic (opcional) |
 | 6 · Lógica de idioma | `js/idioma.js` | Filtrado y frase resumen |
 | 7 · Mis listas | `js/listas.js` | Favoritas y pendientes |
+| 7b · Mi biblioteca | `js/biblioteca.js` | Enlace a tu copia por título |
+| 7c · Google Drive | `js/drive.js` | Buscar y reproducir tu copia (Nivel 2) |
+| 7d · Cuenta | `js/cuenta.js` | Login, registro, recuperar contraseña y sincronizar listas |
 | 8 · Interfaz | `js/ui.js` | Pintado de componentes |
 | 9 · Aplicación | `js/app.js` | Vistas, eventos y arranque |
+| 10 · PWA | `js/pwa.js` | Service worker y botón de instalar |
 
 Para separarlos: corta cada bloque a su archivo y enlázalos en este orden con etiquetas
 `<script src="...">` normales. Cada bloque cuelga de un objeto global (`GMM.tmdb`,
@@ -219,6 +232,9 @@ Para separarlos: corta cada bloque a su archivo y enlázalos en este orden con e
   sigue siendo la de TMDB.
 - **Filmografías largas**: se consultan los 24 títulos más populares, para no disparar
   cientos de peticiones.
+- **Cuenta y sincronizar listas**: necesita internet para cargar el sistema de cuentas al abrir
+  la página. Sin conexión, el botón de cuenta simplemente no hace nada y el resto de la app
+  sigue funcionando igual.
 
 ---
 

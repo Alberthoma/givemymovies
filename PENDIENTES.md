@@ -55,7 +55,37 @@ vigentes antes de apostar por esa vía.
 
 ## 2 — Login y sincronización de las listas entre dispositivos
 
-**Planteado el 28-07-2026. Sin resolver.** El usuario apunta a Firebase.
+**Planteado el 28-07-2026. Resuelto en la V GMM 0029 (2026-08-02), con dos matices sobre lo que
+se planteaba abajo.** El usuario pidió Firebase, correo/contraseña con registro y «olvidé mi
+contraseña», y el SDK (no la API REST). El desarrollo completo queda documentado aquí porque
+explica las alternativas que se descartaron y por qué; el diseño final está en `CLAUDE.md` §4
+«La cuenta y sincronizar Mis listas» y §6 «Datos: Firebase».
+
+**Lo que cambió respecto al plan de abajo:**
+- **Correo/contraseña, no Google.** Este documento recomendaba Google por la fricción cero y no
+  tener que gestionar recuperación de contraseña. El usuario pidió expresamente lo contrario:
+  login, registro y «olvidé mi contraseña» con correo. Se implementó tal cual — no hay nada que
+  impida añadir Google más adelante como método adicional.
+- **El SDK de Firebase, no su API REST.** Este documento marcaba el choque con la regla «sin
+  librerías» (R3) y proponía la API REST como salida. Al plantearle la disyuntiva, el usuario
+  prefirió el SDK (menos código, mejor mantenido) y aceptó romper R3 a propósito para esto — la
+  única excepción de todo el proyecto. Queda anotado en `CLAUDE.md` §3, no oculto.
+- **La fusión por `id`** se hizo por `(id, tipo)` —no solo `id`—, porque una película y una serie
+  pueden compartir id en TMDB (la misma razón por la que `GMM.listas` ya indexaba así). Conserva
+  la fecha `anadida` más antigua ante un duplicado, tal como se planteaba abajo.
+- El resto del diseño (login opcional que no condiciona el resto de la app, `localStorage` como
+  copia local y la nube como espejo, seguir funcionando sin conexión) se implementó tal cual se
+  planteaba.
+
+**Lo que sigue abierto:** el usuario tiene que hacer, a mano, dos pasos en la consola de Firebase
+que el código no puede hacer por él —activar el método «Correo/contraseña» en Authentication y
+publicar las reglas de Firestore para la colección `usuarios`—, y verificar en la web publicada
+que el registro, el login, el correo de «olvidé mi contraseña» y la sincronización entre dos
+navegadores funcionan de verdad (no se puede probar en CI; ver `CLAUDE.md` §7).
+
+<details>
+<summary>Desarrollo original del tema, previo a la decisión (histórico)</summary>
+
 
 **El problema real.** `gmm_listas` vive en `localStorage`, que es **por navegador y por
 dispositivo**. Lo que guarde en el móvil no aparece en el PC ni al revés: son dos listas
@@ -99,6 +129,8 @@ código, pero conserva lo que define al proyecto. **Plantéaselo al usuario ante
 pensada para ser pública** — no es un secreto como la clave de TMDB. La seguridad no viene de
 esconderla, sino de las reglas de Firestore y de la autenticación. O sea: eso sí puede ir dentro
 de `index.html` sin problema.
+
+</details>
 
 ---
 

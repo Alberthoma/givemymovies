@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.30 · Aplicación V GMM 0028 · 1 de agosto de 2026**
+**Documento v1.31 · Aplicación V GMM 0029 · 2 de agosto de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies/>
 
 ---
@@ -59,7 +59,7 @@ Acordadas explícitamente con el usuario. **No las reinterpretes ni las "mejores
 |---|---|---|
 | R1 | **Un único `index.html`** | HTML, CSS y JavaScript en el mismo archivo. Debe abrirse con doble clic, sin servidor, sin build, sin instalación. **Única excepción:** `manifest.json`, `sw.js` e `iconos/`, que han de ser archivos aparte por definición para que la app sea instalable (§5.8). Ninguna lógica de la app vive en ellos. |
 | R2 | **CSS puro, sin variables** | Prohibidas las propiedades personalizadas: nada de `var(--color)`, `--fuente`, `--espaciado`. Escribe el valor literal cada vez, aunque se repita cincuenta veces. |
-| R3 | **Sin librerías** | Ni frameworks, ni CDNs, ni paquetes npm, ni fuentes externas. JavaScript nativo y tipografía del sistema. |
+| R3 | **Sin librerías** | Ni frameworks, ni CDNs, ni paquetes npm, ni fuentes externas. JavaScript nativo y tipografía del sistema. **Única excepción, pedida explícitamente por el usuario: el SDK de Firebase** (§5.14, desde V GMM 0029), cargado con `<script>` clásicos desde `gstatic.com` para la cuenta y sincronizar Mis listas. Es la única dependencia externa de toda la app. |
 | R4 | **Scripts clásicos** | Nunca `type="module"`. Los módulos ES fallan al abrir con `file://`, que es el modo de uso previsto. |
 | R5 | **Preparado para fraccionar** | El archivo debe estar dividido en bloques delimitados por banners de comentario que nombren el archivo al que irían. Separarlos debe ser copiar y pegar, **sin tocar una sola línea de código**. |
 | R6 | **Todo el código en español** | Comentarios, variables, funciones, clases CSS, identificadores. Ejemplos: `pintarPelicula`, `cerrarSugerencias`, `entrada`, `capaAjustes`, `.boton-buscar`, `.pais-codigo`. |
@@ -457,6 +457,31 @@ primera búsqueda la lanza el botón *Buscar*.
 - **Exportar / importar JSON** desde ajustes. Las listas viven solo en `localStorage` y un
   borrado de datos del sitio se las lleva; la copia de seguridad cuesta poco y evita el disgusto.
 - Al importar, **fusiona sin duplicar**; rechaza archivos con formato ajeno.
+- **Sincronizadas automáticamente si hay sesión iniciada** (§5.5b, desde V GMM 0029): cada
+  cambio (alternar, vaciar, importar) se sube a la nube; sin sesión, siguen viviendo solo en
+  este dispositivo, como siempre.
+
+### 5.5b Cuenta: login, registro y recuperar contraseña (V GMM 0029)
+
+**Opcional, nunca obligatorio.** La app entera funciona sin iniciar sesión; esto solo añade que
+Mis listas viajen entre dispositivos. No hay pantalla de entrada que bloquee el resto de la app.
+
+- **Botón en la barra** (junto a ⚙): «Iniciar sesión», o el correo (recortado) si hay sesión.
+- **Un modal, cuatro vistas** — entrar / crear cuenta / recuperar contraseña / perfil —, con
+  enlaces para pasar de una a otra sin cerrar el modal. Con sesión activa, el botón abre directo
+  en «perfil»: correo actual y **Cerrar sesión**.
+- **Correo y contraseña**, con registro y «olvidé mi contraseña» (el correo de recuperación lo
+  manda Firebase con su plantilla y página propias, sin nada más que montar).
+- **Con Firebase Auth y Firestore, vía su SDK** (no la API REST): única excepción a R3, pedida
+  explícitamente por el usuario. Ver §3 y §7.
+- **Al iniciar sesión, fusiona en vez de sustituir**: trae lo que hubiera en la nube y lo une con
+  lo que ya había en este dispositivo, sin duplicar y conservando la fecha de guardado más
+  antigua ante un duplicado. Entrar en un dispositivo nuevo no borra lo que tenía otro.
+- **Sin internet al abrir la página, la cuenta queda inactiva** sin romper nada más: el resto de
+  la app —buscar, Descubrir, listas locales— sigue funcionando exactamente igual.
+- Requiere, hechos a mano en la consola de Firebase (fuera del alcance del código): activar el
+  método «Correo/contraseña» en Authentication y publicar las reglas de Firestore que restringen
+  cada documento de usuario a su propio dueño.
 
 ### 5.6 Ajustes
 
@@ -589,10 +614,15 @@ los bloques en archivos **no exija tocar código**: basta enlazarlos en este ord
 | 3 | `js/demo.js` | `GMM.demo` | Catálogo de ejemplo |
 | 4 | `js/util.js` | `GMM.util` | Escapado, normalizar, enumerar, retardo cancelable, lotes |
 | 5 | `js/tmdb.js` | `GMM.tmdb` | Peticiones, caché, conmutación demo/vivo |
+| 5b | `js/omdb.js` | `GMM.omdb` | Fuente secundaria opcional: notas de IMDb/RT/Metacritic por `imdb_id` |
 | 6 | `js/idioma.js` | `GMM.idioma` | **El núcleo**: evaluar, filtrar, construir la frase |
 | 7 | `js/listas.js` | `GMM.listas` | Favoritas y pendientes |
+| 7b | `js/biblioteca.js` | `GMM.biblioteca` | «Mis compras»: enlace a tu copia por título (Nivel 1) |
+| 7c | `js/drive.js` | `GMM.drive` | Google Drive (Nivel 2): OAuth implícito, buscar, reproducir |
+| 7d | `js/cuenta.js` | `GMM.cuenta` | **(V GMM 0029)** Cuenta opcional con Firebase: login, registro, recuperar contraseña, sincronizar Mis listas |
 | 8 | `js/ui.js` | `GMM.ui` | Componentes, avisos |
 | 9 | `js/app.js` | `GMM.app` | Estado, vistas, eventos, arranque |
+| 10 | `js/pwa.js` | `GMM.pwa` | Service worker y botón de instalar |
 
 **Reglas de código:**
 
@@ -620,6 +650,7 @@ los bloques en archivos **no exija tocar código**: basta enlazarlos en este ord
 | Catálogo de plataformas | `/watch/providers/movie` |
 | **Notas IMDb/RT/Metacritic** (OMDb, secundaria y opcional) | `https://www.omdbapi.com/?apikey=…&i={imdb_id}` — clave aparte; sin ella la app va igual |
 | **Tendencia** (carrusel del inicio) | `/trending/movie/week` · `/trending/tv/week` |
+| **Cuenta y sincronizar listas** (Firebase, opcional, V GMM 0029) | SDK vía CDN (no REST): `firebase.auth()` para login/registro/recuperar y `firebase.firestore()` para `usuarios/{uid}` con `favoritas`/`pendientes` |
 
 Todas con `language=es-ES`. Caché en memoria por ruta + parámetros.
 
@@ -644,6 +675,21 @@ en demo que en vivo.
 | `gmm_listas` | `{ favoritas: [], pendientes: [] }` |
 | `gmm_biblioteca` | `{ "tipo:id": { title, poster_path, enlace, guardada, … } }` — «Mis compras» (V GMM 0026) |
 | `gmm_gdrive_client_id` | Client ID de Google, Nivel 2 (V GMM 0027). El token va en `localStorage` (1 h; era `sessionStorage`, ver V GMM 0028) |
+| *(ninguna)* | La sesión de `GMM.cuenta` (Firebase, V GMM 0029) no usa `localStorage`: el SDK la persiste solo, en IndexedDB |
+
+**Cuenta con Firebase, vía su SDK (V GMM 0029).** Módulo `GMM.cuenta` (bloque JS 7d). Única
+excepción a R3 —sin librerías—, pedida explícitamente por el usuario tras plantearle la
+alternativa (Identity Toolkit + Firestore por `fetch` a pelo). SDK **compat** cargado con tres
+`<script>` clásicos desde `gstatic.com`, versión fijada (no "latest"), justo antes del `<script>`
+de la app. `disponible()` (`typeof firebase !== "undefined"`) guarda toda función pública: sin
+internet al abrir la página, el SDK no carga y la cuenta queda inactiva sin romper el resto de la
+app. `interpretarError(error)` traduce los códigos `auth/*` del SDK a español (pura, testable).
+Sincronizar sube `favoritas`/`pendientes` a `usuarios/{uid}` agrupado con `GMM.util.retardo`; al
+iniciar sesión, `fusionarAlEntrar()` trae lo de la nube y lo une con lo local vía
+`GMM.util.fusionarListas` (pura: por `(id, tipo)`, conserva la fecha `anadida` más antigua ante
+un duplicado). La config web de Firebase no es secreta —pensada para ser pública— y vive en
+`GMM.config.FIREBASE`. Requiere, hechos a mano en la consola de Firebase: activar
+«Correo/contraseña» en Authentication y publicar las reglas de Firestore de `usuarios/{uid}`.
 
 **OMDb como fuente secundaria opcional (V GMM 0016).** Módulo `GMM.omdb` (bloque JS 5b, futuro
 `js/omdb.js`), hermano de `GMM.tmdb`. `parsear(json)` → `{ imdb, rt, meta }` tolerando `"N/A"`
@@ -791,6 +837,11 @@ Todos deben pasar:
 | A46 | Orden junto a ← | Sobre una cuadrícula de Descubrir, el desplegable comparte fila con la flecha; encender un interruptor ahí lo enciende también en el formulario y reordena sin volver atrás |
 | A47 | «Ver más» pagina de corrido | Tras elegir *Las 10 de siempre* y pulsar «Ver más», el paginador dice **«Página 1 de N»** —nunca «AAAA · …»— y la cuadrícula trae **20 carátulas** |
 | A48 | Escape dentro del modal | Con el autocompletado desplegado, Escape cierra **solo** el desplegable y conserva lo escrito; sin él, cierra el modal |
+| A49 | Sin sesión iniciada (V GMM 0029) | La app funciona exactamente igual que sin la cuenta: buscar, Descubrir y Mis listas locales, sin ningún bloqueo ni pantalla de entrada |
+| A50 | Modal de cuenta | Abre en «entrar»; los enlaces cambian a «registro» y «recuperar» **sin cerrar el modal**; la X y Escape lo cierran |
+| A51 | Con sesión (simulada en pruebas) | El botón de la barra muestra el correo en vez de «Iniciar sesión»; abrir el modal va directo a «perfil» |
+| A52 | Fusión de listas al iniciar sesión | `GMM.util.fusionarListas` une local y remoto por `(id, tipo)` sin duplicar, y ante un duplicado conserva la fecha `anadida` más antigua |
+| A53 | Sin el SDK cargado (sin internet) | `GMM.cuenta.disponible()` es `false`; el resto de la app arranca y funciona igual |
 
 ### Al tocar el catálogo demo, verifica cada imagen
 
@@ -851,30 +902,26 @@ Hay que **decirlos**, no disimularlos:
   ids de universo (MCU/DCEU/DCU) de reserva; si la resolución fallara, quedaría solo el universo.
 - **La clave viaja al navegador**: publicar la web exigiría un servidor intermedio.
 - **El idioma es una estimación**, nunca un dato confirmado (§4.3).
+- **Cuenta y sincronizar listas (V GMM 0029) exigen internet** para cargar el SDK de Firebase.
+  Sin conexión al abrir la página, la cuenta queda inactiva pero el resto de la app funciona
+  igual. Es la única función del proyecto con una dependencia externa (R3, §3).
 
 ---
 
 ## 13. Mejoras futuras, por valor
 
-1. **Login y sincronización de las listas.** Hoy `gmm_listas` vive en `localStorage`, que es
-   por navegador: la lista del móvil y la del PC son dos listas distintas. Necesita login
-   —acceso con Google es lo más liviano en móvil— y un almacén en la nube. **La app debe
-   seguir funcionando sin identificarse:** iniciar sesión añade sincronización, no la
-   condiciona. **Cuidado con R3:** el SDK de Firebase es una librería; su API REST permite
-   hacerlo con `fetch` a pelo y conservar la regla. Ver `PENDIENTES.md` §2.
-2. **Puntuaciones de IMDb y Rotten Tomatoes.** TMDB no las da; requeriría OMDb con su propia
-   clave. Se planteó y se aparcó (ver §15 y `CLAUDE.md`).
-3. **Enlace compartible.** Codificar la búsqueda en la URL.
-4. **Avísame cuando llegue.** Vigilar un título hasta que aparezca en tu país. Necesita servidor.
-5. **Tráiler incrustado.** `/movie/{id}/videos`, un clic sin salir de la app.
-6. **Precios de alquiler y compra.** TMDB no los publica; requiere la API de pago de JustWatch.
-7. **Comparador de países.** Útil para quien usa VPN.
-8. **Sorpréndeme.** Película o serie al azar que cumpla los filtros activos.
+1. **Enlace compartible.** Codificar la búsqueda en la URL.
+2. **Avísame cuando llegue.** Vigilar un título hasta que aparezca en tu país. Necesita servidor.
+3. **Tráiler incrustado.** `/movie/{id}/videos`, un clic sin salir de la app.
+4. **Precios de alquiler y compra.** TMDB no los publica; requiere la API de pago de JustWatch.
+5. **Comparador de países.** Útil para quien usa VPN.
+6. **Sorpréndeme.** Película o serie al azar que cumpla los filtros activos.
 
 *(La PWA instalable está hecha desde V GMM 0003 (§5.7). «Mi lista» se implementó en
 V GMM 0001. Los filtros de género, año y nota y las series llegaron en V GMM 0005; el
 interruptor Película/Serie con series en **todas** las búsquedas, en V GMM 0006 (§5.1.1);
-el **orden** de Descubrir y el **intervalo de años**, en V GMM 0015 (§5.4b).)*
+el **orden** de Descubrir y el **intervalo de años**, en V GMM 0015 (§5.4b). **Login y
+sincronización de las listas**, con Firebase, en V GMM 0029 (§5.5b).)*
 
 *Ya incluidas desde la primera versión, por baratas y por lo mucho que cambian la experiencia:*
 autocompletado con carátula, frase en lenguaje natural, enlace directo a cada plataforma,
@@ -906,6 +953,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.31 | V GMM 0029 | 02-08-2026 | **Cuenta opcional con Firebase: login, registro, recuperar contraseña y sincronizar Mis listas** (§5.5b). Retoma `PENDIENTES.md` §2, con dos decisiones distintas de lo planteado: **correo/contraseña** (no Google) y el **SDK de Firebase vía CDN** (no su API REST) — única excepción consciente a R3, «sin librerías», de todo el proyecto. Sin sesión la app funciona exactamente igual que siempre. Módulo nuevo `GMM.cuenta` (bloque 7d): `disponible()` guarda toda función pública y degrada sin romper nada si el SDK no cargó (sin internet); `registrar`/`iniciarSesion`/`cerrarSesion`/`recuperarContrasena` sobre `firebase.auth()`; `sincronizar`/`fusionarAlEntrar` sobre `firebase.firestore()` (`usuarios/{uid}`). `GMM.util.fusionarListas` (pura): une local+nube por `(id, tipo)`, conserva la fecha `anadida` más antigua ante un duplicado. Botón `#btnCuenta` en la barra y modal `#capaCuenta` con 4 vistas (entrar/registro/recuperar/perfil). Config `GMM.config.FIREBASE` (no secreta). Requiere, a mano en la consola de Firebase: activar «Correo/contraseña» y publicar las reglas de Firestore. Criterios A49–A53. `sw.js` 26→27, `logica.js` 166→177, `interfaz.js` 120→127 (`GMM.cuenta` stubeado, como `GMM.drive`), `pwa.js` 20. |
 | 1.30 | V GMM 0028 | 01-08-2026 | **Solo documentación, la app no cambia.** Segunda pasada de aligerado de `CLAUDE.md`: los temas abiertos salen a **`PENDIENTES.md`** (§11 se queda con una tabla de estado), el diseño ya construido del Nivel 2 de Drive se va al apéndice de `HISTORIAL.md`, y se retira la duplicación entre §4 y §9 dejando el desarrollo en §9. **Correcciones de contenido falso:** §10 afirmaba que GitHub Pages «no está activado» contradiciendo la cabecera —lo está desde la 0004—, y §8 listaba como «límites conocidos» tres cosas que ya no lo eran (series en las cuatro búsquedas, puntuaciones de otras plataformas, filmografía de dirección); §8 gana en cambio las condiciones reales del Nivel 2 de Drive. `CLAUDE.md`: 58.786 → 50.770 caracteres. |
 | 1.29 | V GMM 0028 | 31-07-2026 | **Solo documentación, la app no cambia.** El detalle de cada versión sale de `CLAUDE.md` §12 a un **`HISTORIAL.md`** nuevo, y §12 se queda con una línea por versión. Motivo: `CLAUDE.md` se carga entero en cada sesión de trabajo y el historial era casi un cuarto de su peso sin consultarse casi nunca. El skill `givemymovies-commit` pasa a exigir las dos anotaciones —línea corta y detalle— y a actualizar `PROMPT-MAESTRO.md` **por secciones**, no leyéndolo entero, por el mismo motivo. |
 | 1.28 | V GMM 0028 | 31-07-2026 | **Arreglo Nivel 2:** el token de Drive pasa de `sessionStorage` a **`localStorage`**. En iOS la sessionStorage se borra al cerrar la app (y no se comparte entre Safari y la app instalada), así que la conexión a Drive se perdía y el botón «Buscar en mi Drive» desaparecía. En localStorage aguanta hasta que el token caduca (1 h). `sw.js` 25→26. |

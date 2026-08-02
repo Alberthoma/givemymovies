@@ -566,6 +566,49 @@ m.afirmar("combinarKeywords vacío por ambos lados es cadena vacía",
   GMM.util.combinarKeywords([], []) === "");
 
 /* ---------------------------------------------------------------- */
+m.titulo("Sincronizar con Firebase: fusión de listas (GMM.util.fusionarListas, V GMM 0029)");
+
+const favA = { id: 1, tipo: "movie", title: "A", anadida: "2026-01-01T00:00:00.000Z" };
+const favA2 = { id: 1, tipo: "movie", title: "A", anadida: "2025-06-01T00:00:00.000Z" }; // misma peli, en la nube, más antigua
+const favB = { id: 2, tipo: "tv", title: "B", anadida: "2026-02-01T00:00:00.000Z" };     // solo local
+const favC = { id: 1, tipo: "tv", title: "C", anadida: "2026-03-01T00:00:00.000Z" };     // mismo id que A pero otro tipo: no es la misma
+
+let fusion = GMM.util.fusionarListas(
+  { favoritas: [favA, favB, favC], pendientes: [] },
+  { favoritas: [favA2], pendientes: [] }
+);
+m.afirmar("une sin duplicar por (id, tipo)", fusion.favoritas.length === 3, "salieron " + fusion.favoritas.length);
+m.afirmar("ante un duplicado, conserva la fecha 'anadida' más antigua",
+  fusion.favoritas.find((x) => x.id === 1 && x.tipo === "movie").anadida === favA2.anadida);
+m.afirmar("mismo id pero distinto tipo no se deduplica (peli y serie pueden compartir id)",
+  fusion.favoritas.some((x) => x.id === 1 && x.tipo === "tv"));
+m.afirmar("lo que solo está en local se conserva", fusion.favoritas.some((x) => x.id === 2));
+
+const soloRemoto = GMM.util.fusionarListas(
+  { favoritas: [], pendientes: [] },
+  { favoritas: [favA], pendientes: [favB] }
+);
+m.afirmar("local vacío: se queda con todo lo remoto",
+  soloRemoto.favoritas.length === 1 && soloRemoto.pendientes.length === 1);
+
+const ambosVacios = GMM.util.fusionarListas({}, {});
+m.afirmar("sin listas en ninguno de los dos lados no falla y devuelve vacío",
+  ambosVacios.favoritas.length === 0 && ambosVacios.pendientes.length === 0);
+
+/* ---------------------------------------------------------------- */
+m.titulo("Cuenta (Firebase, V GMM 0029): degradación sin el SDK y mensajes de error");
+
+m.afirmar("sin el SDK cargado (Node no tiene 'firebase'), la cuenta se declara no disponible",
+  GMM.cuenta.disponible() === false);
+m.afirmar("sin SDK, no hay sesión", GMM.cuenta.sesion() === null && GMM.cuenta.conectado() === false);
+m.afirmar("interpretarError traduce los códigos conocidos del SDK",
+  GMM.cuenta.interpretarError({ code: "auth/email-already-in-use" }) === "Ya hay una cuenta con ese correo. Prueba a entrar.");
+m.afirmar("interpretarError tiene un mensaje de reserva para códigos desconocidos",
+  typeof GMM.cuenta.interpretarError({ code: "auth/lo-que-sea" }) === "string" &&
+  GMM.cuenta.interpretarError({ code: "auth/lo-que-sea" }).length > 0);
+m.afirmar("interpretarError tolera que no llegue error", typeof GMM.cuenta.interpretarError() === "string");
+
+/* ---------------------------------------------------------------- */
 m.titulo("Lotes con concurrencia limitada");
 
 let simultaneas = 0, pico = 0;

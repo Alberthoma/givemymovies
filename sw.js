@@ -10,10 +10,19 @@
    │ api.themoviedb.org      │ SOLO RED. Nunca se cachea.                │
    │ www.omdbapi.com         │ SOLO RED: las notas cambian con el tiempo.│
    │ *.googleapis.com, Drive │ SOLO RED (otro origen): API de Drive N.2. │
+   │ *.gstatic.com, Firebase │ SOLO RED (otro origen): SDK de cuenta,    │
+   │                         │ V GMM 0029 — nunca servir un SDK rancio.  │
    │ image.tmdb.org          │ Caché primero: una carátula no cambia.    │
    │ Navegación (index.html) │ Red primero, caché si no hay conexión.    │
    │ Resto del propio sitio  │ Caché primero: iconos, manifiesto.        │
    └─────────────────────────┴───────────────────────────────────────────┘
+
+   Nota: *.googleapis.com y *.gstatic.com no necesitan una línea propia en
+   el manejador de "fetch" de abajo — son otro origen y el código ya
+   devuelve sin llamar a respondWith() para cualquier origen externo que no
+   esté explícitamente cacheado (image.tmdb.org), así que el navegador hace
+   la petición normal a la red. Aparecen en esta tabla solo para que quede
+   dicho, no porque falte código.
 
    AL PUBLICAR UNA VERSIÓN NUEVA hay que subir VERSION. Si no, los
    navegadores que ya cachearon la app seguirán sirviendo la vieja.
@@ -21,7 +30,7 @@
 
 "use strict";
 
-var VERSION   = 26;
+var VERSION   = 27;
 var CACHE_APP = "gmm-app-v" + VERSION;
 var CACHE_IMG = "gmm-img-v" + VERSION;
 

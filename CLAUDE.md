@@ -2,9 +2,9 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0028`
-**Próxima versión:** `V GMM 0029`
-**Última actualización:** 2026-08-01
+**Versión activa:** `V GMM 0029`
+**Próxima versión:** `V GMM 0030`
+**Última actualización:** 2026-08-02
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies/> · GitHub Pages desde `main`, raíz.
 
@@ -122,7 +122,7 @@ Estas no son sugerencias. Se acordaron explícitamente y hay que respetarlas.
 | **Un único `index.html`** | Todo dentro: HTML, CSS y JS. Se abre con doble clic, sin servidor. **Única excepción:** `manifest.json`, `sw.js` e `iconos/`, que por definición tienen que ser archivos aparte para que la app sea instalable. Nada de lógica de la app vive en ellos. |
 | **Preparado para fraccionar** | Bloques delimitados con banners de comentario que nombran su futuro archivo. |
 | **CSS puro, sin variables** | Nada de `var(--color)`, `--espaciado` ni similares. **Valores literales siempre**, aunque se repitan. Petición textual del usuario. |
-| **Sin librerías** | Ni frameworks, ni CDNs, ni npm. JavaScript a pelo. |
+| **Sin librerías** | Ni frameworks, ni CDNs, ni npm. JavaScript a pelo. **Única excepción, consciente y pedida por el usuario: el SDK de Firebase** (`GMM.cuenta`, desde V GMM 0029), cargado con `<script>` clásicos desde `gstatic.com`. Es la única dependencia externa de todo el proyecto — la alternativa (hablar con las API REST de Firebase a mano) se le planteó primero y prefirió el SDK. Nada más se salta esta regla. |
 | **Scripts clásicos** | Nada de `type="module"`: rompería la apertura con `file://`. |
 | **Todo en español** | Comentarios, variables, funciones, clases CSS, identificadores. `pintarPelicula`, `entrada`, `capaAjustes`, `boton-buscar`. |
 | **Paleta oscura** | Verdes, naranjas y azules. Ver §5. |
@@ -173,6 +173,7 @@ tocar ni una línea**: basta con enlazarlos en este orden.
 | 7 | `js/listas.js` | `GMM.listas` — favoritas y pendientes |
 | 7b | `js/biblioteca.js` | `GMM.biblioteca` — «Mis compras»: enlace a tu copia por título (Nivel 1) |
 | 7c | `js/drive.js` | `GMM.drive` — Google Drive (Nivel 2): OAuth implícito, buscar, reproducir |
+| 7d | `js/cuenta.js` | `GMM.cuenta` — acceso opcional (Firebase): login, registro, recuperar contraseña, sincronizar Mis listas |
 | 8 | `js/ui.js` | `GMM.ui` — pintado de componentes, avisos |
 | 9 | `js/app.js` | `GMM.app` — estado, vistas, eventos, arranque |
 | 10 | `js/pwa.js` | `GMM.pwa` — service worker y botón de instalar |
@@ -394,6 +395,47 @@ pagina de corrido: **20 por página y «Página 1 de N»**. Encenderlo también 
 mejores» que el usuario rechazó. Si algún día se toca `verMasCategoria`, **no vuelvas a encender
 `porNota` ahí**: no es un detalle, es el comportamiento que se pidió.
 
+### La cuenta y sincronizar Mis listas (desde V GMM 0029)
+
+**Acceso opcional, nunca obligatorio.** La app funciona entera sin iniciar sesión, exactamente
+igual que siempre; iniciar sesión solo añade que **Mis listas** (favoritas y pendientes) viajen
+entre dispositivos. No hay pantalla de entrada que bloquee nada — es justo lo contrario de un
+muro de login, a propósito: se descartó con el usuario (ver `PENDIENTES.md` §2).
+
+**Correo y contraseña, no Google.** `PENDIENTES.md` §2 recomendaba entrar con Google (cero
+fricción, sin contraseña que gestionar); el usuario pidió expresamente correo/contraseña con
+registro y «olvidé mi contraseña», así que es lo que hay. Nada impide añadir Google más
+adelante como método adicional.
+
+**`GMM.cuenta` (bloque 7d) usa el SDK de Firebase, no su API REST.** Es la única excepción a la
+regla «sin librerías» (§3): el usuario la pidió explícitamente después de ver la alternativa
+(hablar con Identity Toolkit + Firestore a mano por `fetch`, gestionando el refresco de token).
+El SDK se carga en tres `<script>` clásicos (build **compat**, sin `type="module"`) desde
+`gstatic.com`, justo antes del `<script>` de la app. **Sin internet esos `<script src>` no
+cargan** y `firebase` queda `undefined`: `GMM.cuenta.disponible()` lo detecta y toda la app
+sigue funcionando igual, solo que sin cuenta. El SDK gestiona su propia sesión (no hace falta
+guardar tokens a mano en `localStorage`, a diferencia de `GMM.drive`).
+
+**Sincronizar es «última escritura gana» en el documento, pero fusionando al entrar.** Cada
+cambio en Mis listas (`alternarLista`, `vaciarLista`, importar un backup) sube las listas
+completas a Firestore (`usuarios/{uid}`, campos `favoritas`/`pendientes`), agrupado con
+`GMM.util.retardo` para no escribir en cada clic. **Al iniciar sesión** —no al guardar—, se trae
+lo que hubiera en la nube y se fusiona con lo que ya había en este dispositivo
+(`GMM.util.fusionarListas`, pura y testable): une por `(id, tipo)` sin duplicar y, si una
+entrada está en los dos lados, conserva la fecha `anadida` más antigua. Así, entrar en un
+dispositivo nuevo no borra lo que tenía otro.
+
+**La config web de Firebase no es secreta** (`apiKey`, `projectId`… en `GMM.config.FIREBASE`):
+está pensada para ser pública, la seguridad la dan las reglas de Firestore y de Authentication,
+no ocultar esos valores. Por eso vive directamente en `index.html`, igual que el resto de
+`GMM.config`.
+
+**Firestore exige reglas publicadas a mano en la consola de Firebase** (no algo que el código
+pueda hacer): la colección `usuarios` solo debe permitir leer/escribir el propio documento,
+comparando `request.auth.uid` con el id del documento. Sin esas reglas publicadas, y sin el
+método «Correo/contraseña» activado en Authentication, nada de esto funciona en la web
+publicada aunque el código esté bien.
+
 ### Persistencia (`localStorage`)
 
 | Clave | Contenido |
@@ -404,6 +446,7 @@ mejores» que el usuario rechazó. Si algún día se toca `verMasCategoria`, **n
 | `gmm_listas` | `{ favoritas: [], pendientes: [] }` |
 | `gmm_biblioteca` | `{ "tipo:id": { title, poster_path, enlace, guardada, … } }` — «Mis compras», el enlace a tu copia por título |
 | `gmm_gdrive_client_id` | Client ID de Google para el Nivel 2 (Drive). El **token** de acceso vive en `localStorage` (`gmm_gdrive_token`/`_exp`, 1 h; en `sessionStorage` se perdía al cerrar la app en iOS — ver V GMM 0028) |
+| *(ninguna clave propia)* | La sesión de `GMM.cuenta` (Firebase, desde V GMM 0029) no usa `localStorage`: el SDK persiste su propia sesión internamente (IndexedDB) |
 
 ---
 
@@ -457,6 +500,24 @@ en demo que en vivo.
 
 Errores tratados por nombre: `CLAVE_INVALIDA` (401), `DEMASIADAS_PETICIONES` (429).
 
+### Datos: Firebase (cuenta y sincronizar Mis listas, desde V GMM 0029)
+
+| Uso | Cómo |
+|---|---|
+| Login, registro, cerrar sesión, recuperar contraseña | SDK de Firebase Auth (`firebase.auth()`), no la API REST — ver §4 «La cuenta…» para el porqué |
+| Sincronizar `gmm_listas` | Firestore (`firebase.firestore()`), un documento por usuario en `usuarios/{uid}` con los campos `favoritas`/`pendientes` |
+
+Proyecto de Firebase: `givemymovies-x`. La config (`GMM.config.FIREBASE`) no es secreta, ver §4.
+Requiere, hechos a mano en la consola de Firebase (no algo que el código resuelva):
+**Authentication → Sign-in method → activar «Correo/contraseña»**, y **Firestore → Reglas →
+publicar** que cada documento de `usuarios` solo lo lea/escriba su propio dueño
+(`request.auth.uid == uid`). Sin esos dos pasos, la cuenta no funciona en la web publicada
+aunque el código esté bien.
+
+Errores de Auth traducidos en `GMM.cuenta.interpretarError` por el `code` del SDK
+(`auth/email-already-in-use`, `auth/wrong-password`, `auth/too-many-requests`…), mismo espíritu
+que los errores nombrados de TMDB/OMDb.
+
 ### Al tocar el catálogo de demo, verifica las imágenes
 
 Ya pasó dos veces: el id `1417` **no** es *Volver* (es *El laberinto del fauno*; el correcto
@@ -473,9 +534,9 @@ el `og:image`. Y no cojas el primer `<img>` de la página: suele ser un recomend
 **La aplicación no tiene dependencias.** `pruebas/` es una herramienta aparte y opcional.
 
 ```bash
-node pruebas/logica.js      # 166 comprobaciones · sin dependencias · instantáneo
+node pruebas/logica.js      # 177 comprobaciones · sin dependencias · instantáneo
 node pruebas/imagenes.js    #  15 comprobaciones · necesita internet · ~30 s
-node pruebas/interfaz.js    # 120 comprobaciones · playwright-core · ~60 s
+node pruebas/interfaz.js    # 127 comprobaciones · playwright-core y, desde 0029, internet ·  ~60 s
 node pruebas/pwa.js         #  20 comprobaciones · playwright-core · ~20 s
 ```
 
@@ -488,6 +549,17 @@ no son regresión. En local, con clave e internet, esos contadores vuelven a cer
 cacheó `gmm-app-v26` correctamente. **El OAuth real de Drive (Nivel 2) no se puede probar en
 remoto** —necesita el Client ID del usuario y su sesión de Google sobre HTTPS—, así que sus tests
 stubean `GMM.drive`; la verificación de punta a punta la hace el usuario en la web publicada.
+
+**La V GMM 0029 se cerró en local** con las tres suites: `logica.js` **177/177**, `interfaz.js`
+**127/127** y `pwa.js` **20/20** (caché `gmm-app-v27`). Desde esta versión `interfaz.js` también
+necesita internet, no solo `playwright-core`: la app carga el SDK de Firebase con tres
+`<script src="…gstatic.com/…">` (ver §3 y §4), y sin red esas peticiones fallarían — el filtro de
+«errores acumulados» ya las descarta como conocidas (mismo trato que el 404 de
+`PRIVADO/clave-local.js`), pero conviene saber por qué. El login/registro/recuperar contraseña y
+la sincronización real de Firebase **no se pueden probar en CI**, así que sus tests stubean
+`GMM.cuenta` igual que ya se stubea `GMM.drive`; la verificación de punta a punta —cuenta real,
+correo de recuperación, listas viajando entre dos navegadores— la hace el usuario en la web
+publicada.
 
 > **Correr `interfaz.js`/`pwa.js` en remoto, sin npm** (aprendido en la 0024): aunque
 > `npm install playwright-core` esté bloqueado por la política de red, el entorno suele traer un
@@ -547,7 +619,12 @@ pista, sus títulos, «Ver más» solo en los tres con intervalo, que el botón 
 sugerencias ya no existan, la insignia de **nota de TMDB** y no la de IMDb, y el corte en 20);
 y —desde la 0024— que el desplegable de género ofrezca las **cuatro colecciones** en su grupo;
 y —desde la 0025— que el **reparto y la dirección** de la ficha técnica sean botones que abren la
-filmografía de esa persona (ficha inyectada + clic, con la red stubeada).
+filmografía de esa persona (ficha inyectada + clic, con la red stubeada); y —desde la 0029— la
+**fusión de listas al sincronizar** (`GMM.util.fusionarListas`: une por id+tipo, conserva la
+fecha `anadida` más antigua, tolera un lado vacío) y los mensajes de `GMM.cuenta.interpretarError`.
+`interfaz.js` añade el **modal de cuenta** (V GMM 0029, `GMM.cuenta` stubeado): abre en «entrar»,
+cambia de vista sin cerrarse, la X y Escape lo cierran, y con sesión simulada el botón muestra el
+correo y el modal abre directo en «perfil».
 
 `pwa.js` levanta un servidor local, porque los service workers no funcionan sobre `file://`
 y `localhost` cuenta como origen seguro igual que HTTPS.
@@ -601,6 +678,11 @@ Comprobación manual rápida, si no quieres ejecutar nada:
   universo verificados (MCU/DCEU/DCU). Anime es animación + idioma japonés y Bollywood, idioma
   hindi. Si la resolución por nombre no encontrara la keyword, quedaría solo la reserva (el universo
   cinematográfico), nunca vacío.
+- **Cuenta y sincronizar Mis listas (desde V GMM 0029)**: exige internet para cargar el SDK de
+  Firebase (`gstatic.com`) — sin conexión al abrir la página, `GMM.cuenta.disponible()` es
+  `false` y el botón de cuenta no hace nada, pero el resto de la app sigue intacta. Es la única
+  función del proyecto con una dependencia externa (ver §3). La recuperación de contraseña usa la
+  plantilla y la página de reseteo por defecto de Firebase, sin personalizar.
 - **La clave viaja al navegador**: para publicar en internet haría falta un servidor intermedio.
 
 ---
@@ -625,6 +707,7 @@ Comprobación manual rápida, si no quieres ejecutar nada:
 | **Lo que el modal deja detrás del velo** | Al mudar el formulario a un modal, todo lo que queda fuera —la barra con el interruptor peli/serie y los dos botones de método— **deja de ser pulsable** mientras esté abierto. No es un fallo de CSS: es lo que hace un modal. Se resolvió nombrando el tipo en el título y añadiendo un enlace para cambiar de método sin cerrar. Antes de mover algo a un modal, mira qué se queda fuera. |
 | **Partir la filmografía se llevó su id** (0024) | Al dividir la filmografía en dos facetas (dirección / reparto) se perdió el `#rejillaFilmografia`, del que dependían **«¿dónde ver todas?»** (itera un solo contenedor) y `interfaz.js` (`#rejillaFilmografia .tarjeta`). Se envuelven las dos secciones en ese mismo id. Al partir un bloque en varios, conserva el contenedor que otros selectores esperan. |
 | **El texto de consola de un recurso 404 es genérico** (0024) | `interfaz.js` filtra el error esperado de `clave-local.js`, pero lo hace por el **texto de consola**, que en un fallo de recurso es solo «Failed to load resource: …» **sin la URL**: el filtro no casa. En local no salta porque `PRIVADO/clave-local.js` existe y hay internet; en un entorno cerrado (sin `PRIVADO/`, con `image.tmdb.org` bloqueado) esos contadores de «errores acumulados» fallan **sin ser regresión**. Compara contra el respaldo antes de dar por rota la interfaz. |
+| **Un comentario con la palabra `<script>` rompe la extracción del test** (0029) | `pruebas/cargar.js` localiza el `<script>` de la app con `lastIndexOf("<script>", fin)` (ver la trampa de los «Dos bloques `<script>`» más arriba): busca la ÚLTIMA aparición literal de esa cadena antes del cierre. Un comentario dentro del propio bloque JS que mencionara «…ver los `<script>` antes del bloque 1» quedaba más cerca del final que la etiqueta de apertura real, así que `lastIndexOf` la tomaba a ELLA como inicio y `logica.js` reventaba con un `SyntaxError` sin sentido aparente. No escribas la cadena literal `<script>` dentro de un comentario que viva dentro del bloque `<script>` de la app; dila de otra forma («los scripts», «las tres etiquetas»…). |
 
 ---
 
@@ -678,7 +761,7 @@ y aquí pesaban en cada sesión). **No los abordes por iniciativa propia.**
 | Tema | Estado | En una línea |
 |---|---|---|
 | **1 · La clave de TMDB en el móvil** | **Resuelto** por la vía A desde la 0004 | La clave vive en el `localStorage` de cada dispositivo, no en el repositorio: se pega una vez en el ⚙ y basta. Solo volvería a abrirse si la usara alguien más que el usuario, y entonces la respuesta es un **proxy** (nunca hardcodear la clave) |
-| **2 · Login y sincronización de listas** | **Abierto** | `gmm_listas` es por dispositivo, así que móvil y PC llevan listas distintas. Haría falta login (Google) + almacén + fusión por `id`. Firebase choca con la regla «sin librerías» (R3), pero **Firestore tiene API REST** y se puede usar con `fetch` a pelo. Plantéaselo antes de meter un SDK |
+| **2 · Login y sincronización de listas** | **Resuelto** desde la 0029, con matices | Se implementó con **correo/contraseña** (no Google, que era lo recomendado) y con el **SDK de Firebase** (no su API REST, que era el plan para no chocar con R3) — ambas cosas por decisión explícita del usuario. Ver §4 «La cuenta…» y §3 |
 | **3 · Premios (Oscar, Emmy)** | **Descartado** con el usuario | TMDB no publica datos de premios: no hay endpoint ni campo, y aproximarlo sería inventar. Haría falta otra fuente |
 
 ---
@@ -695,6 +778,7 @@ en `HISTORIAL.md`.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| V GMM 0029 | 2026-08-02 | Cuenta opcional con Firebase (login, registro, recuperar contraseña) y Mis listas sincronizadas entre dispositivos. |
 | V GMM 0028 | 2026-07-31 | El token de Google Drive pasa a `localStorage`: la conexión sobrevive a cerrar la app en iOS. |
 | V GMM 0027 | 2026-07-31 | «Mi biblioteca» Nivel 2: buscar en tu Google Drive por OAuth, reproducir dentro de la app y descargar. |
 | V GMM 0026 | 2026-07-31 | «Mi biblioteca / Mis compras» Nivel 1: pegas el enlace a tu copia y la ficha ofrece reproducir y descargar. |

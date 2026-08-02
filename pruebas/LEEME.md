@@ -8,9 +8,9 @@ herramienta aparte, opcional, para comprobar que un cambio no rompió nada.
 Desde la raíz del proyecto:
 
 ```bash
-node pruebas/logica.js      # 125 comprobaciones · sin dependencias · instantáneo
+node pruebas/logica.js      # 177 comprobaciones · sin dependencias · instantáneo
 node pruebas/imagenes.js    #  15 comprobaciones · necesita internet · ~30 s
-node pruebas/interfaz.js    # 109 comprobaciones · necesita playwright-core · ~60 s
+node pruebas/interfaz.js    # 127 comprobaciones · necesita playwright-core · ~60 s
 node pruebas/pwa.js         #  20 comprobaciones · necesita playwright-core · ~20 s
 ```
 
@@ -29,9 +29,9 @@ te indica cómo bajarlo (`npx playwright install chromium`).
 
 | Archivo | Cubre |
 |---|---|
-| `logica.js` | Filtrado por idioma, plataforma y país · frase resumen · insignias de confianza · orden por confianza · listas de favoritas y pendientes · exportar/importar · utilidades · coherencia interna del catálogo demo · lotes con concurrencia limitada |
+| `logica.js` | Filtrado por idioma, plataforma y país · frase resumen · insignias de confianza · orden por confianza · listas de favoritas y pendientes · exportar/importar · utilidades · coherencia interna del catálogo demo · lotes con concurrencia limitada · fusión de listas y mensajes de error de la cuenta (Firebase, V GMM 0029) |
 | `imagenes.js` | Que cada carátula y cada foto del catálogo demo **pertenecen de verdad a esa ficha**, no solo que devuelven 200 |
-| `interfaz.js` | El recorrido real en Chromium: arranque, autocompletado, búsqueda, filtros en caliente, casos de idioma, listas, persistencia tras recargar, modo actor, modal, modo trama y móvil a 375 px |
+| `interfaz.js` | El recorrido real en Chromium: arranque, autocompletado, búsqueda, filtros en caliente, casos de idioma, listas, persistencia tras recargar, modo actor, modal, modo trama, móvil a 375 px y el modal de cuenta (login/registro/recuperar, stubeado — V GMM 0029) |
 | `pwa.js` | Que la app se **instala** de verdad: manifiesto válido, iconos que son PNG reales, service worker activo, funcionamiento sin conexión, y que **ninguna respuesta de la API queda cacheada** |
 
 `pwa.js` levanta un servidor local propio, sin dependencias añadidas, porque los service

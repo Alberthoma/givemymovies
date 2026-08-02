@@ -73,6 +73,12 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
     /* Que falte PRIVADO/clave-local.js es lo normal en un clon del
        repositorio: la app cae a modo demo y no se rompe nada. */
     if (/clave-local\.js/.test(c.text())) return;
+    /* El SDK de Firebase se carga desde gstatic.com (V GMM 0029, única
+       dependencia externa del proyecto): en un entorno sin salida a internet
+       esos <script src> fallan y GMM.cuenta.disponible() queda en false sin
+       romper el resto de la app — no es una regresión, es el mismo tipo de
+       excepción que ya existe para image.tmdb.org bloqueado (CLAUDE.md §7). */
+    if (/gstatic\.com/.test(c.text())) return;
     errores.push("console: " + c.text());
   });
 
@@ -708,6 +714,57 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
     drive.reproAbierto === true && drive.iframeSrc.indexOf("/file/d/FILE9/preview") !== -1, JSON.stringify(drive));
   m.afirmar("Guardar deja el hallazgo como Mi copia (enlace de Drive)",
     drive.guardado === true && drive.enlace.indexOf("/file/d/FILE9/view") !== -1, JSON.stringify(drive));
+
+  /* ---------------------------------------------------------------- */
+  m.titulo("Cuenta: modal de acceso (login/registro/recuperar, V GMM 0029, stub)");
+
+  await pagina.click("#btnCuenta");
+  await pagina.waitForTimeout(150);
+  m.afirmar("abre en la vista «entrar»",
+    (await pagina.locator("#capaCuenta:not(.oculto)").count()) === 1 &&
+    (await pagina.locator("#vistaEntrar:not(.oculto)").count()) === 1);
+
+  await pagina.click("#irARegistro");
+  await pagina.waitForTimeout(100);
+  m.afirmar("«Crear una cuenta» cambia de vista sin cerrar el modal",
+    (await pagina.locator("#capaCuenta:not(.oculto)").count()) === 1 &&
+    (await pagina.locator("#vistaRegistro:not(.oculto)").count()) === 1 &&
+    (await pagina.locator("#vistaEntrar.oculto").count()) === 1);
+
+  await pagina.click("#irAEntrarDesdeRegistro");
+  await pagina.click("#irARecuperar");
+  await pagina.waitForTimeout(100);
+  m.afirmar("«¿Olvidaste tu contraseña?» abre la vista de recuperar",
+    (await pagina.locator("#vistaRecuperar:not(.oculto)").count()) === 1);
+
+  await pagina.click("#capaCuenta .modal-cerrar");
+  await pagina.waitForTimeout(150);
+  m.afirmar("la X cierra el modal", (await pagina.locator("#capaCuenta.oculto").count()) === 1);
+
+  await pagina.click("#btnCuenta");
+  await pagina.waitForTimeout(150);
+  await pagina.keyboard.press("Escape");
+  await pagina.waitForTimeout(150);
+  m.afirmar("Escape también lo cierra", (await pagina.locator("#capaCuenta.oculto").count()) === 1);
+
+  const cuenta = await pagina.evaluate(async () => {
+    /* Firebase real no se puede probar en CI: se stubea GMM.cuenta con una
+       sesión ya iniciada, igual que se stubea GMM.drive más arriba. */
+    GMM.cuenta.conectado = () => true;
+    GMM.cuenta.sesion = () => ({ uid: "u1", email: "prueba@ejemplo.com" });
+    GMM.ui.refrescarCabecera();
+    const textoBoton = document.getElementById("textoCuenta").textContent;
+    document.getElementById("btnCuenta").click();
+    await new Promise((r) => setTimeout(r, 80));
+    const vistaPerfil = !document.getElementById("vistaPerfil").classList.contains("oculto");
+    const correo = document.getElementById("perfilCorreo").textContent;
+    document.getElementById("capaCuenta").classList.add("oculto");
+    return { textoBoton, vistaPerfil, correo };
+  });
+  m.afirmar("con sesión, el botón muestra el correo (antes del @)",
+    cuenta.textoBoton === "prueba", JSON.stringify(cuenta));
+  m.afirmar("con sesión, el modal abre directo en «perfil» con el correo",
+    cuenta.vistaPerfil === true && cuenta.correo === "prueba@ejemplo.com", JSON.stringify(cuenta));
 
   /* ---------------------------------------------------------------- */
   m.titulo("Errores acumulados en toda la sesión");

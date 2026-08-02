@@ -1079,6 +1079,13 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
       <button class="boton-cabecera oculto" id="btnInstalar" title="Instalar la app en este dispositivo">
         <span aria-hidden="true">&#11015;</span> Instalar
       </button>
+      <!-- Acceso opcional: sin iniciar sesión, la app funciona igual que
+           siempre. Iniciar sesión solo añade sincronizar Mis listas entre
+           dispositivos. Texto y destino los decide GMM.ui.refrescarCabecera
+           según GMM.cuenta.conectado(). -->
+      <button class="boton-cabecera" id="btnCuenta" title="Iniciar sesión para sincronizar tus listas">
+        <span aria-hidden="true">&#128100;</span> <span id="textoCuenta">Iniciar sesión</span>
+      </button>
       <button class="boton-cabecera" id="btnAjustes" title="Ajustes y clave de TMDB">
         <span aria-hidden="true">&#9881;</span>
       </button>
@@ -1132,8 +1139,8 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
 
   <footer class="pie">
     <span>givemymovies · datos de disponibilidad vía TMDB / JustWatch</span>
-    <span>Tus listas se guardan solo en este navegador</span>
-    <span id="version-app">V GMM 0028</span>
+    <span>Tus listas se guardan en este navegador — inicia sesión para llevarlas a otros</span>
+    <span id="version-app">V GMM 0029</span>
   </footer>
 </div>
 
@@ -1210,6 +1217,85 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
     <div class="modal-pie">
       <button class="boton-sec" data-cerrar="capaAjustes">Cancelar</button>
       <button class="boton-buscar" id="btnGuardarClave">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════ MODAL: CUENTA (login, registro, recuperar contraseña) ═════════════ -->
+<!-- Acceso opcional (GMM.cuenta, Firebase): un solo modal con CUATRO vistas
+     según el estado JS "vistaCuenta" (entrar/registro/recuperar/perfil),
+     alternadas con .oculto — mismo patrón "un modal, varias vistas" que ya
+     usa #capaFormulario. Sin iniciar sesión la app funciona exactamente
+     igual que siempre; esto solo sincroniza Mis listas entre dispositivos. -->
+<div class="capa oculto" id="capaCuenta">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="tituloCuenta">
+    <div class="modal-cab">
+      <h3 class="modal-tit" id="tituloCuenta">Iniciar sesión</h3>
+      <button class="modal-cerrar" data-cerrar="capaCuenta" aria-label="Cerrar">&#10005;</button>
+    </div>
+    <div class="modal-cuerpo">
+      <p style="font-size:13.5px;color:#8ba0b6;margin-bottom:16px">
+        Opcional: sin iniciar sesión la app funciona igual que siempre. Iniciar sesión solo añade
+        que <b style="color:#8fc9ff">Mis listas</b> viajen entre tus dispositivos.
+      </p>
+
+      <div id="vistaEntrar">
+        <div class="campo-modal">
+          <label for="entrarCorreo">Correo</label>
+          <input id="entrarCorreo" type="email" placeholder="tucorreo@ejemplo.com" autocomplete="email">
+        </div>
+        <div class="campo-modal">
+          <label for="entrarClave">Contraseña</label>
+          <input id="entrarClave" type="password" autocomplete="current-password">
+        </div>
+        <button class="boton-buscar" id="btnEntrar" style="width:100%;margin-top:6px">Entrar</button>
+        <p style="font-size:13px;margin-top:14px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <a href="#" id="irARegistro" style="color:#8fc9ff">Crear una cuenta</a>
+          <a href="#" id="irARecuperar" style="color:#8fc9ff">¿Olvidaste tu contraseña?</a>
+        </p>
+      </div>
+
+      <div id="vistaRegistro" class="oculto">
+        <div class="campo-modal">
+          <label for="registroCorreo">Correo</label>
+          <input id="registroCorreo" type="email" placeholder="tucorreo@ejemplo.com" autocomplete="email">
+        </div>
+        <div class="campo-modal">
+          <label for="registroClave">Contraseña</label>
+          <input id="registroClave" type="password" placeholder="Al menos 6 caracteres" autocomplete="new-password">
+        </div>
+        <div class="campo-modal">
+          <label for="registroClave2">Repite la contraseña</label>
+          <input id="registroClave2" type="password" autocomplete="new-password">
+        </div>
+        <button class="boton-buscar" id="btnRegistrar" style="width:100%;margin-top:6px">Crear cuenta</button>
+        <p style="font-size:13px;margin-top:14px">
+          <a href="#" id="irAEntrarDesdeRegistro" style="color:#8fc9ff">Ya tengo cuenta</a>
+        </p>
+      </div>
+
+      <div id="vistaRecuperar" class="oculto">
+        <div class="campo-modal">
+          <label for="recuperarCorreo">Correo</label>
+          <input id="recuperarCorreo" type="email" placeholder="tucorreo@ejemplo.com" autocomplete="email">
+        </div>
+        <button class="boton-buscar" id="btnRecuperar" style="width:100%;margin-top:6px">Enviar enlace</button>
+        <p style="font-size:13px;margin-top:14px">
+          <a href="#" id="irAEntrarDesdeRecuperar" style="color:#8fc9ff">Volver a entrar</a>
+        </p>
+      </div>
+
+      <div id="vistaPerfil" class="oculto">
+        <p style="font-size:14px;color:#e8f0f8">Sesión iniciada como<br><b id="perfilCorreo" style="color:#6ff0c4"></b></p>
+        <p style="font-size:13.5px;color:#8ba0b6;margin-top:10px">
+          Mis listas se sincronizan solas con este correo. Si entras con la misma cuenta en otro
+          dispositivo, verás las mismas favoritas y pendientes.
+        </p>
+        <button class="boton-sec" id="btnCerrarSesion" style="margin-top:16px">Cerrar sesión</button>
+      </div>
+    </div>
+    <div class="modal-pie">
+      <button class="boton-sec" data-cerrar="capaCuenta">Cerrar</button>
     </div>
   </div>
 </div>
@@ -1360,6 +1446,19 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
 })();
 </script>
 
+<!-- SDK de Firebase (build "compat", namespaced como v8): expone el global
+     `firebase` con <script> clásicos, sin type="module", así que sigue
+     abriendo con doble clic. Es la ÚNICA dependencia externa de todo el
+     proyecto — excepción consciente a la regla "sin librerías/CDN" de
+     CLAUDE.md §3, decidida explícitamente por el usuario para esta función
+     (la alternativa era hablar con las API REST de Firebase a pelo). Sin
+     internet estos <script src> no cargan y `firebase` queda undefined;
+     GMM.cuenta lo comprueba con disponible() y nunca rompe el resto de la
+     app por eso. Versión fijada a propósito, no "latest", por estabilidad. -->
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+
 <script>
 /* ══════════════════════════════════════════════════════════════════════
    BLOQUE JS 1 — CONFIGURACIÓN                       → futuro js/config.js
@@ -1375,6 +1474,18 @@ GMM.config = {
   CLAVE_LISTAS:     "gmm_listas",
   CLAVE_BIBLIOTECA: "gmm_biblioteca",
   CLAVE_GDRIVE_ID:  "gmm_gdrive_client_id",
+
+  /* Config web del proyecto Firebase "givemymovies-x". No es secreta: está
+     pensada para ser pública (la seguridad la dan las reglas de Firestore y
+     de Authentication, no ocultar esto). La usa GMM.cuenta. */
+  FIREBASE: {
+    apiKey: "AIzaSyCTInFj_9VEf9taYBF1vnnMz4om6gqww3I",
+    authDomain: "givemymovies-x.firebaseapp.com",
+    projectId: "givemymovies-x",
+    storageBucket: "givemymovies-x.firebasestorage.app",
+    messagingSenderId: "44571575336",
+    appId: "1:44571575336:web:eaf44b166324eab524a11d"
+  },
 
   API:      "https://api.themoviedb.org/3",
   API_OMDB: "https://www.omdbapi.com/",
@@ -2281,6 +2392,34 @@ GMM.util.mejoresPorNota = function (items, n, minimo) {
     .filter(function (x) { return x && typeof x.vote_average === "number" && x.vote_average >= tope; })
     .sort(function (a, b) { return b.vote_average - a.vote_average; })
     .slice(0, n);
+};
+
+/* Fusiona las listas de este dispositivo con las que llegan de Firestore al
+   iniciar sesión: por (id, tipo) —igual que GMM.listas.esMisma— sin duplicar,
+   y si una entrada está en las dos, conserva la que tiene la fecha "anadida"
+   más antigua. Pura y sin red, para poder probarla. La usa
+   GMM.cuenta.fusionarAlEntrar. */
+GMM.util.fusionarListas = function (local, remoto) {
+  function fusionarTipo(a, b) {
+    var mapa = {}, orden = [];
+    (a || []).concat(b || []).forEach(function (entrada) {
+      if (!entrada) return;
+      var clave = entrada.tipo + ":" + entrada.id;
+      if (!Object.prototype.hasOwnProperty.call(mapa, clave)) {
+        mapa[clave] = entrada;
+        orden.push(clave);
+      } else if (entrada.anadida && (!mapa[clave].anadida || entrada.anadida < mapa[clave].anadida)) {
+        mapa[clave] = entrada;
+      }
+    });
+    return orden.map(function (clave) { return mapa[clave]; });
+  }
+  local = local || {};
+  remoto = remoto || {};
+  return {
+    favoritas: fusionarTipo(local.favoritas, remoto.favoritas),
+    pendientes: fusionarTipo(local.pendientes, remoto.pendientes)
+  };
 };
 
 /* Títulos alternativos por país (de TMDB, campo alternative_titles). Se queda
@@ -3218,6 +3357,125 @@ GMM.drive = (function () {
 
 
 /* ══════════════════════════════════════════════════════════════════════
+   BLOQUE JS 7d — CUENTA (login, registro, recuperar, sincronizar listas)
+                                                      → futuro js/cuenta.js
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Acceso opcional con Firebase (SDK vía CDN, ver los scripts antes del
+   bloque 1). La app funciona entera sin iniciar sesión, igual que siempre:
+   esto solo añade que "favoritas" y "pendientes" viajen entre dispositivos.
+   Todo pasa por disponible(): si el SDK no cargó (sin internet al abrir la
+   página), la cuenta queda inactiva sin romper nada más. */
+GMM.cuenta = (function () {
+  var iniciado = false;
+
+  function disponible() { return typeof firebase !== "undefined"; }
+
+  function sesion() {
+    if (!disponible()) return null;
+    var u = firebase.auth().currentUser;
+    return u ? { uid: u.uid, email: u.email } : null;
+  }
+
+  function conectado() { return !!sesion(); }
+
+  /* El SDK guarda y restaura la sesión solo (no hace falta tocar
+     localStorage a mano, a diferencia de GMM.drive). onAuthStateChanged
+     dispara tanto al entrar/salir como al recargar con sesión ya activa. */
+  function iniciar() {
+    if (!disponible() || iniciado) return;
+    iniciado = true;
+    firebase.initializeApp(GMM.config.FIREBASE);
+    firebase.auth().onAuthStateChanged(function (usuario) {
+      GMM.ui.refrescarCabecera();
+      if (usuario) fusionarAlEntrar();
+    });
+  }
+
+  function registrar(correo, clave) {
+    if (!disponible()) return Promise.reject(new Error("SIN_SDK"));
+    return firebase.auth().createUserWithEmailAndPassword(correo, clave);
+  }
+
+  function iniciarSesion(correo, clave) {
+    if (!disponible()) return Promise.reject(new Error("SIN_SDK"));
+    return firebase.auth().signInWithEmailAndPassword(correo, clave);
+  }
+
+  function cerrarSesion() {
+    if (!disponible()) return Promise.resolve();
+    return firebase.auth().signOut();
+  }
+
+  /* Firebase manda el correo con su propia plantilla y su propia página de
+     reseteo; no hace falta montar nada más para que esto funcione. */
+  function recuperarContrasena(correo) {
+    if (!disponible()) return Promise.reject(new Error("SIN_SDK"));
+    return firebase.auth().sendPasswordResetEmail(correo);
+  }
+
+  /* Traduce los códigos de error del SDK a frases en español. Pura: no toca
+     red ni el SDK, así que se puede probar sin ellos. */
+  function interpretarError(error) {
+    var codigo = (error && error.code) || "";
+    var textos = {
+      "auth/email-already-in-use": "Ya hay una cuenta con ese correo. Prueba a entrar.",
+      "auth/invalid-email": "Ese correo no parece válido.",
+      "auth/weak-password": "La contraseña necesita al menos 6 caracteres.",
+      "auth/user-not-found": "No hay ninguna cuenta con ese correo.",
+      "auth/wrong-password": "La contraseña no es correcta.",
+      "auth/invalid-credential": "Correo o contraseña incorrectos.",
+      "auth/invalid-login-credentials": "Correo o contraseña incorrectos.",
+      "auth/too-many-requests": "Demasiados intentos. Espera un momento y vuelve a probar.",
+      "auth/network-request-failed": "No hay conexión con el servidor de cuentas."
+    };
+    return textos[codigo] || "No se pudo completar la operación. Inténtalo de nuevo.";
+  }
+
+  function sincronizarYa() {
+    if (!disponible() || !conectado()) return;
+    firebase.firestore().collection("usuarios").doc(sesion().uid).set({
+      favoritas: GMM.listas.obtener("favoritas"),
+      pendientes: GMM.listas.obtener("pendientes")
+    }, { merge: true }).catch(function () {});
+  }
+  /* Nunca debe disparar una escritura por cada clic: se agrupan con retardo,
+     igual que el autocompletado (GMM.util.retardo). */
+  var sincronizar = GMM.util.retardo(sincronizarYa, 1200);
+
+  /* Al iniciar sesión: trae lo que hubiera en la nube, lo fusiona con lo que
+     ya había en este dispositivo (GMM.util.fusionarListas) y deja las dos
+     copias —local y nube— iguales al resultado. Nunca lanza: sin red o sin
+     documento previo, sigue con las listas de este dispositivo tal cual. */
+  function fusionarAlEntrar() {
+    if (!disponible() || !conectado()) return;
+    firebase.firestore().collection("usuarios").doc(sesion().uid).get()
+      .then(function (doc) {
+        var remoto = doc.exists ? doc.data() : { favoritas: [], pendientes: [] };
+        var local = {
+          favoritas: GMM.listas.obtener("favoritas"),
+          pendientes: GMM.listas.obtener("pendientes")
+        };
+        var fusion = GMM.util.fusionarListas(local, remoto);
+        GMM.listas.vaciar("favoritas");
+        GMM.listas.vaciar("pendientes");
+        GMM.listas.importar(JSON.stringify({ app: "givemymovies", version: 1, listas: fusion }));
+        GMM.ui.refrescarCabecera();
+        sincronizarYa();
+      })
+      .catch(function () {});
+  }
+
+  return {
+    disponible: disponible, iniciar: iniciar, sesion: sesion, conectado: conectado,
+    registrar: registrar, iniciarSesion: iniciarSesion, cerrarSesion: cerrarSesion,
+    recuperarContrasena: recuperarContrasena, interpretarError: interpretarError,
+    sincronizar: sincronizar, fusionarAlEntrar: fusionarAlEntrar
+  };
+})();
+
+
+/* ══════════════════════════════════════════════════════════════════════
    BLOQUE JS 8 — INTERFAZ Y PINTADO                       → futuro js/ui.js
    ══════════════════════════════════════════════════════════════════════ */
 
@@ -3390,6 +3648,13 @@ GMM.ui = (function () {
     if (contadorBib) {
       contadorBib.textContent = totalBib;
       contadorBib.className = "contador-listas" + (totalBib ? "" : " vacio");
+    }
+
+    /* Botón de cuenta: correo (recortado) si hay sesión, invitación si no. */
+    var textoCuenta = $("textoCuenta");
+    if (textoCuenta) {
+      var sesion = GMM.cuenta.sesion();
+      textoCuenta.textContent = sesion ? sesion.email.split("@")[0] : "Iniciar sesión";
     }
 
     /* Punto de estado: verde si hay clave (datos en vivo), naranja en demo. */
@@ -5139,7 +5404,7 @@ GMM.app = (function () {
     /* Las capas con formulario se cierran con la X, pulsando el fondo o con
        Escape. Mismo comportamiento en las dos, para que no haya que aprenderse
        una excepción por modal. */
-    ["capaAjustes", "capaFormulario", "capaReproductor"].forEach(function (id) {
+    ["capaAjustes", "capaFormulario", "capaReproductor", "capaCuenta"].forEach(function (id) {
       $(id).addEventListener("click", function (e) {
         var nodo;
         if (e.target === this) { cerrarCapa(id); return; }
@@ -5152,6 +5417,7 @@ GMM.app = (function () {
       cerrarCapa("capaReproductor");
       cerrarCapa("capaDetalle");
       cerrarCapa("capaAjustes");
+      cerrarCapa("capaCuenta");
       /* Si el autocompletado estaba desplegado, su propio manejador ya se ha
          quedado con la tecla y aquí no llegamos: cerrar el modal entero de
          golpe habría perdido lo escrito. */
@@ -5241,6 +5507,7 @@ GMM.app = (function () {
           GMM.ui.refrescarCabecera();
           GMM.ui.aviso("Listas importadas. Ahora tienes " + total + " títulos guardados.", "ok");
           if (estado.vista === "listas") pintarListas();
+          GMM.cuenta.sincronizar();
         } catch (error) {
           GMM.ui.aviso("Ese archivo no tiene el formato esperado", "error");
         }
@@ -5248,6 +5515,88 @@ GMM.app = (function () {
       lector.readAsText(fichero);
       this.value = "";
     });
+
+    /* --- cuenta (login, registro, recuperar, cerrar sesión) --- */
+    var VISTAS_CUENTA = {
+      entrar: { id: "vistaEntrar", titulo: "Iniciar sesión" },
+      registro: { id: "vistaRegistro", titulo: "Crear una cuenta" },
+      recuperar: { id: "vistaRecuperar", titulo: "Recuperar contraseña" },
+      perfil: { id: "vistaPerfil", titulo: "Tu cuenta" }
+    };
+    function cambiarVistaCuenta(vista) {
+      Object.keys(VISTAS_CUENTA).forEach(function (v) {
+        $(VISTAS_CUENTA[v].id).classList.toggle("oculto", v !== vista);
+      });
+      $("tituloCuenta").textContent = VISTAS_CUENTA[vista].titulo;
+    }
+
+    $("btnCuenta").addEventListener("click", function () {
+      if (GMM.cuenta.conectado()) {
+        $("perfilCorreo").textContent = GMM.cuenta.sesion().email;
+        cambiarVistaCuenta("perfil");
+      } else {
+        cambiarVistaCuenta("entrar");
+      }
+      $("capaCuenta").classList.remove("oculto");
+    });
+
+    $("irARegistro").addEventListener("click", function (e) { e.preventDefault(); cambiarVistaCuenta("registro"); });
+    $("irARecuperar").addEventListener("click", function (e) { e.preventDefault(); cambiarVistaCuenta("recuperar"); });
+    $("irAEntrarDesdeRegistro").addEventListener("click", function (e) { e.preventDefault(); cambiarVistaCuenta("entrar"); });
+    $("irAEntrarDesdeRecuperar").addEventListener("click", function (e) { e.preventDefault(); cambiarVistaCuenta("entrar"); });
+
+    $("btnEntrar").addEventListener("click", function () {
+      var correo = $("entrarCorreo").value.trim(), clave = $("entrarClave").value;
+      if (!correo || !clave) { GMM.ui.aviso("Rellena correo y contraseña", "info"); return; }
+      $("btnEntrar").disabled = true;
+      GMM.cuenta.iniciarSesion(correo, clave).then(function () {
+        cerrarCapa("capaCuenta");
+        GMM.ui.aviso("Sesión iniciada", "ok");
+      }).catch(function (error) {
+        GMM.ui.aviso(GMM.cuenta.interpretarError(error), "error");
+      }).then(function () { $("btnEntrar").disabled = false; });
+    });
+
+    $("btnRegistrar").addEventListener("click", function () {
+      var correo = $("registroCorreo").value.trim();
+      var clave = $("registroClave").value, clave2 = $("registroClave2").value;
+      if (!correo || !clave) { GMM.ui.aviso("Rellena correo y contraseña", "info"); return; }
+      if (clave !== clave2) { GMM.ui.aviso("Las contraseñas no coinciden", "error"); return; }
+      $("btnRegistrar").disabled = true;
+      GMM.cuenta.registrar(correo, clave).then(function () {
+        cerrarCapa("capaCuenta");
+        GMM.ui.aviso("Cuenta creada. Sesión iniciada.", "ok");
+      }).catch(function (error) {
+        GMM.ui.aviso(GMM.cuenta.interpretarError(error), "error");
+      }).then(function () { $("btnRegistrar").disabled = false; });
+    });
+
+    $("btnRecuperar").addEventListener("click", function () {
+      var correo = $("recuperarCorreo").value.trim();
+      if (!correo) { GMM.ui.aviso("Escribe tu correo", "info"); return; }
+      $("btnRecuperar").disabled = true;
+      GMM.cuenta.recuperarContrasena(correo).then(function () {
+        GMM.ui.aviso("Te hemos enviado un enlace a " + correo, "ok");
+        cambiarVistaCuenta("entrar");
+      }).catch(function (error) {
+        GMM.ui.aviso(GMM.cuenta.interpretarError(error), "error");
+      }).then(function () { $("btnRecuperar").disabled = false; });
+    });
+
+    $("btnCerrarSesion").addEventListener("click", function () {
+      GMM.cuenta.cerrarSesion().then(function () {
+        cerrarCapa("capaCuenta");
+        GMM.ui.aviso("Sesión cerrada. Tus listas siguen en este dispositivo.", "info");
+      });
+    });
+
+    ["entrarCorreo", "entrarClave"].forEach(function (id) {
+      $(id).addEventListener("keydown", function (e) { if (e.key === "Enter") $("btnEntrar").click(); });
+    });
+    ["registroCorreo", "registroClave", "registroClave2"].forEach(function (id) {
+      $(id).addEventListener("keydown", function (e) { if (e.key === "Enter") $("btnRegistrar").click(); });
+    });
+    $("recuperarCorreo").addEventListener("keydown", function (e) { if (e.key === "Enter") $("btnRecuperar").click(); });
   }
 
   /* --- acciones de listas --- */
@@ -5276,6 +5625,7 @@ GMM.app = (function () {
       delete cacheCarrusel[estado.tipo + ":favoritas"];
       if (estado.vista === "inicio") cargarCarrusel("favoritas");
     }
+    GMM.cuenta.sincronizar();
   }
 
   function vaciarLista(tipo) {
@@ -5286,6 +5636,7 @@ GMM.app = (function () {
     GMM.ui.refrescarCabecera();
     pintarListas();
     GMM.ui.aviso("Lista de " + tipo + " vaciada", "info");
+    GMM.cuenta.sincronizar();
   }
 
   /* Al cambiar un filtro no hace falta volver a la API: repintamos. */
@@ -5506,6 +5857,10 @@ GMM.app = (function () {
     if (GMM.drive.capturarToken()) {
       setTimeout(function () { GMM.ui.aviso("Google Drive conectado ✓", "ok"); }, 600);
     }
+
+    /* Cuenta opcional (Firebase): si el SDK no cargó (sin internet al abrir
+       la página) esto no debe impedir que el resto de la app arranque. */
+    try { GMM.cuenta.iniciar(); } catch (e) {}
 
     montarIdiomas();
     montarPaises();
