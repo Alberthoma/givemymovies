@@ -700,29 +700,47 @@ la ficha y en el modal de detalle** (nunca en las cuadrículas: reventaría el t
 llega después de pintar y repinta sin volver a la API. Segunda clave en ⚙, junto a la de TMDB.
 En `sw.js`, `omdbapi.com` va a **solo red** (las notas cambian con el tiempo).
 
-**Carrusel de sugerencias del inicio (V GMM 0017).** Sección `#descubrimiento` bajo el header y
-encima del `#buscador`; vive solo en el inicio (`fijarPantalla` la oculta con resultados, igual
-que el buscador). Por defecto **Tendencia** (`GMM.tmdb.tendencia(tipo)` → `/trending/{movie|tv}/week`);
-un botón «Dame sugerencias» abre el **modal `#capaSugerencias`** con las categorías de
-`GMM.config.CATEGORIAS_SUGERENCIA`:
-Tendencia, Las 10 de siempre (2000→hoy), Nunca es tarde (1980–2000), Clásicos (1950–1979) y Lo que
-prefieres (favoritas por tipo). Preséntalas **una por fila, todas del mismo tamaño y en azul
-`#4aa8ff`** (color fijo, no el del interruptor), y **cierra el modal al elegir una**: la elección ya
-está hecha y dejarlo abierto solo taparía el resultado. Respeta el interruptor peli/serie y las tarjetas (`GMM.ui.tarjeta`)
-abren la **ficha completa** (`abrirFicha`, como buscar por título; V GMM 0018). Como la
-delegación de clic de `#resultados` no alcanza a `#descubrimiento`, `#carrusel` tiene su propio
-listener: `[data-abrir]` → `abrirFicha` y `[data-lista]` → `alternarLista`. Las flechas ‹ › son
-**infinitas** (`desplazarCarrusel`: al llegar a un extremo saltan al otro, sin clonar). En las tres
-categorías con intervalo, un botón **«Ver más»** (`verMasCategoria`) abre la **cuadrícula corriente
-de Descubrir** sobre el intervalo de la categoría, del año más antiguo al más reciente y con **nota
-de TMDB ≥ 6**: **20 por página y «Página 1 de N»**. Preajusta el estado con **un solo criterio de
-orden** (`orden: "antigua"`, `porNota: false`); **encender también la nota es lo que dispara el
-recorrido año por año**, y con él un paginador «2000 · 10 mejores» que se descartó expresamente en
-la V GMM 0022. **El «top 10» del carrusel sí se rankea por nota real de IMDb** porque `/discover` no ordena por
-IMDb: candidatos por nota de TMDB → `imdb_id` con `GMM.tmdb.ficha` (lotes de 5, `GMM.util.enLotes`)
-→ nota con `GMM.omdb.notas` (lotes de 5) → `GMM.util.mejoresPorImdb` filtra `> 6`, ordena y corta a
-10. Perezoso (solo al abrir la categoría; Tendencia y Favoritas no gastan OMDb) y cacheado en
-memoria por `tipo:categoria`. **Sin clave de OMDb cae a los primeros por nota de TMDB.**
+**Los cinco carruseles del inicio (V GMM 0017; cinco a la vez desde la V GMM 0023).** Sección
+`#descubrimiento` bajo el header y encima del `#buscador`; vive solo en el inicio
+(`fijarPantalla` la oculta con resultados, igual que el buscador). **Un bloque por categoría, los
+cinco a la vez**, montados por `montarCarruseles()` a partir de `GMM.config.CATEGORIAS_SUGERENCIA`
+—añadir una categoría al config añade su carrusel, sin tocar el HTML—: **Tendencia**
+(`/trending/{movie|tv}/week`), **Las 20 de siempre** (2000→hoy), **Nunca es tarde** (1980–2000),
+**Clásicos** (1950–1979) y **Lo que prefieres** (favoritas por tipo). Cada bloque es autónomo, su
+pista es `#carrusel-{clave}`, y los cinco se cargan **en paralelo**, cada uno pintando en cuanto
+llega. **El botón «Dame sugerencias» y el modal `#capaSugerencias` de la V GMM 0017 se retiraron
+en la V GMM 0022/0023**: existían para elegir cuál de las categorías se veía, y con las cinco a la
+vista no hay nada que elegir.
+
+**20 títulos por carrusel** (`TOP_CATEGORIA`, una sola petición por carrusel: justo lo que cabe
+en una página de `/discover`), **ordenados por la nota de TMDB** vía `GMM.util.mejoresPorNota`
+(pura: filtra `vote_average >= NOTA_MIN_CATEGORIA` —6—, ordena, corta), que es la misma nota que
+luce la insignia `.tarjeta-nota` de cada carátula —**desde la V GMM 0024 esa insignia sale en
+TODAS las cuadrículas**, no solo aquí—. **Hasta la V GMM 0022 el «top 10» se rankeaba por la nota
+REAL de IMDb** (candidatos por nota de TMDB → `imdb_id` vía `GMM.tmdb.ficha` → nota vía
+`GMM.omdb.notas`, en lotes de 5): con cinco carruseles de veinte cargando a la vez eso son ~120
+consultas a OMDb por visita sobre un tope de 1.000/día, y **se retiró en la V GMM 0023**
+(`GMM.util.mejoresPorImdb` → `mejoresPorNota`). OMDb sigue usándose, pero solo en la ficha
+(§8, «OMDb»), donde no cuesta.
+
+Respeta el interruptor peli/serie y las tarjetas (`GMM.ui.tarjeta`) abren la **ficha completa**
+(`abrirFicha`, como buscar por título; V GMM 0018). Como la delegación de clic de `#resultados`
+no alcanza a `#descubrimiento`, hay **una sola delegación** ahí que sirve a los cinco bloques:
+`[data-mover]` → `desplazarCarrusel`, `[data-vermas]` → `verMasCategoria`, `[data-abrir]` →
+`abrirFicha`, `[data-lista]` → `alternarLista`. Las flechas ‹ › son **infinitas**
+(`desplazarCarrusel`: al llegar a un extremo saltan al otro, sin clonar).
+
+En las tres categorías con intervalo (Las 20 de siempre / Nunca es tarde / Clásicos), un botón
+**«Ver más»** (`verMasCategoria`) abre la **cuadrícula corriente de Descubrir** sobre el intervalo
+de la categoría, del año más antiguo al más reciente y con **nota de TMDB ≥ 6**: **20 por página y
+«Página 1 de N»**. Preajusta el estado con **un solo criterio de orden** (`orden: "antigua"`,
+`porNota: false`); **encender también la nota es lo que dispara el recorrido año por año**, y con
+él un paginador «2000 · 10 mejores» que se descartó expresamente en la V GMM 0022 — si se vuelve
+a tocar `verMasCategoria`, no reenciendas `porNota` ahí.
+
+Todo cacheado en memoria por `tipo:categoria`: ir y volver del inicio, o cambiar el interruptor de
+ida y vuelta, no repite peticiones. `alternarLista` invalida la caché de «Lo que prefieres» y
+repinta ese carrusel, porque está siempre a la vista.
 
 **Mapa país → idiomas.** Lista ordenada por país, con el idioma principal primero. Cubre
 Hispanoamérica, Europa, Norteamérica, países lusófonos, Asia-Pacífico y Medio Oriente.
@@ -832,10 +850,10 @@ Todos deben pasar:
 | A41 | Modal-formulario | El inicio no muestra campos; cada método abre `#capaFormulario` con los suyos, la X lo cierra y el enlace del pie pasa al otro método **sin** cerrarlo |
 | A42 | Campos de dos en dos | Dentro del modal los campos se reparten en dos columnas del mismo ancho, sin huecos intermedios; el campo de texto, la fila de orden y los chips ocupan fila entera |
 | A43 | Modal en el móvil | A 375 px va a una columna, **deja margen a los lados** y **no ocupa toda la altura**; el cuerpo hace scroll dentro |
-| A44 | Modal de sugerencias | «Dame sugerencias» abre un modal con las 5 categorías **una por fila y del mismo ancho exacto**; elegir una carga el carrusel y **cierra el modal** |
-| A45 | Botones del mismo tamaño | Los dos métodos miden lo mismo entre sí, y los dos del carrusel entre sí, midiendo el ancho renderizado (no basta con que lo parezca) |
+| A44 | Cinco carruseles a la vez (desde V GMM 0023) | Los cinco bloques están a la vista sin elegir ninguno; cada uno tiene su propia pista, sus 20 títulos y la nota de TMDB en cada carátula; **no existe** el botón «Dame sugerencias» ni ningún modal para elegir categoría |
+| A45 | Botones del mismo tamaño | Los dos métodos («Buscar una en concreto» / «Descubrir por género») miden lo mismo entre sí, midiendo el ancho renderizado (no basta con que lo parezca) |
 | A46 | Orden junto a ← | Sobre una cuadrícula de Descubrir, el desplegable comparte fila con la flecha; encender un interruptor ahí lo enciende también en el formulario y reordena sin volver atrás |
-| A47 | «Ver más» pagina de corrido | Tras elegir *Las 10 de siempre* y pulsar «Ver más», el paginador dice **«Página 1 de N»** —nunca «AAAA · …»— y la cuadrícula trae **20 carátulas** |
+| A47 | «Ver más» pagina de corrido | Tras elegir *Las 20 de siempre* y pulsar «Ver más», el paginador dice **«Página 1 de N»** —nunca «AAAA · …»— y la cuadrícula trae **20 carátulas** |
 | A48 | Escape dentro del modal | Con el autocompletado desplegado, Escape cierra **solo** el desplegable y conserva lo escrito; sin él, cierra el modal |
 | A49 | Sin sesión iniciada (V GMM 0029) | La app funciona exactamente igual que sin la cuenta: buscar, Descubrir y Mis listas locales, sin ningún bloqueo ni pantalla de entrada |
 | A50 | Modal de cuenta | Abre en «entrar»; los enlaces cambian a «registro» y «recuperar» **sin cerrar el modal**; la X y Escape lo cierran |
@@ -890,8 +908,11 @@ Hay que **decirlos**, no disimularlos:
 - **Precios de alquiler y compra**: TMDB no los publica. Requeriría la API de pago de JustWatch.
 - **Búsqueda por trama**: usa palabras clave, no el texto de la sinopsis. Funciona con
   conceptos, no con frases largas.
-- **Puntuaciones de IMDb y Rotten Tomatoes**: no están. TMDB no las publica; traerlas
-  exigiría OMDb con su propia clave. La calificación de Descubrir es la de TMDB.
+- **Puntuaciones de IMDb, Rotten Tomatoes y Metacritic**: **ya están** (V GMM 0016, vía OMDb,
+  clave opcional aparte de la de TMDB) pero **solo en la ficha y en el modal de detalle**, nunca
+  en las cuadrículas ni en los carruseles del inicio — serían decenas o cientos de consultas
+  contra el tope de 1.000/día. Ahí la nota que se ve es siempre la de TMDB (0–10), también la que
+  usa el filtro de Descubrir.
 - **Filmografías**: se consultan los 24 títulos más populares, no la obra completa. Desde
   V GMM 0024 se separan interpretación y dirección (§5.3).
 - **Premios (Oscar, Emmy)**: no se filtra por premios. TMDB no los publica, así que una
@@ -920,8 +941,11 @@ Hay que **decirlos**, no disimularlos:
 *(La PWA instalable está hecha desde V GMM 0003 (§5.7). «Mi lista» se implementó en
 V GMM 0001. Los filtros de género, año y nota y las series llegaron en V GMM 0005; el
 interruptor Película/Serie con series en **todas** las búsquedas, en V GMM 0006 (§5.1.1);
-el **orden** de Descubrir y el **intervalo de años**, en V GMM 0015 (§5.4b). **Login y
-sincronización de las listas**, con Firebase, en V GMM 0029 (§5.5b).)*
+el **orden** de Descubrir y el **intervalo de años**, en V GMM 0015 (§5.4b). Las
+**puntuaciones de IMDb, Rotten Tomatoes y Metacritic**, vía OMDb, en V GMM 0016 (§8, §12).
+**«Mi biblioteca»**, enlace manual a tu copia (Nivel 1) y buscar/reproducir desde tu Google
+Drive (Nivel 2), en V GMM 0026–0027. **Login y sincronización de las listas**, con Firebase,
+en V GMM 0029 (§5.5b).)*
 
 *Ya incluidas desde la primera versión, por baratas y por lo mucho que cambian la experiencia:*
 autocompletado con carátula, frase en lenguaje natural, enlace directo a cada plataforma,

@@ -162,6 +162,32 @@ tuviera cada dispositivo, se juntan las dos.
 
 ---
 
+## Mi biblioteca (tus propias copias)
+
+Si ya tienes una copia de una película o serie —comprada, descargada, en tu Drive—, la app puede
+enlazarla para que la reproduzcas o descargues sin salir de aquí. Se llama **«Mi copia»** y vive
+en la ficha de cada título, y todo lo que guardes aparece también en **«Mis compras»**, el botón
+de la barra.
+
+**Nivel 1 — a mano.** Pega el enlace a tu archivo (Google Drive, Mega o tu propio servidor) en
+el campo de «Mi copia» y aparecen los botones **▶ Reproducir** y **⬇ Descargar**. Funciona en
+cualquier sitio, incluso con doble clic en `index.html`, y con cualquier proveedor.
+
+**Nivel 2 — Google Drive conectado (opcional).** Con tu Drive conectado (⚙ → **Conectar con
+Drive**), un botón **🔎 Buscar en mi Drive** encuentra el archivo por título entre tus propios
+vídeos y te deja **reproducirlo dentro de la app**, descargarlo directo o guardarlo como tu copia
+— sin pegar ningún enlace a mano. Para esto hace falta:
+
+1. Crear tu propio **Client ID de Google** en [console.cloud.google.com](https://console.cloud.google.com/) (Aplicación web, con la Drive API activada, origen `https://alberthoma.github.io`).
+2. Pegarlo en ⚙ y pulsar **Conectar con Drive**.
+
+Solo funciona en la **web publicada (HTTPS)**, no con doble clic, y pide permiso de **solo
+lectura**. La conexión dura una hora y luego hay que reconectar. Sin ella, el Nivel 1 sigue
+funcionando igual — Mega y los servidores propios se quedan siempre en el Nivel 1, porque su
+cifrado exigiría su propio SDK.
+
+---
+
 ## Sobre el idioma: léelo, importa
 
 **Ninguna API pública dice en qué idiomas está una película en una plataforma concreta.**
@@ -251,7 +277,9 @@ TMDB y con ella a la vista, infinitos y con «Ver más» (V GMM 0017–0019, 002
 puntuaciones de IMDb / Rotten Tomatoes / Metacritic vía OMDb (V GMM 0016);
 PWA instalable (V GMM 0003); descubrir por género, año y nota, y las series
 (V GMM 0005); interruptor Película/Serie con series en todas las búsquedas (V GMM 0006);
-orden e intervalo de años en Descubrir (V GMM 0015).*
+orden e intervalo de años en Descubrir (V GMM 0015); Mi biblioteca, enlace manual (Nivel 1) y
+buscar/reproducir desde tu Google Drive (Nivel 2) (V GMM 0026–0027); cuenta con Firebase y
+sincronizar Mis listas entre dispositivos (V GMM 0029).*
 
 ---
 
