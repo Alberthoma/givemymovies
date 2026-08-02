@@ -111,7 +111,7 @@ a:hover { text-decoration: underline; }
 }
 .marca-lema { display: block; font-size: 12px; font-weight: 500; color: #8ba0b6; letter-spacing: 0.2px; }
 
-.cabecera-acciones { display: flex; align-items: center; gap: 10px; align-self: flex-start; }
+.cabecera-acciones { display: flex; align-items: center; gap: 10px; }
 
 /* Punto de estado: naranja = modo demo, verde = datos en vivo. */
 .punto-modo {
@@ -184,6 +184,12 @@ a:hover { text-decoration: underline; }
 
 /* Sin caja: el buscador ya no es un panel, son controles sueltos y centrados. */
 .buscador { padding: 6px 0 8px; text-align: center; }
+
+/* El título sigue centrado en la sección; el punto de estado se posa aparte,
+   a su derecha, sin desplazar el centrado (position: absolute lo sacaría del
+   flujo sin empujar el texto). */
+.buscador-fila-titulo { position: relative; }
+.buscador-fila-titulo .punto-modo { position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
 
 .buscador-titulo { font-size: 27px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 4px; }
 .buscador-titulo em {
@@ -994,8 +1000,8 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
 @media (max-width: 620px) {
   .app { padding: 0 14px 60px; }
   .buscador { padding: 4px 0 6px; }
-  /* La barra superior, apretada para que quepa en una sola línea:
-     Mis listas + interruptor a la izquierda, ⚙ pegado a la derecha. */
+  /* La barra superior, apretada para que quepa en una sola línea: Mis
+     listas, interruptor y ⚙ a la izquierda; instalar a la derecha. */
   .barra-listas { gap: 8px; }
   .barra-izq, .barra-der { gap: 8px; }
   .barra-listas .boton-cabecera { padding: 7px 11px; font-size: 12.5px; }
@@ -1053,19 +1059,31 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
       </div>
     </div>
     <div class="cabecera-acciones">
-      <span class="punto-modo" id="pastillaModo" title="Modo demo" aria-label="Modo demo"></span>
+      <!-- Acceso opcional: sin iniciar sesión, la app funciona igual que
+           siempre. Iniciar sesión solo añade sincronizar Mis listas entre
+           dispositivos. Texto y destino los decide GMM.ui.refrescarCabecera
+           según GMM.cuenta.conectado(). Vive en el header desde V GMM 0030,
+           donde antes estaba el punto de estado (que pasó a la fila del
+           título del buscador). -->
+      <button class="boton-cabecera" id="btnCuenta" title="Iniciar sesión para sincronizar tus listas">
+        <span aria-hidden="true">&#128100;</span> <span id="textoCuenta">Iniciar sesión</span>
+      </button>
     </div>
   </header>
 
-  <!-- Barra bajo el header. Izquierda: Mis listas y el interruptor peli/serie.
-       Derecha: instalar y ajustes. -->
+  <!-- Barra bajo el header. Izquierda: Mis listas, el interruptor peli/serie
+       y ajustes. Derecha: instalar. «Mis compras» (V GMM 0026) queda oculto
+       desde V GMM 0030 a petición del usuario: no aportaba lo suficiente
+       para ocupar sitio en la barra. Su funcionalidad sigue intacta —«Mi
+       copia» en cada ficha sigue guardando y ofreciendo reproducir/descargar—
+       , solo deja de tener una entrada visible en la barra. -->
   <div class="barra-listas">
     <div class="barra-izq">
       <button class="boton-cabecera" id="btnListas">
         <span aria-hidden="true">&#9733;</span> Mis listas
         <span class="contador-listas vacio" id="contadorListas">0</span>
       </button>
-      <button class="boton-cabecera" id="btnBiblioteca" title="Los títulos de los que tienes copia">
+      <button class="boton-cabecera oculto" id="btnBiblioteca" title="Los títulos de los que tienes copia">
         <span aria-hidden="true">&#128193;</span> Mis compras
         <span class="contador-listas vacio" id="contadorBiblioteca">0</span>
       </button>
@@ -1074,20 +1092,13 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
         <button class="tipo-op" data-tipo="tv">Series</button>
         <button class="tipo-op activa" data-tipo="movie">Películas</button>
       </div>
+      <button class="boton-cabecera" id="btnAjustes" title="Ajustes y clave de TMDB">
+        <span aria-hidden="true">&#9881;</span>
+      </button>
     </div>
     <div class="barra-der">
       <button class="boton-cabecera oculto" id="btnInstalar" title="Instalar la app en este dispositivo">
         <span aria-hidden="true">&#11015;</span> Instalar
-      </button>
-      <!-- Acceso opcional: sin iniciar sesión, la app funciona igual que
-           siempre. Iniciar sesión solo añade sincronizar Mis listas entre
-           dispositivos. Texto y destino los decide GMM.ui.refrescarCabecera
-           según GMM.cuenta.conectado(). -->
-      <button class="boton-cabecera" id="btnCuenta" title="Iniciar sesión para sincronizar tus listas">
-        <span aria-hidden="true">&#128100;</span> <span id="textoCuenta">Iniciar sesión</span>
-      </button>
-      <button class="boton-cabecera" id="btnAjustes" title="Ajustes y clave de TMDB">
-        <span aria-hidden="true">&#9881;</span>
       </button>
     </div>
   </div>
@@ -1124,7 +1135,12 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
        centrados. Cada uno abre su formulario en un modal (#capaFormulario): el
        inicio se ve despejado y los controles, ordenados dentro del modal. -->
   <section class="buscador" id="buscador" data-tipo="movie">
-    <h2 class="buscador-titulo">Te digo <em>dónde verla</em>, y en tu idioma</h2>
+    <div class="buscador-fila-titulo">
+      <h2 class="buscador-titulo">Te digo <em>dónde verla</em>, y en tu idioma</h2>
+      <!-- Punto de estado: verde = datos en vivo, naranja = modo demo. Vivía
+           en el header; pasa aquí desde V GMM 0030, a petición del usuario. -->
+      <span class="punto-modo" id="pastillaModo" title="Modo demo" aria-label="Modo demo"></span>
+    </div>
     <p class="buscador-sub" id="buscadorSub">Elige película o serie, y luego búscala.</p>
 
     <!-- Dos formas de llegar al mismo resultado: dónde verla. -->
@@ -1140,7 +1156,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   <footer class="pie">
     <span>givemymovies · datos de disponibilidad vía TMDB / JustWatch</span>
     <span>Tus listas se guardan en este navegador — inicia sesión para llevarlas a otros</span>
-    <span id="version-app">V GMM 0029</span>
+    <span id="version-app">V GMM 0030</span>
   </footer>
 </div>
 

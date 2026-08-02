@@ -153,7 +153,7 @@ Como viven solo en este navegador, en ⚙ tienes **Exportar** e **Importar** par
 
 ### Llevarlas a otro dispositivo (opcional)
 
-Junto al ⚙, un botón de **cuenta** te deja crear una cuenta con correo y contraseña (o entrar si
+Arriba a la derecha, en la cabecera, un botón de **cuenta** te deja crear una cuenta con correo y contraseña (o entrar si
 ya la tienes, o recuperarla si la olvidaste). Es **totalmente opcional**: sin iniciar sesión la
 app funciona exactamente igual que siempre. Lo único que cambia al iniciar sesión es que tus
 listas dejan de ser solo de este navegador: se guardan también en la nube y, si entras con la
@@ -166,8 +166,8 @@ tuviera cada dispositivo, se juntan las dos.
 
 Si ya tienes una copia de una película o serie —comprada, descargada, en tu Drive—, la app puede
 enlazarla para que la reproduzcas o descargues sin salir de aquí. Se llama **«Mi copia»** y vive
-en la ficha de cada título, y todo lo que guardes aparece también en **«Mis compras»**, el botón
-de la barra.
+en la ficha de cada título, y todo lo que guardes aparece también en **«Mis compras»**, una
+cuadrícula aparte (hoy sin botón visible en la barra, pero tus copias siguen ahí).
 
 **Nivel 1 — a mano.** Pega el enlace a tu archivo (Google Drive, Mega o tu propio servidor) en
 el campo de «Mi copia» y aparecen los botones **▶ Reproducir** y **⬇ Descargar**. Funciona en

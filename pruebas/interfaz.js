@@ -678,6 +678,12 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   /* La barra vive tras el velo si el modal del formulario quedó abierto; se
      cierra para poder pulsar «Mis compras» (como haría el usuario). */
   await pagina.evaluate(() => { const c = document.getElementById("capaFormulario"); if (c) c.classList.add("oculto"); });
+  /* «Mis compras» está oculto en la barra desde V GMM 0030 (a petición del
+     usuario, no aportaba lo suficiente para tener sitio ahí). display:none
+     no tiene caja que pinchar ni con { force: true }, así que se le quita
+     el .oculto un instante para seguir probando que la vista sigue intacta
+     detrás del botón — solo deja de tener entrada visible en la barra. */
+  await pagina.evaluate(() => document.getElementById("btnBiblioteca").classList.remove("oculto"));
   await pagina.click("#btnBiblioteca");
   await pagina.waitForTimeout(200);
   m.afirmar("«Mis compras» lista la copia con su botón de reproducir",

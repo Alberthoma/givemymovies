@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.31 · Aplicación V GMM 0029 · 2 de agosto de 2026**
+**Documento v1.32 · Aplicación V GMM 0030 · 2 de agosto de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies/>
 
 ---
@@ -301,8 +301,10 @@ usuario pega el **enlace a su archivo** del título (Google Drive, Mega o su pro
 guarda en el navegador (`gmm_biblioteca`, indexado por `tipo:id`) y aparecen **▶ Reproducir** y
 **⬇ Descargar**, que abren el enlace en una pestaña nueva. `GMM.util.enlaceCopia` (pura) reconoce
 los enlaces de Drive (saca el id y arma la URL de ver y la de descarga directa) y deja el resto tal
-cual. Un botón **«Mis compras»** en la barra abre una cuadrícula con todo lo guardado. Es todo
-cliente: sin API, sin OAuth, sin librerías; funciona en doble clic y en la web. **Nivel 2 (V GMM
+cual. Un botón **«Mis compras»** (`#btnBiblioteca`, **oculto desde V GMM 0030** a petición del
+usuario — sigue en el DOM y funcional, solo sin entrada visible en la barra) abre una cuadrícula
+con todo lo guardado. Es todo cliente: sin API, sin OAuth, sin librerías; funciona en doble clic y
+en la web. **Nivel 2 (V GMM
 0027):** con Google Drive conectado en ⚙ (tu Client ID; solo en la web HTTPS), un botón **🔎 Buscar
 en mi Drive** encuentra el archivo por título y lo **reproduce dentro** (visor de Drive en un iframe)
 o lo guarda como enlace. Módulo `GMM.drive` con OAuth de flujo implícito sin librería (el diseño
@@ -466,7 +468,8 @@ primera búsqueda la lanza el botón *Buscar*.
 **Opcional, nunca obligatorio.** La app entera funciona sin iniciar sesión; esto solo añade que
 Mis listas viajen entre dispositivos. No hay pantalla de entrada que bloquee el resto de la app.
 
-- **Botón en la barra** (junto a ⚙): «Iniciar sesión», o el correo (recortado) si hay sesión.
+- **Botón en el header** (arriba a la derecha, junto a la marca — ahí vivía el punto de estado
+  hasta la V GMM 0030): «Iniciar sesión», o el correo (recortado) si hay sesión.
 - **Un modal, cuatro vistas** — entrar / crear cuenta / recuperar contraseña / perfil —, con
   enlaces para pasar de una a otra sin cerrar el modal. Con sesión activa, el botón abre directo
   en «perfil»: correo actual y **Cerrar sesión**.
@@ -572,9 +575,13 @@ Borde claro      #2f4356      Verde ✓  #6ff0c4   Azul ✓ #8fc9ff    Naranja �
   en móvil** y el paginador lleva **Anterior y Siguiente en una fila**.
 - **El header es bajo y fijo** (`position: sticky; top: 0`, z-index 50 por debajo de modales
   y avisos): la cabecera queda pegada arriba al hacer scroll, con su fondo sólido tapando lo
-  que pasa por debajo. A la izquierda la marca (icono + texto), a la derecha el punto de estado
-  (arriba a la derecha, con `align-self: flex-start`), en la misma línea. **Mis listas**, **Instalar** y **⚙ Ajustes** no van en el
-  header, sino en una barra justo debajo, alineada a la derecha (el ⚙ a la derecha de Mis listas).
+  que pasa por debajo. A la izquierda la marca (icono + texto); a la derecha, **desde
+  V GMM 0030**, el botón de **cuenta** (§5.5b) — antes ahí iba el punto de estado, que bajó a
+  la fila del título del buscador (a su derecha, en `position: absolute` para no descuadrar el
+  centrado). **Mis listas**, el interruptor Película/Serie y **⚙ Ajustes** van, en ese orden,
+  en la barra justo debajo del header, a la izquierda; **Instalar** queda solo a la derecha de
+  esa misma barra. **«Mis compras»** (§5.2, 2c) vive ahí también pero **oculto**: sigue
+  funcionando —«Mi copia» en cada ficha no cambia—, solo sin entrada visible en la barra.
 - **Degradados que mezclan los tres colores** en: marca, botón *Buscar*, pestaña activa y
   barra de progreso.
 - **Fondo** con tres resplandores radiales sutiles, uno por color.
@@ -860,6 +867,7 @@ Todos deben pasar:
 | A51 | Con sesión (simulada en pruebas) | El botón de la barra muestra el correo en vez de «Iniciar sesión»; abrir el modal va directo a «perfil» |
 | A52 | Fusión de listas al iniciar sesión | `GMM.util.fusionarListas` une local y remoto por `(id, tipo)` sin duplicar, y ante un duplicado conserva la fecha `anadida` más antigua |
 | A53 | Sin el SDK cargado (sin internet) | `GMM.cuenta.disponible()` es `false`; el resto de la app arranca y funciona igual |
+| A54 | Barra reubicada (V GMM 0030) | El botón de cuenta vive en el header (arriba a la derecha); el punto de estado, en la fila del título del buscador (a su derecha, título sin descentrar); Mis listas, el interruptor y ⚙ quedan juntos a la izquierda de la barra; «Mis compras» no es visible en ningún sitio de la barra |
 
 ### Al tocar el catálogo demo, verifica cada imagen
 
@@ -977,6 +985,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.32 | V GMM 0030 | 02-08-2026 | **Se reubica la barra de cabecera**, a petición del usuario (§6). Cuenta (`#btnCuenta`) sale de la barra y ocupa, en el header, el hueco que dejaba el punto de estado; el punto de estado (`#pastillaModo`) baja a la fila del título del buscador, a su derecha, en `position: absolute` para no descuadrar el centrado. `⚙` y el interruptor Película/Serie se mudan a la izquierda de la barra, junto a Mis listas; Instalar se queda solo a la derecha. **«Mis compras»** (`#btnBiblioteca`) queda **oculto** (`.oculto` estático): el usuario decidió que no aportaba lo suficiente para tener sitio en la barra; su lógica sigue intacta, «Mi copia» en cada ficha no cambia. Cambio de HTML/CSS puro —todo son selectores por `id`, ningún JS se toca—. Corregidos también dos puntos de documentación desactualizados que salieron a la luz al revisar esta zona (§5.2, §6). Criterio A54. `sw.js` 27→28, `logica.js` 177 (sin cambios de lógica), `interfaz.js` 127 (el test de «Mis compras» ahora le quita `.oculto` antes de pulsar: `{ force: true }` no sirve con `display: none`), `pwa.js` 20. |
 | 1.31 | V GMM 0029 | 02-08-2026 | **Cuenta opcional con Firebase: login, registro, recuperar contraseña y sincronizar Mis listas** (§5.5b). Retoma `PENDIENTES.md` §2, con dos decisiones distintas de lo planteado: **correo/contraseña** (no Google) y el **SDK de Firebase vía CDN** (no su API REST) — única excepción consciente a R3, «sin librerías», de todo el proyecto. Sin sesión la app funciona exactamente igual que siempre. Módulo nuevo `GMM.cuenta` (bloque 7d): `disponible()` guarda toda función pública y degrada sin romper nada si el SDK no cargó (sin internet); `registrar`/`iniciarSesion`/`cerrarSesion`/`recuperarContrasena` sobre `firebase.auth()`; `sincronizar`/`fusionarAlEntrar` sobre `firebase.firestore()` (`usuarios/{uid}`). `GMM.util.fusionarListas` (pura): une local+nube por `(id, tipo)`, conserva la fecha `anadida` más antigua ante un duplicado. Botón `#btnCuenta` en la barra y modal `#capaCuenta` con 4 vistas (entrar/registro/recuperar/perfil). Config `GMM.config.FIREBASE` (no secreta). Requiere, a mano en la consola de Firebase: activar «Correo/contraseña» y publicar las reglas de Firestore. Criterios A49–A53. `sw.js` 26→27, `logica.js` 166→177, `interfaz.js` 120→127 (`GMM.cuenta` stubeado, como `GMM.drive`), `pwa.js` 20. |
 | 1.30 | V GMM 0028 | 01-08-2026 | **Solo documentación, la app no cambia.** Segunda pasada de aligerado de `CLAUDE.md`: los temas abiertos salen a **`PENDIENTES.md`** (§11 se queda con una tabla de estado), el diseño ya construido del Nivel 2 de Drive se va al apéndice de `HISTORIAL.md`, y se retira la duplicación entre §4 y §9 dejando el desarrollo en §9. **Correcciones de contenido falso:** §10 afirmaba que GitHub Pages «no está activado» contradiciendo la cabecera —lo está desde la 0004—, y §8 listaba como «límites conocidos» tres cosas que ya no lo eran (series en las cuatro búsquedas, puntuaciones de otras plataformas, filmografía de dirección); §8 gana en cambio las condiciones reales del Nivel 2 de Drive. `CLAUDE.md`: 58.786 → 50.770 caracteres. |
 | 1.29 | V GMM 0028 | 31-07-2026 | **Solo documentación, la app no cambia.** El detalle de cada versión sale de `CLAUDE.md` §12 a un **`HISTORIAL.md`** nuevo, y §12 se queda con una línea por versión. Motivo: `CLAUDE.md` se carga entero en cada sesión de trabajo y el historial era casi un cuarto de su peso sin consultarse casi nunca. El skill `givemymovies-commit` pasa a exigir las dos anotaciones —línea corta y detalle— y a actualizar `PROMPT-MAESTRO.md` **por secciones**, no leyéndolo entero, por el mismo motivo. |

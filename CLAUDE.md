@@ -2,8 +2,8 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0029`
-**Próxima versión:** `V GMM 0030`
+**Versión activa:** `V GMM 0030`
+**Próxima versión:** `V GMM 0031`
 **Última actualización:** 2026-08-02
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies/> · GitHub Pages desde `main`, raíz.
@@ -215,13 +215,19 @@ carruseles están a la vista y no hay «categoría activa» que recordar.
 acentos, orden).
 
 **El interruptor peli/serie vive en la barra bajo el header** (desde V GMM 0020), a la izquierda
-junto a *Mis listas* (antes estaba dentro del buscador). La barra tiene dos grupos: `.barra-izq`
-(Mis listas + interruptor) y `.barra-der` (Instalar + ⚙). Sigue teniendo id `#tipoSwitch`, así que
-`reflejar()` y sus acentos (`#buscador[data-tipo]`, `#descubrimiento[data-tipo]`) funcionan igual.
-**La app arranca sin método elegido** (`estado.metodo = ""`; desde V GMM 0021, antes era «buscar»),
-y el método no se restaura de `gmm_prefs`: cada recarga vuelve a ese arranque limpio. **El botón ⚙
-es un círculo compacto** pegado a la derecha de la barra (`#btnAjustes`, 34 px, el engranaje sin
-reducir).
+junto a *Mis listas* (antes estaba dentro del buscador). **Desde V GMM 0030 la barra se reubicó a
+petición del usuario:** `.barra-izq` lleva Mis listas, el interruptor **y** ⚙ (en ese orden);
+`.barra-der` se queda solo con Instalar. `#btnBiblioteca` («Mis compras») sigue en el DOM y con su
+lógica intacta, pero **oculto** (`.oculto` estático, no condicional) — no aportaba lo suficiente
+para tener sitio en la barra; «Mi copia» en cada ficha sigue funcionando igual. El botón de
+**cuenta** (`#btnCuenta`) se mudó del `.barra-der` al **header**, en el hueco que dejó el punto de
+estado; el punto de estado (`#pastillaModo`) bajó a la fila del título del buscador, a su derecha,
+posicionado en `absolute` para no descuadrar el centrado del título. Sigue teniendo id
+`#tipoSwitch`, así que `reflejar()` y sus acentos (`#buscador[data-tipo]`, `#descubrimiento[data-tipo]`)
+funcionan igual. **La app arranca sin método elegido** (`estado.metodo = ""`; desde V GMM 0021,
+antes era «buscar»), y el método no se restaura de `gmm_prefs`: cada recarga vuelve a ese arranque
+limpio. **El botón ⚙ sigue siendo un círculo compacto** (`#btnAjustes`, 34 px, el engranaje sin
+reducir), solo que ya no está pegado a la derecha de la barra: vive en `.barra-izq`.
 
 ### El modal-formulario (desde V GMM 0022)
 
@@ -561,6 +567,12 @@ la sincronización real de Firebase **no se pueden probar en CI**, así que sus 
 correo de recuperación, listas viajando entre dos navegadores— la hace el usuario en la web
 publicada.
 
+**La V GMM 0030 (reubicación de la barra) se cerró en local**, mismas tres suites:
+`logica.js` **177/177**, `interfaz.js` **127/127** (`#btnBiblioteca` se prueba quitándole
+`.oculto` antes del clic, porque un elemento `display: none` no tiene caja que pinchar ni con
+`{ force: true }`) y `pwa.js` **20/20** (caché `gmm-app-v28`). Verificado además visualmente
+contra `pruebas/capturas/00-inicio.png`.
+
 > **Correr `interfaz.js`/`pwa.js` en remoto, sin npm** (aprendido en la 0024): aunque
 > `npm install playwright-core` esté bloqueado por la política de red, el entorno suele traer un
 > **`playwright` global** (que incluye `playwright-core`) y **Chromium** ya descargado en
@@ -708,6 +720,7 @@ Comprobación manual rápida, si no quieres ejecutar nada:
 | **Partir la filmografía se llevó su id** (0024) | Al dividir la filmografía en dos facetas (dirección / reparto) se perdió el `#rejillaFilmografia`, del que dependían **«¿dónde ver todas?»** (itera un solo contenedor) y `interfaz.js` (`#rejillaFilmografia .tarjeta`). Se envuelven las dos secciones en ese mismo id. Al partir un bloque en varios, conserva el contenedor que otros selectores esperan. |
 | **El texto de consola de un recurso 404 es genérico** (0024) | `interfaz.js` filtra el error esperado de `clave-local.js`, pero lo hace por el **texto de consola**, que en un fallo de recurso es solo «Failed to load resource: …» **sin la URL**: el filtro no casa. En local no salta porque `PRIVADO/clave-local.js` existe y hay internet; en un entorno cerrado (sin `PRIVADO/`, con `image.tmdb.org` bloqueado) esos contadores de «errores acumulados» fallan **sin ser regresión**. Compara contra el respaldo antes de dar por rota la interfaz. |
 | **Un comentario con la palabra `<script>` rompe la extracción del test** (0029) | `pruebas/cargar.js` localiza el `<script>` de la app con `lastIndexOf("<script>", fin)` (ver la trampa de los «Dos bloques `<script>`» más arriba): busca la ÚLTIMA aparición literal de esa cadena antes del cierre. Un comentario dentro del propio bloque JS que mencionara «…ver los `<script>` antes del bloque 1» quedaba más cerca del final que la etiqueta de apertura real, así que `lastIndexOf` la tomaba a ELLA como inicio y `logica.js` reventaba con un `SyntaxError` sin sentido aparente. No escribas la cadena literal `<script>` dentro de un comentario que viva dentro del bloque `<script>` de la app; dila de otra forma («los scripts», «las tres etiquetas»…). |
+| **`{ force: true }` de Playwright no rescata un `display: none`** (0030) | Al ocultar `#btnBiblioteca` con `.oculto` estático, el test que lo pulsaba (`pagina.click("#btnBiblioteca")`) empezó a fallar con «Element is not visible» **incluso añadiendo `{ force: true }`**: ese flag salta las comprobaciones de accionabilidad (tapado, inestable…), pero un elemento `display: none` no tiene caja en la página, así que Playwright no tiene dónde hacer clic. La solución fue quitarle `.oculto` con `page.evaluate` justo antes del clic, probando así que la lógica sigue intacta detrás de un botón oculto a propósito. Si ocultas algo que un test pulsa, este es el patrón: **destapar, pulsar, no forzar**. |
 
 ---
 
@@ -778,6 +791,7 @@ en `HISTORIAL.md`.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| V GMM 0030 | 2026-08-02 | Se reubica la barra: cuenta al header, el punto de estado baja al título del buscador, ⚙ y el interruptor junto a Mis listas, y «Mis compras» queda oculto. |
 | V GMM 0029 | 2026-08-02 | Cuenta opcional con Firebase (login, registro, recuperar contraseña) y Mis listas sincronizadas entre dispositivos. |
 | V GMM 0028 | 2026-07-31 | El token de Google Drive pasa a `localStorage`: la conexión sobrevive a cerrar la app en iOS. |
 | V GMM 0027 | 2026-07-31 | «Mi biblioteca» Nivel 2: buscar en tu Google Drive por OAuth, reproducir dentro de la app y descargar. |
