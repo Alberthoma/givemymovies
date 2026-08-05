@@ -1156,7 +1156,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   <footer class="pie">
     <span>givemymovies · datos de disponibilidad vía TMDB / JustWatch</span>
     <span>Tus listas se guardan en este navegador — inicia sesión para llevarlas a otros</span>
-    <span id="version-app">V GMM 0031</span>
+    <span id="version-app">V GMM 0030</span>
   </footer>
 </div>
 
@@ -3448,25 +3448,12 @@ GMM.cuenta = (function () {
     return textos[codigo] || "No se pudo completar la operación. Inténtalo de nuevo.";
   }
 
-  /* Un fallo de red (estar sin internet) es normal y se calla, como siempre.
-     Uno de PERMISOS (reglas de Firestore sin publicar o mal puestas) no: es un
-     problema de configuración que dejaba las listas sin sincronizar en silencio
-     y costaba días descubrir. Se avisa, pero una sola vez por sesión, para no
-     repetirlo en cada sincronización (que se dispara con cada clic en una lista). */
-  var avisadoPermiso = false;
-  function tratarFalloSync(error) {
-    if (error && error.code === "permission-denied" && !avisadoPermiso) {
-      avisadoPermiso = true;
-      GMM.ui.aviso("No se pudieron sincronizar tus listas: revisa las reglas de Firestore.", "error");
-    }
-  }
-
   function sincronizarYa() {
     if (!disponible() || !conectado()) return;
     firebase.firestore().collection("usuarios").doc(sesion().uid).set({
       favoritas: GMM.listas.obtener("favoritas"),
       pendientes: GMM.listas.obtener("pendientes")
-    }, { merge: true }).catch(tratarFalloSync);
+    }, { merge: true }).catch(function () {});
   }
   /* Nunca debe disparar una escritura por cada clic: se agrupan con retardo,
      igual que el autocompletado (GMM.util.retardo). */
@@ -3492,7 +3479,7 @@ GMM.cuenta = (function () {
         GMM.ui.refrescarCabecera();
         sincronizarYa();
       })
-      .catch(tratarFalloSync);
+      .catch(function () {});
   }
 
   return {
