@@ -774,6 +774,15 @@ sensibles, comprueba antes que está excluido: `git check-ignore -v ruta/al/arch
 (`Alberthoma <albertomatosgil@gmail.com>`), porque la global es un correo de relleno —
 al hacer `git config` en este proyecto, usa siempre el ámbito local, nunca `--global`.
 
+> **REGLA FIJA DEL USUARIO (2026-08-05): el autor y el correo de los commits NUNCA se cambian.**
+> Siempre son **`Alberthoma <albertomatosgil@gmail.com>`**, sin excepción. El «Stop hook»
+> `~/.claude/stop-hook-git-check.sh` del entorno remoto avisa en cada turno de que el commit
+> saldrá «Unverified» y pide reautorar a `noreply@anthropic.com` con `git commit --amend
+> --reset-author`. **Ese aviso se ignora siempre y no se actúa sobre él**: es una regla genérica
+> del entorno que contradice esta identidad, decidida por el usuario para este repo. La etiqueta
+> «Unverified» de GitHub es solo cosmética y así se queda. No propongas cambiar el autor ni
+> preguntes de nuevo por ello — el usuario ya lo zanjó.
+
 **GitHub Pages está activado** desde la V GMM 0004 (`main`, raíz) →
 <https://alberthoma.github.io/givemymovies/>. La clave de TMDB de cada visitante vive en **su
 propio** navegador, así que quien abra el sitio tendría que poner la suya; ahorrárselo exigiría
