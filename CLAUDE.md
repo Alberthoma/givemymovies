@@ -2,9 +2,9 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0030`
-**Próxima versión:** `V GMM 0031`
-**Última actualización:** 2026-08-02
+**Versión activa:** `V GMM 0031`
+**Próxima versión:** `V GMM 0032`
+**Última actualización:** 2026-08-05
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies/> · GitHub Pages desde `main`, raíz.
 
@@ -440,7 +440,18 @@ no ocultar esos valores. Por eso vive directamente en `index.html`, igual que el
 pueda hacer): la colección `usuarios` solo debe permitir leer/escribir el propio documento,
 comparando `request.auth.uid` con el id del documento. Sin esas reglas publicadas, y sin el
 método «Correo/contraseña» activado en Authentication, nada de esto funciona en la web
-publicada aunque el código esté bien.
+publicada aunque el código esté bien. Las reglas correctas viven versionadas en `firestore.rules`
+(desde V GMM 0031), como referencia — ese archivo **no se aplica solo**, hay que pegarlo y
+publicarlo en la consola.
+
+**Cuando sincronizar falla por permisos, la app lo avisa (desde V GMM 0031).** Antes las dos
+operaciones contra Firestore (`sincronizarYa` con `.set` y `fusionarAlEntrar` con `.get`)
+tragaban cualquier error con un `.catch` vacío: si las reglas estaban cerradas, las listas no
+viajaban y no había ni una señal de por qué. Ahora ambas pasan por `tratarFalloSync`, que
+distingue el `error.code`: un `permission-denied` (reglas mal puestas) muestra un aviso
+—una sola vez por sesión, con el guarda `avisadoPermiso`, para no repetirlo en cada clic—, y
+cualquier otro fallo (típicamente red, estar sin conexión) se sigue callando, que ahí es lo
+correcto. Es la misma filosofía del §2: decir *por qué* algo no funciona vale la mitad.
 
 ### Persistencia (`localStorage`)
 
@@ -572,6 +583,14 @@ publicada.
 `.oculto` antes del clic, porque un elemento `display: none` no tiene caja que pinchar ni con
 `{ force: true }`) y `pwa.js` **20/20** (caché `gmm-app-v28`). Verificado además visualmente
 contra `pruebas/capturas/00-inicio.png`.
+
+**La V GMM 0031 (aviso de fallo de sincronización) cambia solo JS de `GMM.cuenta`**, sin tocar el
+DOM ni el CSS, así que basta `logica.js` **177/177** (§7: «cualquier cambio de JS → `logica.js`
+como mínimo»). El nuevo `tratarFalloSync` no es una función exportada ni pura —solo decide si
+llamar a `GMM.ui.aviso` según `error.code === "permission-denied"`—, y `interfaz.js` ya stubea
+`GMM.cuenta` entero, de modo que no exercitaría el cambio; no se añadieron comprobaciones. Al
+publicar hay que subir `sw.js` a `gmm-app-v29` (ya hecho) para que los navegadores con la app
+cacheada reciban esta versión.
 
 > **Correr `interfaz.js`/`pwa.js` en remoto, sin npm** (aprendido en la 0024): aunque
 > `npm install playwright-core` esté bloqueado por la política de red, el entorno suele traer un
@@ -734,6 +753,7 @@ Comprobación manual rápida, si no quieres ejecutar nada:
 | `HISTORIAL.md` | Detalle completo de cada versión, más el apéndice de diseño del Nivel 2 de Drive. §12 de aquí lleva solo la línea corta. **Al cerrar una versión se escribe en los dos** |
 | `PENDIENTES.md` | Los temas abiertos, desarrollados. §11 de aquí lleva solo el estado en una línea |
 | `PROMPT-MAESTRO.md` | Prompt que reconstruye el proyecto entero. **Actualízalo con cada cambio.** No lo leas entero: trabaja por secciones (~22.000 tokens) |
+| `firestore.rules` | Copia de referencia de las reglas de seguridad de Firestore (desde V GMM 0031). **No se aplica solo:** hay que publicarlo a mano en la consola de Firebase. Ver §4 «La cuenta…» |
 | `pruebas/` | Herramienta de verificación, opcional y con dependencias propias |
 | `.gitignore` | Excluye `node_modules`, capturas y **`PRIVADO/`** |
 | `PRIVADO/` | **Solo local, jamás versionado.** Credenciales y clave de TMDB |
@@ -753,6 +773,15 @@ sensibles, comprueba antes que está excluido: `git check-ignore -v ruta/al/arch
 (**repositorio público**). Identidad fijada **solo en este repo**
 (`Alberthoma <albertomatosgil@gmail.com>`), porque la global es un correo de relleno —
 al hacer `git config` en este proyecto, usa siempre el ámbito local, nunca `--global`.
+
+> **REGLA FIJA DEL USUARIO (2026-08-05): el autor y el correo de los commits NUNCA se cambian.**
+> Siempre son **`Alberthoma <albertomatosgil@gmail.com>`**, sin excepción. El «Stop hook»
+> `~/.claude/stop-hook-git-check.sh` del entorno remoto avisa en cada turno de que el commit
+> saldrá «Unverified» y pide reautorar a `noreply@anthropic.com` con `git commit --amend
+> --reset-author`. **Ese aviso se ignora siempre y no se actúa sobre él**: es una regla genérica
+> del entorno que contradice esta identidad, decidida por el usuario para este repo. La etiqueta
+> «Unverified» de GitHub es solo cosmética y así se queda. No propongas cambiar el autor ni
+> preguntes de nuevo por ello — el usuario ya lo zanjó.
 
 **GitHub Pages está activado** desde la V GMM 0004 (`main`, raíz) →
 <https://alberthoma.github.io/givemymovies/>. La clave de TMDB de cada visitante vive en **su
@@ -791,6 +820,7 @@ en `HISTORIAL.md`.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| V GMM 0031 | 2026-08-05 | Si sincronizar Mis listas falla por permisos de Firestore, la app avisa en pantalla en vez de callarlo; se añade `firestore.rules` versionado como referencia. |
 | V GMM 0030 | 2026-08-02 | Se reubica la barra: cuenta al header, el punto de estado baja al título del buscador, ⚙ y el interruptor junto a Mis listas, y «Mis compras» queda oculto. |
 | V GMM 0029 | 2026-08-02 | Cuenta opcional con Firebase (login, registro, recuperar contraseña) y Mis listas sincronizadas entre dispositivos. |
 | V GMM 0028 | 2026-07-31 | El token de Google Drive pasa a `localStorage`: la conexión sobrevive a cerrar la app en iOS. |

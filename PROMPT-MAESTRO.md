@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.32 · Aplicación V GMM 0030 · 2 de agosto de 2026**
+**Documento v1.33 · Aplicación V GMM 0031 · 5 de agosto de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies/>
 
 ---
@@ -697,6 +697,16 @@ iniciar sesión, `fusionarAlEntrar()` trae lo de la nube y lo une con lo local v
 un duplicado). La config web de Firebase no es secreta —pensada para ser pública— y vive en
 `GMM.config.FIREBASE`. Requiere, hechos a mano en la consola de Firebase: activar
 «Correo/contraseña» en Authentication y publicar las reglas de Firestore de `usuarios/{uid}`.
+Las reglas correctas están versionadas como referencia en `firestore.rules` (V GMM 0031); ese
+archivo **no se aplica solo**, hay que pegarlo y publicarlo en la consola.
+
+**Si sincronizar falla por permisos, la app avisa (V GMM 0031).** Las dos operaciones contra
+Firestore —`sincronizarYa` (`.set`) y `fusionarAlEntrar` (`.get`)— pasan por `tratarFalloSync`:
+un `error.code === "permission-denied"` (reglas de Firestore sin publicar o mal puestas) muestra
+un aviso —una sola vez por sesión, guarda `avisadoPermiso`—, y cualquier otro fallo (red, sin
+conexión) se sigue callando. Antes ambas tragaban el error con un `.catch` vacío, así que unas
+reglas cerradas dejaban las listas sin sincronizar sin ninguna señal de por qué. Es la filosofía
+de la app: decir *por qué* algo no funciona vale la mitad.
 
 **OMDb como fuente secundaria opcional (V GMM 0016).** Módulo `GMM.omdb` (bloque JS 5b, futuro
 `js/omdb.js`), hermano de `GMM.tmdb`. `parsear(json)` → `{ imdb, rt, meta }` tolerando `"N/A"`
@@ -894,6 +904,7 @@ sirve una carátula distinta según el locale.
 | `HISTORIAL.md` | Detalle completo de cada versión, más el apéndice de diseño del Nivel 2 de Drive. `CLAUDE.md` §12 lleva únicamente la línea corta que la identifica |
 | `PENDIENTES.md` | Los temas abiertos, desarrollados (clave en el móvil, login y sincronización, premios). `CLAUDE.md` §11 lleva solo el estado en una línea |
 | `PROMPT-MAESTRO.md` | Este documento |
+| `firestore.rules` | Copia de referencia de las reglas de seguridad de Firestore (V GMM 0031). **No se aplica solo:** hay que publicarlo a mano en la consola de Firebase |
 | `manifest.json`, `sw.js`, `iconos/` | Lo que hace la app instalable en el móvil (§5.7) |
 | `pruebas/` | `cargar.js`, `logica.js`, `imagenes.js`, `interfaz.js`, `pwa.js`, `clave.js`, `LEEME.md` |
 | `.gitignore` | Excluye `node_modules` de las pruebas y las capturas |
