@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.36 · Aplicación V GMM 0034 (validación local) · 5 de agosto de 2026**
+**Documento v1.37 · Aplicación V GMM 0035 (validación local) · 5 de agosto de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies-g/>
 
 ---
@@ -627,7 +627,7 @@ los bloques en archivos **no exija tocar código**: basta enlazarlos en este ord
 | 7b | `js/biblioteca.js` | `GMM.biblioteca` | «Mis compras»: enlace a tu copia por título (Nivel 1) |
 | 7c | `js/drive.js` | `GMM.drive` | Google Drive (Nivel 2): OAuth implícito, buscar, reproducir |
 | 7e | `js/servidor.js` | `GMM.servidor` | GMM Server: URL y clave privadas del navegador, catálogo y enlaces temporales |
-| 7d | `js/cuenta.js` | `GMM.cuenta` | **(V GMM 0029)** Cuenta opcional con Firebase: login, registro, recuperar contraseña, sincronizar Mis listas |
+| 7d | `js/cuenta.js` | `GMM.cuenta` | **(V GMM 0029)** Cuenta opcional con Firebase: login, registro, recuperar contraseña, sincronizar Mis listas y, desde la 0035, las claves de TMDB/OMDb/GMM Server |
 | 8 | `js/ui.js` | `GMM.ui` | Componentes, avisos |
 | 9 | `js/app.js` | `GMM.app` | Estado, vistas, eventos, arranque |
 | 10 | `js/pwa.js` | `GMM.pwa` | Service worker y botón de instalar |
@@ -669,7 +669,7 @@ solo pasa de `copiandose` a `disponible` tras conservar tamaño y fecha en dos r
 | Catálogo de plataformas | `/watch/providers/movie` |
 | **Notas IMDb/RT/Metacritic** (OMDb, secundaria y opcional) | `https://www.omdbapi.com/?apikey=…&i={imdb_id}` — clave aparte; sin ella la app va igual |
 | **Tendencia** (carrusel del inicio) | `/trending/movie/week` · `/trending/tv/week` |
-| **Cuenta y sincronizar listas** (Firebase, opcional, V GMM 0029) | SDK vía CDN (no REST): `firebase.auth()` para login/registro/recuperar y `firebase.firestore()` para `usuarios/{uid}` con `favoritas`/`pendientes` |
+| **Cuenta, listas y ajustes** (Firebase, opcional, V GMM 0029; ajustes desde 0035) | SDK vía CDN (no REST): `firebase.auth()` para login/registro/recuperar y `firebase.firestore()` para `usuarios/{uid}` con `favoritas`/`pendientes` y `ajustes: { tmdb, omdb, servidorUrl, servidorClave }` |
 
 Todas con `language=es-ES`. Caché en memoria por ruta + parámetros.
 
@@ -688,19 +688,22 @@ en demo que en vivo.
 
 | Clave | Contenido |
 |---|---|
-| `gmm_tmdb_key` | Clave de la API de TMDB |
-| `gmm_omdb_key` | Clave de la API de OMDb (opcional; notas de IMDb/RT/Metacritic) |
-| `gmm_prefs` | Modo, plataforma, país e idioma |
-| `gmm_listas` | `{ favoritas: [], pendientes: [] }` |
-| `gmm_biblioteca` | `{ "tipo:id": { title, poster_path, enlace, guardada, … } }` — «Mis compras» (V GMM 0026) |
-| `gmm_gdrive_client_id` | Client ID de Google, Nivel 2 (V GMM 0027). El token va en `localStorage` (1 h; era `sessionStorage`, ver V GMM 0028) |
-| `gmm_servidor` | `{ url, clave }` de GMM Server (V GMM 0033) |
+| `gmm_tmdb_key` | Clave de la API de TMDB. Sincroniza con la cuenta (V GMM 0035) |
+| `gmm_omdb_key` | Clave de la API de OMDb (opcional; notas de IMDb/RT/Metacritic). Sincroniza (V GMM 0035) |
+| `gmm_prefs` | Modo, plataforma, país e idioma. No sincroniza |
+| `gmm_listas` | `{ favoritas: [], pendientes: [] }`. Sincroniza (V GMM 0029, fusiona en vez de sustituir) |
+| `gmm_biblioteca` | `{ "tipo:id": { title, poster_path, enlace, guardada, … } }` — «Mis compras» (V GMM 0026). No sincroniza |
+| `gmm_gdrive_client_id` | Client ID de Google, Nivel 2 (V GMM 0027). El token va en `localStorage` (1 h; era `sessionStorage`, ver V GMM 0028). No sincroniza |
+| `gmm_servidor` | `{ url, clave }` de GMM Server (V GMM 0033). Sincroniza (V GMM 0035) |
 | *(ninguna)* | La sesión de `GMM.cuenta` (Firebase, V GMM 0029) no usa `localStorage`: el SDK la persiste solo, en IndexedDB |
 
-**Ninguna de estas claves sincroniza entre dispositivos, ni con sesión iniciada.** Solo
-`gmm_listas` viaja vía Firestore; el resto es por dispositivo, a propósito (se pega una vez en
-⚙ en cada aparato). Confundido con un fallo una vez (V GMM 0034): el usuario reportó claves
-"borradas" en el móvil y era justo esto.
+**Qué sincroniza y qué no:** `gmm_listas` sincroniza desde la 0029 (fusión por `(id,tipo)`).
+Desde la V GMM 0035, `gmm_tmdb_key`/`gmm_omdb_key`/`gmm_servidor` también sincronizan, pero con
+**«la nube siempre gana»**, sin fusión — decisión explícita del usuario, porque una clave no es
+una colección que se pueda unir. `gmm_prefs`, `gmm_biblioteca` y `gmm_gdrive_client_id` siguen
+siendo por dispositivo, a propósito: no se ha pedido que sincronicen. Antes de la 0035
+(V GMM 0034) hubo un malentendido: el usuario reportó claves "borradas" en el móvil, cuando
+en ese momento ninguna clave sincronizaba todavía.
 
 **Cuenta con Firebase, vía su SDK (V GMM 0029).** Módulo `GMM.cuenta` (bloque JS 7d). Única
 excepción a R3 —sin librerías—, pedida explícitamente por el usuario tras plantearle la
@@ -896,7 +899,8 @@ Todos deben pasar:
 | A52 | Fusión de listas al iniciar sesión | `GMM.util.fusionarListas` une local y remoto por `(id, tipo)` sin duplicar, y ante un duplicado conserva la fecha `anadida` más antigua |
 | A53 | Sin el SDK cargado (sin internet) | `GMM.cuenta.disponible()` es `false`; el resto de la app arranca y funciona igual |
 | A54 | Barra reubicada (V GMM 0030) | El botón de cuenta vive en el header (arriba a la derecha); el punto de estado, en la fila del título del buscador (a su derecha, título sin descentrar); Mis listas, el interruptor y ⚙ quedan juntos a la izquierda de la barra; «Mis compras» no es visible en ningún sitio de la barra |
-| A55 | Claves de dispositivo no sincronizan (V GMM 0034) | Con sesión iniciada en dos navegadores distintos, `gmm_tmdb_key`/`gmm_omdb_key`/`gmm_servidor` guardados en uno **no** aparecen en el otro; solo `gmm_listas` (favoritas/pendientes) viaja entre ellos |
+| A55 | Claves de dispositivo sincronizan, «la nube gana» (V GMM 0035) | Con `gmm_tmdb_key`/`gmm_omdb_key`/`gmm_servidor` guardados en un dispositivo con sesión iniciada, al iniciar sesión en OTRO dispositivo con esos campos vacíos, adopta los valores de la nube; si el segundo dispositivo ya tenía sus propios valores, la nube los sustituye igual (nube siempre gana, no se fusiona) |
+| A56 | Cuenta nueva no vacía un dispositivo (V GMM 0035) | Con un dispositivo que ya tiene sus claves configuradas, iniciar sesión por primera vez en una cuenta sin `ajustes` todavía en Firestore **no** las borra: `aplicarAjustesRemotos` solo actúa sobre campos no vacíos |
 
 ### Al tocar el catálogo demo, verifica cada imagen
 
@@ -1016,6 +1020,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.37 | V GMM 0035 | 05-08-2026 | **Las claves de TMDB/OMDb/GMM Server sincronizan con la cuenta.** Pedido explícito del usuario tras el malentendido de la 0034. Diseño acordado: **«la nube siempre gana», sin fusión** (a diferencia de Mis listas). `GMM.cuenta.sincronizarYa()` sube `ajustes: { tmdb, omdb, servidorUrl, servidorClave }` en el mismo documento que las listas; `aplicarAjustesRemotos()` (nueva, en `fusionarAlEntrar()`) adopta cada campo solo si la nube trae un valor no vacío, y refresca ⚙ si está abierto. El botón Guardar de ⚙ ahora llama a `GMM.cuenta.sincronizar()`. Seguridad: la clave de GMM Server (token real de acceso al servidor personal) pasa a vivir en Firestore, con la misma protección de propietario único que ya tenían las listas. `sw.js` 31→32 (cubre también el JS de la 0034, que no lo subió). Criterios A55 (reescrito) y A56 (nuevo). `logica.js` 184/184 (sin comprobaciones nuevas: función no pura, depende de Firebase/DOM, mismo criterio que `tratarFalloSync` en la 0031), `interfaz.js` 127/127, `pwa.js` 20/20. |
 | 1.36 | V GMM 0034 | 05-08-2026 | **Solo robustez y documentación; se cierra un malentendido.** El usuario reportó que las claves de TMDB/OMDb/GMM Server se "borraban" al iniciar sesión en el móvil; investigación exhaustiva (código + reproducción automatizada con Playwright contra la web real, simulando cerrar/reabrir el navegador con la sesión persistida) no encontró ningún fallo: esas claves nunca han sincronizado entre dispositivos, por diseño (solo `gmm_listas` lo hace). Se añade `GMM.pwa.pedirAlmacenamientoPersistente()` (`navigator.storage.persist()` al arrancar) como mejora de robustez menor, sin relación con la causa real. Se documenta el porqué en §8 (tabla de `localStorage`) y criterio A55. De paso se completan dos respaldos que habían quedado a medias: `V-GMM-0032` estaba vacío y faltaba `V-GMM-0033`. `logica.js` 184/184, `pwa.js` 20/20; no toca CSS/DOM ni `sw.js`. |
 | 1.35 | V GMM 0033 | 05-08-2026 | **GMM Server se integra localmente con la PWA.** Nace la vista «▶ Te la tengo»: URL y clave almacenadas solo en el navegador, catálogo del PC, carátulas TMDB y acciones Ver/Descargar. GMM Server 0.2.0 entrega enlaces temporales sin rutas físicas ni claves y soporta rangos HTTP. No configura aún acceso remoto ni FFmpeg. `sw.js` 30→31; `logica.js` 184/184, `interfaz.js` 127/127, `pwa.js` 20/20, servidor 16/16. Preparada en un entorno remoto (Codex); comiteada y publicada (`push`) en la sesión siguiente. |
 | 1.32 | V GMM 0030 | 02-08-2026 | **Se reubica la barra de cabecera**, a petición del usuario (§6). Cuenta (`#btnCuenta`) sale de la barra y ocupa, en el header, el hueco que dejaba el punto de estado; el punto de estado (`#pastillaModo`) baja a la fila del título del buscador, a su derecha, en `position: absolute` para no descuadrar el centrado. `⚙` y el interruptor Película/Serie se mudan a la izquierda de la barra, junto a Mis listas; Instalar se queda solo a la derecha. **«Mis compras»** (`#btnBiblioteca`) queda **oculto** (`.oculto` estático): el usuario decidió que no aportaba lo suficiente para tener sitio en la barra; su lógica sigue intacta, «Mi copia» en cada ficha no cambia. Cambio de HTML/CSS puro —todo son selectores por `id`, ningún JS se toca—. Corregidos también dos puntos de documentación desactualizados que salieron a la luz al revisar esta zona (§5.2, §6). Criterio A54. `sw.js` 27→28, `logica.js` 177 (sin cambios de lógica), `interfaz.js` 127 (el test de «Mis compras» ahora le quita `.oculto` antes de pulsar: `{ force: true }` no sirve con `display: none`), `pwa.js` 20. |

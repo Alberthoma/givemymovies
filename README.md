@@ -155,10 +155,15 @@ Como viven solo en este navegador, en ⚙ tienes **Exportar** e **Importar** par
 
 Arriba a la derecha, en la cabecera, un botón de **cuenta** te deja crear una cuenta con correo y contraseña (o entrar si
 ya la tienes, o recuperarla si la olvidaste). Es **totalmente opcional**: sin iniciar sesión la
-app funciona exactamente igual que siempre. Lo único que cambia al iniciar sesión es que tus
-listas dejan de ser solo de este navegador: se guardan también en la nube y, si entras con la
-misma cuenta en el móvil, aparecen las mismas favoritas y pendientes — sin borrar lo que ya
-tuviera cada dispositivo, se juntan las dos.
+app funciona exactamente igual que siempre. Al iniciar sesión pasan dos cosas:
+
+- Tus listas dejan de ser solo de este navegador: se guardan también en la nube y, si entras con
+  la misma cuenta en el móvil, aparecen las mismas favoritas y pendientes — sin borrar lo que ya
+  tuviera cada dispositivo, se juntan las dos.
+- Tus claves de TMDB, OMDb y GMM Server (si las tienes puestas en ⚙) también viajan con la
+  cuenta. Aquí, a diferencia de las listas, **la más reciente sustituye a la anterior** en vez de
+  combinarse: pégalas una vez, en cualquier dispositivo, e inicia sesión en los demás para que
+  aparezcan solas — no hace falta volver a pegarlas en cada uno.
 
 ---
 
@@ -257,7 +262,7 @@ Cada banner indica a qué archivo correspondería si algún día quieres separar
 | 7 · Mis listas | `js/listas.js` | Favoritas y pendientes |
 | 7b · Mi biblioteca | `js/biblioteca.js` | Enlace a tu copia por título |
 | 7c · Google Drive | `js/drive.js` | Buscar y reproducir tu copia (Nivel 2) |
-| 7d · Cuenta | `js/cuenta.js` | Login, registro, recuperar contraseña y sincronizar listas |
+| 7d · Cuenta | `js/cuenta.js` | Login, registro, recuperar contraseña y sincronizar listas y claves |
 | 7e · GMM Server | `js/servidor.js` | Conexión privada, catálogo y enlaces temporales de tus archivos |
 | 8 · Interfaz | `js/ui.js` | Pintado de componentes |
 | 9 · Aplicación | `js/app.js` | Vistas, eventos y arranque |
@@ -300,7 +305,9 @@ PWA instalable (V GMM 0003); descubrir por género, año y nota, y las series
 (V GMM 0005); interruptor Película/Serie con series en todas las búsquedas (V GMM 0006);
 orden e intervalo de años en Descubrir (V GMM 0015); Mi biblioteca, enlace manual (Nivel 1) y
 buscar/reproducir desde tu Google Drive (Nivel 2) (V GMM 0026–0027); cuenta con Firebase y
-sincronizar Mis listas entre dispositivos (V GMM 0029).*
+sincronizar Mis listas entre dispositivos (V GMM 0029); GMM Server, tu servidor multimedia
+personal (V GMM 0032–0033); sincronizar también tus claves de TMDB/OMDb/GMM Server con la
+cuenta (V GMM 0035).*
 
 ---
 

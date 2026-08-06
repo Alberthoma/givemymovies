@@ -1160,7 +1160,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   <footer class="pie">
     <span>givemymovies · datos de disponibilidad vía TMDB / JustWatch</span>
     <span>Tus listas se guardan en este navegador — inicia sesión para llevarlas a otros</span>
-    <span id="version-app">V GMM 0034</span>
+    <span id="version-app">V GMM 0035</span>
   </footer>
 </div>
 
@@ -3571,14 +3571,48 @@ GMM.cuenta = (function () {
 
   function sincronizarYa() {
     if (!disponible() || !conectado()) return;
+    var servidor = GMM.servidor.configuracion();
     firebase.firestore().collection("usuarios").doc(sesion().uid).set({
       favoritas: GMM.listas.obtener("favoritas"),
-      pendientes: GMM.listas.obtener("pendientes")
+      pendientes: GMM.listas.obtener("pendientes"),
+      ajustes: {
+        tmdb: GMM.tmdb.clave(),
+        omdb: GMM.omdb.clave(),
+        servidorUrl: servidor.url,
+        servidorClave: servidor.clave
+      }
     }, { merge: true }).catch(tratarFalloSync);
   }
   /* Nunca debe disparar una escritura por cada clic: se agrupan con retardo,
      igual que el autocompletado (GMM.util.retardo). */
   var sincronizar = GMM.util.retardo(sincronizarYa, 1200);
+
+  /* Las claves (TMDB, OMDb, GMM Server) son valores sueltos, no listas: no hay
+     nada que fusionar. Se optó, con el usuario, por "la nube siempre gana":
+     si hay una clave en la nube, sustituye a la de este dispositivo. Así se
+     escribe una vez y viaja a todos los aparatos. Solo se aplica si la nube
+     trae algo (nunca vacía un dispositivo por culpa de una cuenta nueva sin
+     ajustes todavía). */
+  function aplicarAjustesRemotos(ajustes) {
+    if (!ajustes) return;
+    if (ajustes.tmdb) GMM.tmdb.guardarClave(ajustes.tmdb);
+    if (ajustes.omdb) GMM.omdb.guardarClave(ajustes.omdb);
+    if (ajustes.servidorUrl || ajustes.servidorClave) {
+      GMM.servidor.guardar(ajustes.servidorUrl || "", ajustes.servidorClave || "");
+    }
+    /* Si el panel de ⚙ está abierto en ese momento (poco probable, pero
+       posible), refleja los valores recién llegados en vez de dejarlos
+       desactualizados hasta el próximo cierre/apertura. */
+    var campoTmdb = document.getElementById("entradaClave");
+    if (campoTmdb) campoTmdb.value = GMM.tmdb.clave();
+    var campoOmdb = document.getElementById("entradaClaveOmdb");
+    if (campoOmdb) campoOmdb.value = GMM.omdb.clave();
+    var servidorActual = GMM.servidor.configuracion();
+    var campoServidor = document.getElementById("entradaServidor");
+    if (campoServidor) campoServidor.value = servidorActual.url;
+    var campoServidorClave = document.getElementById("entradaServidorClave");
+    if (campoServidorClave) campoServidorClave.value = servidorActual.clave;
+  }
 
   /* Al iniciar sesión: trae lo que hubiera en la nube, lo fusiona con lo que
      ya había en este dispositivo (GMM.util.fusionarListas) y deja las dos
@@ -3597,6 +3631,7 @@ GMM.cuenta = (function () {
         GMM.listas.vaciar("favoritas");
         GMM.listas.vaciar("pendientes");
         GMM.listas.importar(JSON.stringify({ app: "givemymovies", version: 1, listas: fusion }));
+        aplicarAjustesRemotos(remoto.ajustes);
         GMM.ui.refrescarCabecera();
         sincronizarYa();
       })
@@ -5808,6 +5843,7 @@ GMM.app = (function () {
       GMM.omdb.guardarClave($("entradaClaveOmdb").value);
       GMM.drive.guardarClientId($("entradaGdrive").value);
       if (!guardarServidorDesdeFormulario()) return;
+      GMM.cuenta.sincronizar();
       cerrarCapa("capaAjustes");
       GMM.ui.refrescarCabecera();
       montarPlataformas();

@@ -2,8 +2,8 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0034` (validación local; aún no publicada)
-**Próxima versión:** `V GMM 0035`
+**Versión activa:** `V GMM 0035` (validación local; aún no publicada)
+**Próxima versión:** `V GMM 0036`
 **Última actualización:** 2026-08-05
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies-g/> · GitHub Pages desde `main`, raíz.
@@ -430,12 +430,13 @@ pagina de corrido: **20 por página y «Página 1 de N»**. Encenderlo también 
 mejores» que el usuario rechazó. Si algún día se toca `verMasCategoria`, **no vuelvas a encender
 `porNota` ahí**: no es un detalle, es el comportamiento que se pidió.
 
-### La cuenta y sincronizar Mis listas (desde V GMM 0029)
+### La cuenta y sincronizar Mis listas y ajustes (desde V GMM 0029; ajustes desde la 0035)
 
 **Acceso opcional, nunca obligatorio.** La app funciona entera sin iniciar sesión, exactamente
-igual que siempre; iniciar sesión solo añade que **Mis listas** (favoritas y pendientes) viajen
-entre dispositivos. No hay pantalla de entrada que bloquee nada — es justo lo contrario de un
-muro de login, a propósito: se descartó con el usuario (ver `PENDIENTES.md` §2).
+igual que siempre; iniciar sesión solo añade que **Mis listas** (favoritas y pendientes) y,
+desde la V GMM 0035, **las claves de TMDB, OMDb y GMM Server** viajen entre dispositivos. No
+hay pantalla de entrada que bloquee nada — es justo lo contrario de un muro de login, a
+propósito: se descartó con el usuario (ver `PENDIENTES.md` §2).
 
 **Correo y contraseña, no Google.** `PENDIENTES.md` §2 recomendaba entrar con Google (cero
 fricción, sin contraseña que gestionar); el usuario pidió expresamente correo/contraseña con
@@ -451,7 +452,7 @@ cargan** y `firebase` queda `undefined`: `GMM.cuenta.disponible()` lo detecta y 
 sigue funcionando igual, solo que sin cuenta. El SDK gestiona su propia sesión (no hace falta
 guardar tokens a mano en `localStorage`, a diferencia de `GMM.drive`).
 
-**Sincronizar es «última escritura gana» en el documento, pero fusionando al entrar.** Cada
+**Mis listas es «última escritura gana» en el documento, pero fusionando al entrar.** Cada
 cambio en Mis listas (`alternarLista`, `vaciarLista`, importar un backup) sube las listas
 completas a Firestore (`usuarios/{uid}`, campos `favoritas`/`pendientes`), agrupado con
 `GMM.util.retardo` para no escribir en cada clic. **Al iniciar sesión** —no al guardar—, se trae
@@ -459,6 +460,18 @@ lo que hubiera en la nube y se fusiona con lo que ya había en este dispositivo
 (`GMM.util.fusionarListas`, pura y testable): une por `(id, tipo)` sin duplicar y, si una
 entrada está en los dos lados, conserva la fecha `anadida` más antigua. Así, entrar en un
 dispositivo nuevo no borra lo que tenía otro.
+
+**Las claves (campo `ajustes`, desde V GMM 0035) son «la nube siempre gana», sin fusión —
+decisión explícita del usuario.** A diferencia de las listas, una clave no es una colección que
+se pueda unir: o gana una o gana otra. `sincronizarYa()` sube `{ tmdb, omdb, servidorUrl,
+servidorClave }` junto con las listas, en el mismo documento y la misma escritura.
+`aplicarAjustesRemotos()`, dentro de `fusionarAlEntrar()`, adopta cada campo de la nube en este
+dispositivo **solo si la nube trae algo** (nunca vacía un dispositivo por culpa de una cuenta
+recién creada sin ajustes todavía) y refresca los campos de ⚙ si el panel está abierto en ese
+momento. El botón **Guardar** de ⚙ dispara `GMM.cuenta.sincronizar()` tras guardar en local, igual
+que ya hacía `alternarLista` con las listas. Riesgo asumido y aceptado: si algún día se quisiera
+una clave distinta a propósito en un dispositivo, se perdería al volver a iniciar sesión — el
+usuario prefirió la simplicidad de «cambio la clave una vez y viaja a todos lados».
 
 **La config web de Firebase no es secreta** (`apiKey`, `projectId`… en `GMM.config.FIREBASE`):
 está pensada para ser pública, la seguridad la dan las reglas de Firestore y de Authentication,
@@ -482,25 +495,36 @@ distingue el `error.code`: un `permission-denied` (reglas mal puestas) muestra u
 cualquier otro fallo (típicamente red, estar sin conexión) se sigue callando, que ahí es lo
 correcto. Es la misma filosofía del §2: decir *por qué* algo no funciona vale la mitad.
 
+**Desde V GMM 0035, el documento de Firestore guarda algo más sensible que preferencias de
+cine: la clave de GMM Server es un token real de acceso al servidor multimedia personal del
+usuario.** La protección es la misma que ya tenían las listas —las reglas de `firestore.rules`
+solo dejan leer/escribir el documento propio (`request.auth.uid == uid`)—, no una nueva; es una
+decisión consciente, aceptada explícitamente por el usuario, de apoyarse en esa misma protección
+en vez de dejar la clave fuera de la sincronización.
+
 ### Persistencia (`localStorage`)
 
 | Clave | Contenido |
 |---|---|
-| `gmm_tmdb_key` | Clave de la API de TMDB |
-| `gmm_omdb_key` | Clave de la API de OMDb (opcional; notas de IMDb/RT/Metacritic) |
-| `gmm_prefs` | Modo, plataforma, país, idioma y los criterios de Descubrir (género, intervalo de años, nota, orden) |
-| `gmm_listas` | `{ favoritas: [], pendientes: [] }` |
-| `gmm_biblioteca` | `{ "tipo:id": { title, poster_path, enlace, guardada, … } }` — «Mis compras», el enlace a tu copia por título |
-| `gmm_gdrive_client_id` | Client ID de Google para el Nivel 2 (Drive). El **token** de acceso vive en `localStorage` (`gmm_gdrive_token`/`_exp`, 1 h; en `sessionStorage` se perdía al cerrar la app en iOS — ver V GMM 0028) |
-| `gmm_servidor` | `{ url, clave }` de GMM Server (desde V GMM 0033) — dirección y clave privada del servidor multimedia personal, ver «GMM Server» más abajo |
+| `gmm_tmdb_key` | Clave de la API de TMDB. **Sincroniza** con la cuenta desde V GMM 0035 |
+| `gmm_omdb_key` | Clave de la API de OMDb (opcional; notas de IMDb/RT/Metacritic). **Sincroniza** desde V GMM 0035 |
+| `gmm_prefs` | Modo, plataforma, país, idioma y los criterios de Descubrir (género, intervalo de años, nota, orden). No sincroniza |
+| `gmm_listas` | `{ favoritas: [], pendientes: [] }`. Sincroniza desde V GMM 0029 (fusiona, no sustituye) |
+| `gmm_biblioteca` | `{ "tipo:id": { title, poster_path, enlace, guardada, … } }` — «Mis compras», el enlace a tu copia por título. No sincroniza |
+| `gmm_gdrive_client_id` | Client ID de Google para el Nivel 2 (Drive). El **token** de acceso vive en `localStorage` (`gmm_gdrive_token`/`_exp`, 1 h; en `sessionStorage` se perdía al cerrar la app en iOS — ver V GMM 0028). No sincroniza |
+| `gmm_servidor` | `{ url, clave }` de GMM Server (desde V GMM 0033) — dirección y clave privada del servidor multimedia personal, ver «GMM Server» más abajo. **Sincroniza** desde V GMM 0035 |
 | *(ninguna clave propia)* | La sesión de `GMM.cuenta` (Firebase, desde V GMM 0029) no usa `localStorage`: el SDK persiste su propia sesión internamente (IndexedDB) |
 
-**Ninguna de estas claves viaja entre dispositivos, ni con sesión iniciada.** Solo
-`gmm_listas` sincroniza vía Firestore (ver «La cuenta y sincronizar Mis listas»); `gmm_tmdb_key`,
-`gmm_omdb_key`, `gmm_gdrive_client_id` y `gmm_servidor` son **por dispositivo, a propósito**: se
-pegan una vez en ⚙ en cada aparato. Confundir esto con un fallo ya pasó una vez (V GMM 0034):
-el usuario reportó claves "borradas" al entrar en el móvil, y era justo esto — nunca se habían
-pegado ahí.
+**Qué sincroniza con la cuenta y qué no, y por qué importa distinguirlo:** `gmm_listas`
+siempre sincronizó (V GMM 0029); `gmm_tmdb_key`/`gmm_omdb_key`/`gmm_servidor` se sumaron en la
+V GMM 0035, a petición del usuario, con **«la nube siempre gana»** en vez de fusión (ver «La
+cuenta y sincronizar…» más arriba). `gmm_prefs`, `gmm_biblioteca` y `gmm_gdrive_client_id`
+siguen siendo **por dispositivo, a propósito** — no se ha pedido que sincronicen. Confundir
+«no sincroniza» con «se borró» ya pasó una vez (V GMM 0034, antes de que existiera el
+sincronizado de claves): el usuario reportó claves "borradas" al entrar en el móvil, y en ese
+momento era justo eso — nunca se habían pegado ahí. Si vuelve a pasar hoy con `gmm_prefs`,
+`gmm_biblioteca` o `gmm_gdrive_client_id`, sigue siendo lo mismo: esas tres nunca han
+sincronizado.
 
 ---
 
@@ -559,7 +583,7 @@ Errores tratados por nombre: `CLAVE_INVALIDA` (401), `DEMASIADAS_PETICIONES` (42
 | Uso | Cómo |
 |---|---|
 | Login, registro, cerrar sesión, recuperar contraseña | SDK de Firebase Auth (`firebase.auth()`), no la API REST — ver §4 «La cuenta…» para el porqué |
-| Sincronizar `gmm_listas` | Firestore (`firebase.firestore()`), un documento por usuario en `usuarios/{uid}` con los campos `favoritas`/`pendientes` |
+| Sincronizar `gmm_listas` y claves | Firestore (`firebase.firestore()`), un documento por usuario en `usuarios/{uid}` con los campos `favoritas`/`pendientes` y, desde V GMM 0035, `ajustes: { tmdb, omdb, servidorUrl, servidorClave }` |
 
 Proyecto de Firebase: `givemymovies-x`. La config (`GMM.config.FIREBASE`) no es secreta, ver §4.
 Requiere, hechos a mano en la consola de Firebase (no algo que el código resuelva):
@@ -843,7 +867,7 @@ y aquí pesaban en cada sesión). **No los abordes por iniciativa propia.**
 | **1 · La clave de TMDB en el móvil** | **Resuelto** por la vía A desde la 0004 | La clave vive en el `localStorage` de cada dispositivo, no en el repositorio: se pega una vez en el ⚙ y basta. Solo volvería a abrirse si la usara alguien más que el usuario, y entonces la respuesta es un **proxy** (nunca hardcodear la clave) |
 | **2 · Login y sincronización de listas** | **Resuelto** desde la 0029, con matices | Se implementó con **correo/contraseña** (no Google, que era lo recomendado) y con el **SDK de Firebase** (no su API REST, que era el plan para no chocar con R3) — ambas cosas por decisión explícita del usuario. Ver §4 «La cuenta…» y §3 |
 | **3 · Premios (Oscar, Emmy)** | **Descartado** con el usuario | TMDB no publica datos de premios: no hay endpoint ni campo, y aproximarlo sería inventar. Haría falta otra fuente |
-| **4 · Sincronizar claves (TMDB/OMDb/GMM Server) entre dispositivos** | **Propuesto**, sin planificar | Pedido por el usuario tras la V GMM 0034: quiere que además de Mis listas, también viajen las claves con la cuenta. Falta decidir el diseño (qué va a Firestore, si aplica a las tres claves o solo a algunas) antes de tocar código |
+| **4 · Sincronizar claves (TMDB/OMDb/GMM Server) entre dispositivos** | **Resuelto** desde la 0035 | Se implementó con **«la nube siempre gana»**, sin fusión (decisión explícita del usuario, distinta del comportamiento de Mis listas). Ver §4 «La cuenta y sincronizar…» |
 
 ---
 
@@ -859,7 +883,8 @@ en `HISTORIAL.md`.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
-| V GMM 0034 | 2026-08-05 | `GMM.pwa` pide almacenamiento persistente (`navigator.storage.persist()`) al arrancar, para que el navegador no evicte los datos del sitio. Se confirma además, tras investigar un reporte de claves "borradas", que TMDB/OMDb/GMM Server nunca sincronizan entre dispositivos por diseño (solo Mis listas lo hace) — no era un fallo. |
+| V GMM 0035 | 2026-08-05 | Las claves de TMDB, OMDb y GMM Server sincronizan con la cuenta, junto a Mis listas: «la nube siempre gana», a petición explícita del usuario. `sw.js` 31→32 (cubre también el código JS de la 0034, que no subió VERSION por error). |
+| V GMM 0034 | 2026-08-05 | `GMM.pwa` pide almacenamiento persistente (`navigator.storage.persist()`) al arrancar, para que el navegador no evicte los datos del sitio. Se confirma además, tras investigar un reporte de claves "borradas", que TMDB/OMDb/GMM Server nunca sincronizaban entre dispositivos por diseño (solo Mis listas lo hacía) — no era un fallo. Resuelto de raíz en la 0035. |
 | V GMM 0033 | 2026-08-05 | Integración local de GMM Server 0.2.0: la PWA añade la vista «▶ Te la tengo», guarda URL y clave únicamente en el navegador, consulta el catálogo y pide enlaces temporales para reproducir o descargar sin exponer rutas físicas. El servidor soporta rangos HTTP para adelantar y retroceder en formatos compatibles. `sw.js` 30→31. Publicada el mismo día. |
 | V GMM 0032 | 2026-08-05 | Se crea GMM Server 0.1.0: escáner local, catálogo privado, API protegida y detección de archivos todavía copiándose; primera biblioteca real validada con 37 vídeos. El proyecto pasa al repositorio `givemymovies-g` y a su nueva ruta de GitHub Pages. |
 | V GMM 0031 | 2026-08-05 | Si sincronizar Mis listas falla por permisos de Firestore, la app avisa en pantalla en vez de callarlo; se añade `firestore.rules` versionado como referencia. |
