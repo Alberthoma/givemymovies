@@ -219,7 +219,9 @@ disco externo, sin subir los vídeos a Google Drive ni a otra nube. La sección 
 de GiveMyMovies se conecta a él, muestra el catálogo y permite reproducir o descargar cada
 archivo disponible.
 
-1. Inicia el servidor desde `gmm-server/` con `npm.cmd start`.
+1. Inicia el servidor: haz doble clic en `gmm-server/GMM-Server.vbs` (abre una app de
+   escritorio con botones para iniciar, detener, escanear y añadir carpetas — nada de
+   PowerShell a la vista), o a mano con `npm.cmd start` desde `gmm-server/`.
 2. En GiveMyMovies abre **⚙ Ajustes** y escribe `http://127.0.0.1:7399` junto con la clave privada
    creada en `gmm-server/PRIVADO/configuracion.json`.
 3. Pulsa **Probar conexión** y abre **▶ Te la tengo**.
@@ -307,7 +309,7 @@ orden e intervalo de años en Descubrir (V GMM 0015); Mi biblioteca, enlace manu
 buscar/reproducir desde tu Google Drive (Nivel 2) (V GMM 0026–0027); cuenta con Firebase y
 sincronizar Mis listas entre dispositivos (V GMM 0029); GMM Server, tu servidor multimedia
 personal (V GMM 0032–0033); sincronizar también tus claves de TMDB/OMDb/GMM Server con la
-cuenta (V GMM 0035).*
+cuenta (V GMM 0035); app de escritorio para manejar GMM Server (V GMM 0036).*
 
 ---
 

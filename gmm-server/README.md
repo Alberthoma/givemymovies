@@ -44,9 +44,38 @@ Se creará `PRIVADO/configuracion.json` con una clave aleatoria. La carpeta `PRI
 está excluida del repositorio. Abre ese archivo y cambia `D:\\Peliculas` por la ruta
 real de tu carpeta. Se pueden declarar varias carpetas con nombres distintos.
 
-## Iniciar
+## Iniciar (con la app GMM-Server, recomendado)
 
-Para actualizar el catálogo una sola vez y terminar:
+**`GMM-Server.vbs`**, en esta misma carpeta, abre una aplicación de escritorio para
+manejar todo sin PowerShell ni ventanas negras:
+
+- **Iniciar servidor** / **Detener servidor**, en un solo botón.
+- **Escanear ahora**: refresca el catálogo sin reiniciar nada (usa `/api/escanear`,
+  que ya trae el propio servidor).
+- **Añadir carpeta...**: abre el selector nativo de Windows (el mismo de "Guardar
+  como") para elegir una carpeta o disco sin escribir la ruta a mano; **Quitar
+  carpeta** la retira de la lista. Los cambios de carpetas piden reiniciar el
+  servidor para aplicarse — el resto de la ventana no.
+- La **clave de administración**, visible con un botón **Copiar**, para pegarla
+  directamente en ⚙ de GiveMyMovies.
+- Si cierras la ventana con el servidor encendido, la app se oculta en la
+  **bandeja del sistema** (junto al reloj) y el servidor sigue funcionando. Doble
+  clic en el icono para volver a abrirla; clic derecho → **Detener servidor y
+  salir** para apagarlo del todo.
+- Solo deja abrir una copia a la vez: si haces doble clic de nuevo en
+  `GMM-Server.vbs` mientras ya está abierta (aunque esté oculta en la bandeja), lo
+  avisa en vez de intentar abrir un segundo servidor en el mismo puerto.
+
+## Iniciar a mano (alternativa)
+
+Para quien prefiera no usar la app, los mismos pasos con `.bat` o PowerShell:
+
+- **`1-configurar-y-escanear.bat`**: abre `PRIVADO/configuracion.json` en el Bloc de
+  notas para editar las carpetas, y al cerrarlo escanea una vez.
+- **`2-iniciar-servidor.bat`**: deja el servidor encendido (equivale a `npm.cmd
+  start`).
+
+O directamente por PowerShell, para actualizar el catálogo una sola vez y terminar:
 
 ```powershell
 npm.cmd run escanear

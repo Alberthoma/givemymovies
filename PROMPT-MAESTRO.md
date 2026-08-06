@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.37 · Aplicación V GMM 0035 (validación local) · 5 de agosto de 2026**
+**Documento v1.38 · Aplicación V GMM 0036 (validación local) · 6 de agosto de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies-g/>
 
 ---
@@ -643,6 +643,17 @@ La biblioteca real completa detectó 37 vídeos disponibles (105,4 GB) y confirm
 pública no contiene el campo `ruta` ni la ubicación del disco. Un archivo nuevo o modificado
 solo pasa de `copiandose` a `disponible` tras conservar tamaño y fecha en dos revisiones.
 
+**App de escritorio "GMM-Server" (V GMM 0036):** `gmm-server/GMM-Server.vbs` abre
+`GMM-Server-Panel.ps1` (PowerShell + Windows Forms, cero dependencias) para manejar el servidor
+sin PowerShell a la vista: iniciar/detener con un botón, **escanear ahora** sin reiniciar
+(`POST /api/escanear`, que ya existía), **añadir/quitar carpetas** con el selector nativo de
+Windows (`FolderBrowserDialog`), la clave visible con «Copiar», y **bandeja del sistema** —
+cerrar la ventana con el servidor encendido la oculta ahí en vez de apagarlo. Protegida con un
+`Mutex` con nombre contra abrir dos copias a la vez, y con un temporizador que detecta si el
+proceso se cayó solo justo tras arrancar (típicamente el puerto ya ocupado). Los `.bat`
+anteriores (`1-configurar-y-escanear.bat`, `2-iniciar-servidor.bat`) siguen ahí como alternativa
+manual. No toca `gmm-server/src/` ni la PWA.
+
 **Reglas de código:**
 
 - Escapa **siempre** el texto que vaya a `innerHTML` (`GMM.util.esc`).
@@ -901,6 +912,7 @@ Todos deben pasar:
 | A54 | Barra reubicada (V GMM 0030) | El botón de cuenta vive en el header (arriba a la derecha); el punto de estado, en la fila del título del buscador (a su derecha, título sin descentrar); Mis listas, el interruptor y ⚙ quedan juntos a la izquierda de la barra; «Mis compras» no es visible en ningún sitio de la barra |
 | A55 | Claves de dispositivo sincronizan, «la nube gana» (V GMM 0035) | Con `gmm_tmdb_key`/`gmm_omdb_key`/`gmm_servidor` guardados en un dispositivo con sesión iniciada, al iniciar sesión en OTRO dispositivo con esos campos vacíos, adopta los valores de la nube; si el segundo dispositivo ya tenía sus propios valores, la nube los sustituye igual (nube siempre gana, no se fusiona) |
 | A56 | Cuenta nueva no vacía un dispositivo (V GMM 0035) | Con un dispositivo que ya tiene sus claves configuradas, iniciar sesión por primera vez en una cuenta sin `ajustes` todavía en Firestore **no** las borra: `aplicarAjustesRemotos` solo actúa sobre campos no vacíos |
+| A57 | App GMM-Server: instancia única (V GMM 0036) | Con la app ya abierta (visible o en la bandeja), abrirla de nuevo muestra un aviso y la segunda copia se cierra sola, sin intentar levantar un segundo servidor en el mismo puerto |
 
 ### Al tocar el catálogo demo, verifica cada imagen
 
@@ -1020,6 +1032,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.38 | V GMM 0036 | 06-08-2026 | **Nueva app de escritorio "GMM-Server".** `GMM-Server.vbs` + `GMM-Server-Panel.ps1` (PowerShell + Windows Forms, elegido sobre Electron por el peso de sus dependencias y sobre .NET/C# por no exigir un SDK instalado). Iniciar/detener con un botón, escanear sin reiniciar (reutiliza `POST /api/escanear`, ya existente), añadir/quitar carpetas con `FolderBrowserDialog` nativo, clave con «Copiar», bandeja del sistema. Dos bugs reales corregidos probando en Windows de verdad con UI Automation, no solo revisando código: `-WindowStyle Hidden` dejaba el formulario invisible (herencia del estado inicial de Windows; se resolvió ocultando la consola desde dentro del script, ya en marcha) y un `[ref]` sobre una variable de script nunca asignada tumbaba la app al abrir (PowerShell 5.1). Protección de instancia única con `Mutex` con nombre, y detección de arranque fallido (puerto ocupado) con un temporizador de un disparo. Los `.bat` anteriores se conservan como alternativa manual, a petición del usuario. No toca `gmm-server/src/` ni la PWA: `npm.cmd test` de gmm-server sigue 16/16; no aplica ninguna suite de `pruebas/`. Criterio A57. De paso se completaron los respaldos `V-GMM-0034` y `V-GMM-0035`. |
 | 1.37 | V GMM 0035 | 05-08-2026 | **Las claves de TMDB/OMDb/GMM Server sincronizan con la cuenta.** Pedido explícito del usuario tras el malentendido de la 0034. Diseño acordado: **«la nube siempre gana», sin fusión** (a diferencia de Mis listas). `GMM.cuenta.sincronizarYa()` sube `ajustes: { tmdb, omdb, servidorUrl, servidorClave }` en el mismo documento que las listas; `aplicarAjustesRemotos()` (nueva, en `fusionarAlEntrar()`) adopta cada campo solo si la nube trae un valor no vacío, y refresca ⚙ si está abierto. El botón Guardar de ⚙ ahora llama a `GMM.cuenta.sincronizar()`. Seguridad: la clave de GMM Server (token real de acceso al servidor personal) pasa a vivir en Firestore, con la misma protección de propietario único que ya tenían las listas. `sw.js` 31→32 (cubre también el JS de la 0034, que no lo subió). Criterios A55 (reescrito) y A56 (nuevo). `logica.js` 184/184 (sin comprobaciones nuevas: función no pura, depende de Firebase/DOM, mismo criterio que `tratarFalloSync` en la 0031), `interfaz.js` 127/127, `pwa.js` 20/20. |
 | 1.36 | V GMM 0034 | 05-08-2026 | **Solo robustez y documentación; se cierra un malentendido.** El usuario reportó que las claves de TMDB/OMDb/GMM Server se "borraban" al iniciar sesión en el móvil; investigación exhaustiva (código + reproducción automatizada con Playwright contra la web real, simulando cerrar/reabrir el navegador con la sesión persistida) no encontró ningún fallo: esas claves nunca han sincronizado entre dispositivos, por diseño (solo `gmm_listas` lo hace). Se añade `GMM.pwa.pedirAlmacenamientoPersistente()` (`navigator.storage.persist()` al arrancar) como mejora de robustez menor, sin relación con la causa real. Se documenta el porqué en §8 (tabla de `localStorage`) y criterio A55. De paso se completan dos respaldos que habían quedado a medias: `V-GMM-0032` estaba vacío y faltaba `V-GMM-0033`. `logica.js` 184/184, `pwa.js` 20/20; no toca CSS/DOM ni `sw.js`. |
 | 1.35 | V GMM 0033 | 05-08-2026 | **GMM Server se integra localmente con la PWA.** Nace la vista «▶ Te la tengo»: URL y clave almacenadas solo en el navegador, catálogo del PC, carátulas TMDB y acciones Ver/Descargar. GMM Server 0.2.0 entrega enlaces temporales sin rutas físicas ni claves y soporta rangos HTTP. No configura aún acceso remoto ni FFmpeg. `sw.js` 30→31; `logica.js` 184/184, `interfaz.js` 127/127, `pwa.js` 20/20, servidor 16/16. Preparada en un entorno remoto (Codex); comiteada y publicada (`push`) en la sesión siguiente. |

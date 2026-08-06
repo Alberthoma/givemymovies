@@ -2,9 +2,9 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0035` (validación local; aún no publicada)
-**Próxima versión:** `V GMM 0036`
-**Última actualización:** 2026-08-05
+**Versión activa:** `V GMM 0036` (validación local; aún no publicada)
+**Próxima versión:** `V GMM 0037`
+**Última actualización:** 2026-08-06
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies-g/> · GitHub Pages desde `main`, raíz.
 
@@ -199,6 +199,21 @@ por rango y nunca envía la clave ni la ruta al reproductor. La API pública no 
 **Límites actuales:** no hay transcodificación con FFmpeg (algunos MKV pueden descargarse pero
 no reproducirse en el navegador) ni acceso remoto configurado. La siguiente fase de red es
 Tailscale, sin abrir el puerto 7399 al Internet público. Manual y comandos en `gmm-server/README.md`.
+
+**Desde V GMM 0036, `gmm-server/GMM-Server.vbs` abre una app de escritorio propia** —
+`GMM-Server-Panel.ps1`, PowerShell + Windows Forms, sin dependencias— para manejar el servidor
+sin PowerShell a la vista: iniciar/detener con un botón, **escanear ahora** sin reiniciar (llama
+a `POST /api/escanear`, que ya existía en la API), **añadir/quitar carpetas** con el selector
+nativo de Windows (`FolderBrowserDialog`, nunca escribiendo la ruta a mano), la clave de
+administración visible con botón «Copiar», y **bandeja del sistema**: si cierras la ventana con
+el servidor encendido, se oculta ahí y sigue corriendo en segundo plano. Protegida contra abrir
+dos copias a la vez (un `Mutex` con nombre) y contra creer que arrancó cuando en realidad se cayó
+sola por el puerto ocupado (comprobación con temporizador tras el arranque). Los `.bat` de antes
+(`1-configurar-y-escanear.bat`, `2-iniciar-servidor.bat`) se conservan como alternativa manual.
+**Trampa evitada:** lanzar PowerShell con `-WindowStyle Hidden` hace que la PRIMERA ventana que
+cree el proceso —el propio formulario— nazca invisible (herencia del estado inicial de Windows);
+el lanzador abre PowerShell normal y es el script el que se oculta su propia consola ya en
+marcha, así el formulario sale visible sin problema.
 
 ### Aplicación instalable (PWA)
 
@@ -883,6 +898,7 @@ en `HISTORIAL.md`.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| V GMM 0036 | 2026-08-06 | Nueva app de escritorio para GMM Server (`GMM-Server.vbs` + `GMM-Server-Panel.ps1`, PowerShell + Windows Forms): iniciar/detener, escanear sin reiniciar, añadir/quitar carpetas con selector nativo, bandeja del sistema. No toca la PWA. |
 | V GMM 0035 | 2026-08-05 | Las claves de TMDB, OMDb y GMM Server sincronizan con la cuenta, junto a Mis listas: «la nube siempre gana», a petición explícita del usuario. `sw.js` 31→32 (cubre también el código JS de la 0034, que no subió VERSION por error). |
 | V GMM 0034 | 2026-08-05 | `GMM.pwa` pide almacenamiento persistente (`navigator.storage.persist()`) al arrancar, para que el navegador no evicte los datos del sitio. Se confirma además, tras investigar un reporte de claves "borradas", que TMDB/OMDb/GMM Server nunca sincronizaban entre dispositivos por diseño (solo Mis listas lo hacía) — no era un fallo. Resuelto de raíz en la 0035. |
 | V GMM 0033 | 2026-08-05 | Integración local de GMM Server 0.2.0: la PWA añade la vista «▶ Te la tengo», guarda URL y clave únicamente en el navegador, consulta el catálogo y pide enlaces temporales para reproducir o descargar sin exponer rutas físicas. El servidor soporta rangos HTTP para adelantar y retroceder en formatos compatibles. `sw.js` 30→31. Publicada el mismo día. |
