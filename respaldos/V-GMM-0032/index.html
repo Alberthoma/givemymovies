@@ -618,7 +618,7 @@ a:hover { text-decoration: underline; }
 /* Reproductor: el visor de Drive embebido, en 16:9. */
 .modal.reproductor { max-width: 960px; width: 96vw; }
 .repro-marco { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 12px; overflow: hidden; }
-.repro-marco iframe, .repro-marco video { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.repro-marco iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 
 /* --- botones de listas --- */
 .boton-lista {
@@ -1087,10 +1087,6 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
         <span aria-hidden="true">&#128193;</span> Mis compras
         <span class="contador-listas vacio" id="contadorBiblioteca">0</span>
       </button>
-      <button class="boton-cabecera" id="btnServidor" title="Películas disponibles en tu GMM Server">
-        <span aria-hidden="true">&#9654;</span> Te la tengo
-        <span class="contador-listas vacio" id="contadorServidor">0</span>
-      </button>
       <!-- Interruptor global: ¿película o serie? Tiñe los acentos. -->
       <div class="tipo-switch" id="tipoSwitch" role="group" aria-label="¿Películas o series?">
         <button class="tipo-op" data-tipo="tv">Series</button>
@@ -1160,7 +1156,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   <footer class="pie">
     <span>givemymovies · datos de disponibilidad vía TMDB / JustWatch</span>
     <span>Tus listas se guardan en este navegador — inicia sesión para llevarlas a otros</span>
-    <span id="version-app">V GMM 0034</span>
+    <span id="version-app">V GMM 0032</span>
   </footer>
 </div>
 
@@ -1225,24 +1221,6 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
         <li>Crea un <b>ID de cliente de OAuth</b> tipo <b>Aplicación web</b> y añade el origen <b>https://alberthoma.github.io</b>.</li>
         <li>Pega aquí el <b>Client ID</b> y pulsa <b>Conectar con Drive</b>.</li>
       </ol>
-
-      <div style="border-top:1px solid #22303e;margin:20px 0 16px"></div>
-      <div class="campo-modal">
-        <label for="entradaServidor">GMM Server <span style="color:#5e768c;font-weight:400">(tu PC o servidor personal)</span></label>
-        <input id="entradaServidor" type="url" inputmode="url" placeholder="http://127.0.0.1:7399" spellcheck="false">
-      </div>
-      <div class="campo-modal">
-        <label for="entradaServidorClave">Clave de GMM Server</label>
-        <input id="entradaServidorClave" type="password" placeholder="La clave privada creada al preparar GMM Server" autocomplete="off" spellcheck="false">
-      </div>
-      <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-top:2px">
-        <button class="boton-sec acento" id="btnProbarServidor">&#128246; Probar conexión</button>
-        <span id="estadoServidor" style="font-size:13px;color:#8ba0b6"></span>
-      </div>
-      <p style="font-size:13.5px;color:#8ba0b6;margin-top:10px">
-        Tus datos se guardan solo en este navegador. En este PC usa <b>http://127.0.0.1:7399</b>.
-        Para entrar desde fuera de casa usaremos una URL HTTPS privada de Tailscale, sin abrir puertos del router.
-      </p>
 
       <div style="border-top:1px solid #22303e;margin:20px 0 16px"></div>
       <label style="display:block;font-size:13px;font-weight:700;color:#8ba0b6;margin-bottom:9px">Copia de seguridad de tus listas</label>
@@ -1512,7 +1490,6 @@ GMM.config = {
   CLAVE_LISTAS:     "gmm_listas",
   CLAVE_BIBLIOTECA: "gmm_biblioteca",
   CLAVE_GDRIVE_ID:  "gmm_gdrive_client_id",
-  CLAVE_SERVIDOR:    "gmm_servidor",
 
   /* Config web del proyecto Firebase "givemymovies-x". No es secreta: está
      pensada para ser pública (la seguridad la dan las reglas de Firestore y
@@ -3307,91 +3284,6 @@ GMM.biblioteca = (function () {
    descarga/reproducción usan tu sesión de Google del navegador). Solo va sobre
    HTTPS: en file:// no hay origen válido para OAuth. ══════════════════════════ */
 
-/* GMM Server: la conexión personal se guarda solo en este navegador. La
-   clave nunca viaja a TMDB, Firebase ni queda escrita en el HTML publicado. */
-GMM.servidor = (function () {
-  var datos = null;
-  var ultimoCatalogo = null;
-
-  function normalizarUrl(valor) {
-    var texto = String(valor || "").trim();
-    if (!texto) return "";
-    try {
-      var url = new URL(texto);
-      if (url.protocol !== "http:" && url.protocol !== "https:") return "";
-      return url.origin + url.pathname.replace(/\/+$/, "");
-    } catch (error) { return ""; }
-  }
-
-  function cargar() {
-    if (datos) return datos;
-    datos = GMM.util.leerJSON(GMM.config.CLAVE_SERVIDOR, null);
-    if (!datos || typeof datos !== "object" || Array.isArray(datos)) datos = { url: "", clave: "" };
-    datos.url = normalizarUrl(datos.url);
-    datos.clave = String(datos.clave || "").trim();
-    return datos;
-  }
-
-  function configuracion() {
-    var actual = cargar();
-    return { url: actual.url, clave: actual.clave };
-  }
-
-  function guardar(url, clave) {
-    var limpia = normalizarUrl(url);
-    var secreto = String(clave || "").trim();
-    if (String(url || "").trim() && !limpia) return false;
-    datos = { url: limpia, clave: secreto };
-    if (!limpia && !secreto) {
-      try { localStorage.removeItem(GMM.config.CLAVE_SERVIDOR); } catch (error) {}
-      ultimoCatalogo = null;
-      return true;
-    }
-    ultimoCatalogo = null;
-    return GMM.util.guardarJSON(GMM.config.CLAVE_SERVIDOR, datos);
-  }
-
-  function conectado() { return !!configuracion().url; }
-  function total() { return ultimoCatalogo && ultimoCatalogo.resumen ? Number(ultimoCatalogo.resumen.total) || 0 : 0; }
-
-  function pedir(ruta) {
-    var actual = configuracion();
-    if (!actual.url) return Promise.reject(new Error("SIN_CONFIGURAR"));
-    var cabeceras = { Accept: "application/json" };
-    if (actual.clave) cabeceras.Authorization = "Bearer " + actual.clave;
-    return fetch(actual.url + ruta, { headers: cabeceras }).then(function (respuesta) {
-      if (respuesta.ok) return respuesta.json();
-      if (respuesta.status === 401) throw new Error("CLAVE_INCORRECTA");
-      if (respuesta.status === 403) throw new Error("ORIGEN_NO_PERMITIDO");
-      if (respuesta.status === 404) throw new Error("NO_ENCONTRADO");
-      throw new Error("HTTP_" + respuesta.status);
-    });
-  }
-
-  function catalogo() {
-    return pedir("/api/catalogo").then(function (resultado) {
-      ultimoCatalogo = resultado;
-      return resultado;
-    });
-  }
-
-  function enlace(id, descarga) {
-    return pedir("/api/medios/" + encodeURIComponent(id) + "?tipo=" + (descarga ? "descarga" : "reproduccion"))
-      .then(function (resultado) {
-        var base = configuracion().url;
-        if (!resultado || typeof resultado.ruta !== "string" || resultado.ruta.indexOf("/_gmm/medio/") !== 0) {
-          throw new Error("RESPUESTA_INVALIDA");
-        }
-        return { url: base + resultado.ruta, expiraEn: resultado.expiraEn, tipo: resultado.tipo };
-      });
-  }
-
-  return {
-    catalogo: catalogo, configuracion: configuracion, conectado: conectado,
-    enlace: enlace, guardar: guardar, normalizarUrl: normalizarUrl, total: total
-  };
-})();
-
 GMM.drive = (function () {
   var TOKEN = "gmm_gdrive_token", EXP = "gmm_gdrive_exp";
 
@@ -3787,13 +3679,6 @@ GMM.ui = (function () {
       contadorBib.className = "contador-listas" + (totalBib ? "" : " vacio");
     }
 
-    var contadorServidor = $("contadorServidor");
-    if (contadorServidor) {
-      var totalServidor = GMM.servidor && GMM.servidor.total ? GMM.servidor.total() : 0;
-      contadorServidor.textContent = totalServidor;
-      contadorServidor.className = "contador-listas" + (totalServidor ? "" : " vacio");
-    }
-
     /* Botón de cuenta: correo (recortado) si hay sesión, invitación si no. */
     var textoCuenta = $("textoCuenta");
     if (textoCuenta) {
@@ -3997,8 +3882,6 @@ GMM.app = (function () {
     filmografia: [],
     filmografiaFacetas: { interpreta: [], dirige: [] }, // reparto / dirección para la vista de persona
     disponibilidad: {},   // "tipo:id" -> respuesta de proveedores
-    catalogoServidor: null,
-    servidorPorId: {},
     marcada: -1,          // sugerencia resaltada con el teclado
     /* Método Descubrir */
     genero: "",           // id de género de TMDB
@@ -4762,162 +4645,6 @@ GMM.app = (function () {
     fijarPantalla();
   }
 
-  /* ---------------------------------------------------------------- */
-  /* Vista: Te la tengo (GMM Server)                                  */
-  /* ---------------------------------------------------------------- */
-
-  function textoErrorServidor(error) {
-    var codigo = error && error.message;
-    if (codigo === "SIN_CONFIGURAR") return "Configura primero la dirección y la clave de tu GMM Server.";
-    if (codigo === "CLAVE_INCORRECTA") return "La clave de GMM Server no coincide.";
-    if (codigo === "ORIGEN_NO_PERMITIDO") return "Este navegador no está autorizado por GMM Server.";
-    if (codigo === "NO_ENCONTRADO") return "No encontré esa ruta en GMM Server. Actualiza el servidor a la versión 0.2 o superior.";
-    return "No pude conectar con GMM Server. Comprueba que está iniciado y que la dirección es correcta.";
-  }
-
-  function fichaBasicaServidor(item) {
-    return {
-      id: null,
-      tipo: "movie",
-      title: item.tituloDetectado || item.nombreArchivo || "Sin título",
-      release_date: item.anioDetectado ? String(item.anioDetectado) + "-01-01" : "",
-      poster_path: null,
-      original_language: ""
-    };
-  }
-
-  function elegirFichaServidor(item, candidatas) {
-    var titulo = GMM.util.normalizar(item.tituloDetectado || "");
-    var ano = String(item.anioDetectado || "");
-    var lista = (candidatas || []).filter(function (p) { return p && p.id; });
-    lista.sort(function (a, b) {
-      function puntos(p) {
-        var nombre = GMM.util.normalizar(p.title || p.name || "");
-        var mismoTitulo = nombre === titulo ? 8 : (nombre.indexOf(titulo) !== -1 || titulo.indexOf(nombre) !== -1 ? 3 : 0);
-        var mismoAno = ano && GMM.util.ano(p.release_date || p.first_air_date) === ano ? 4 : 0;
-        return mismoTitulo + mismoAno;
-      }
-      return puntos(b) - puntos(a);
-    });
-    var elegida = lista[0];
-    if (!elegida) return fichaBasicaServidor(item);
-    elegida = Object.assign({}, elegida);
-    elegida.tipo = "movie";
-    return elegida;
-  }
-
-  function enriquecerServidor(items) {
-    return GMM.util.enLotes(items || [], GMM.config.CONCURRENCIA, function (item) {
-      if (item.tmdb && item.tmdb.id) {
-        return GMM.tmdb.ficha(item.tmdb.id, item.tmdb.tipo || "movie")
-          .then(function (ficha) { return { item: item, ficha: ficha || fichaBasicaServidor(item) }; });
-      }
-      if (!GMM.tmdb.hayClave()) return { item: item, ficha: fichaBasicaServidor(item) };
-      return GMM.tmdb.buscarPeliculas(item.tituloDetectado || item.nombreArchivo || "")
-        .then(function (candidatas) { return { item: item, ficha: elegirFichaServidor(item, candidatas) }; });
-    }).then(function (resultado) {
-      return resultado.filter(Boolean);
-    });
-  }
-
-  function accionesServidorHtml(item) {
-    if (!item.disponible || item.estadoArchivo !== "disponible") {
-      var texto = item.estadoArchivo === "copiandose" ? "Terminando de copiar" : "No disponible";
-      return '<div class="tarjeta-copia"><span class="boton-sec" aria-disabled="true">' + GMM.util.esc(texto) + '</span></div>';
-    }
-    return '<div class="tarjeta-copia">' +
-      '<button class="boton-sec acento" data-gmm-reproducir="' + GMM.util.esc(item.id) + '">&#9654; Ver</button>' +
-      '<button class="boton-sec" data-gmm-descargar="' + GMM.util.esc(item.id) + '">&#11015; Descargar</button>' +
-    '</div>';
-  }
-
-  function tarjetaServidor(entrada) {
-    var item = entrada.item;
-    var ficha = entrada.ficha || fichaBasicaServidor(item);
-    var acciones = accionesServidorHtml(item);
-    if (ficha.id) return GMM.ui.tarjeta(ficha, acciones);
-    var titulo = ficha.title || item.tituloDetectado || item.nombreArchivo || "Sin título";
-    var ano = GMM.util.ano(ficha.release_date) || item.anioDetectado || "";
-    return '<article class="tarjeta">' +
-      '<div class="tarjeta-img" aria-label="' + GMM.util.esc(titulo) + '">' + GMM.ui.caratula(null, titulo) + '</div>' +
-      '<div class="tarjeta-tit">' + GMM.util.esc(titulo) + '</div>' +
-      (ano ? '<div class="tarjeta-ano">' + GMM.util.esc(ano) + '</div>' : '') +
-      acciones +
-    '</article>';
-  }
-
-  function abrirReproductorServidor(item) {
-    if (!item) return;
-    $("tituloReproductor").textContent = item.tituloDetectado || item.nombreArchivo || "Reproducir";
-    $("cuerpoReproductor").innerHTML = '<div class="estado"><div class="estado-txt">Preparando reproducción segura…</div></div>';
-    $("capaReproductor").classList.remove("oculto");
-    GMM.servidor.enlace(item.id, false).then(function (enlace) {
-      $("cuerpoReproductor").innerHTML =
-        '<div class="repro-marco"><video controls autoplay playsinline preload="metadata" src="' + GMM.util.esc(enlace.url) + '">' +
-          'Tu navegador no puede reproducir este formato. Usa Descargar para guardar el archivo.' +
-        '</video></div>' +
-        '<p class="modal-nota" style="margin-top:12px">Si este formato no abre, descárgalo. Algunos MKV necesitan conversión para reproducirse en el navegador.</p>';
-    }).catch(function (error) {
-      $("cuerpoReproductor").innerHTML = '<div class="estado"><div class="estado-tit">No se pudo abrir el vídeo</div><p class="estado-txt">' +
-        GMM.util.esc(textoErrorServidor(error)) + '</p></div>';
-    });
-  }
-
-  function descargarServidor(item) {
-    if (!item) return;
-    var pestana = window.open("about:blank", "_blank");
-    GMM.servidor.enlace(item.id, true).then(function (enlace) {
-      if (pestana) { pestana.opener = null; pestana.location.href = enlace.url; }
-      else window.location.assign(enlace.url);
-    }).catch(function (error) {
-      if (pestana) pestana.close();
-      GMM.ui.aviso(textoErrorServidor(error), "error");
-    });
-  }
-
-  function pintarServidor() {
-    estado.vista = "servidor";
-    estado.ctxPagina = null;
-    if (!GMM.servidor.conectado()) {
-      GMM.ui.estado("&#128246;", "Conecta tu GMM Server",
-        "Aquí aparecerán las películas de tu PC o disco externo. Configura la dirección y la clave privada del servidor en Ajustes.",
-        '<button class="boton-sec acento" data-configurar-servidor>Configurar GMM Server</button>');
-      fijarPantalla();
-      return;
-    }
-
-    $("resultados").innerHTML = '<div class="estado"><div class="estado-icono">&#128246;</div><div class="estado-tit">Conectando con tu biblioteca</div><p class="estado-txt">Leyendo el catálogo privado de GMM Server…</p></div>';
-    fijarPantalla();
-    GMM.servidor.catalogo().then(function (catalogo) {
-      if (estado.vista !== "servidor") return;
-      estado.catalogoServidor = catalogo;
-      estado.servidorPorId = {};
-      (catalogo.peliculas || []).forEach(function (item) { estado.servidorPorId[item.id] = item; });
-      GMM.ui.refrescarCabecera();
-      return enriquecerServidor(catalogo.peliculas || []).then(function (entradas) {
-        if (estado.vista !== "servidor") return;
-        var disponibles = catalogo.resumen && Number(catalogo.resumen.disponibles) || 0;
-        var copiandose = catalogo.resumen && Number(catalogo.resumen.copiandose) || 0;
-        var nota = disponibles + " disponible" + (disponibles === 1 ? "" : "s") +
-          (copiandose ? " · " + copiandose + " terminando de copiar" : "") + ".";
-        var html = '<div class="seccion-cab"><h3 class="seccion-tit">&#9654; Te la tengo <small>' +
-          (catalogo.resumen ? Number(catalogo.resumen.total) || 0 : entradas.length) + '</small></h3>' +
-          '<button class="boton-sec" data-refrescar-servidor>&#8635; Actualizar</button></div>' +
-          '<p class="estado-txt" style="margin:-6px 0 18px">' + GMM.util.esc(nota) +
-          (GMM.tmdb.hayClave() ? " Carátulas e información de TMDB." : " Añade tu clave de TMDB en ⚙ para carátulas e información completas.") +
-          '</p>';
-        html += entradas.length ? '<div class="rejilla">' + entradas.map(tarjetaServidor).join("") + '</div>' :
-          '<div class="estado"><div class="estado-tit">Tu catálogo está vacío</div><p class="estado-txt">Ejecuta un escaneo en GMM Server y vuelve a actualizar.</p></div>';
-        $("resultados").innerHTML = html;
-      });
-    }).catch(function (error) {
-      if (estado.vista !== "servidor") return;
-      GMM.ui.estado("&#9888;", "No pude abrir tu biblioteca", textoErrorServidor(error),
-        '<button class="boton-sec acento" data-configurar-servidor>Revisar conexión</button>');
-      fijarPantalla();
-    });
-  }
-
   /* Guardar / quitar la copia desde el bloque "Mi copia" (ficha o modal).
      Devuelve true si el clic era suyo. Repinta solo ese bloque en el sitio,
      sin rehacer toda la vista. */
@@ -5646,16 +5373,6 @@ GMM.app = (function () {
     $("resultados").addEventListener("click", function (e) {
       var nodo;
 
-      if ((nodo = e.target.closest("[data-gmm-reproducir]"))) {
-        abrirReproductorServidor(estado.servidorPorId[nodo.getAttribute("data-gmm-reproducir")]);
-        return;
-      }
-      if ((nodo = e.target.closest("[data-gmm-descargar]"))) {
-        descargarServidor(estado.servidorPorId[nodo.getAttribute("data-gmm-descargar")]);
-        return;
-      }
-      if (e.target.closest("[data-refrescar-servidor]")) { pintarServidor(); return; }
-      if (e.target.closest("[data-configurar-servidor]")) { abrirAjustesServidor(); return; }
       if (alPulsarCopia(e)) return;
       if (alPulsarDrive(e)) return;
       if ((nodo = e.target.closest("[data-ir-pagina]"))) { irAPagina(Number(nodo.getAttribute("data-ir-pagina"))); return; }
@@ -5747,11 +5464,6 @@ GMM.app = (function () {
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
 
-    $("btnServidor").addEventListener("click", function () {
-      pintarServidor();
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    });
-
     /* --- flecha volver a la búsqueda --- */
     $("btnVolver").addEventListener("click", irAInicio);
 
@@ -5764,40 +5476,11 @@ GMM.app = (function () {
       else { el.textContent = "Pega tu Client ID y conecta"; el.style.color = "#8ba0b6"; }
     }
 
-    function reflejarEstadoServidor(texto, color) {
-      var el = $("estadoServidor");
-      if (!el) return;
-      if (texto) { el.textContent = texto; el.style.color = color || "#8ba0b6"; return; }
-      var conf = GMM.servidor.configuracion();
-      if (!conf.url) { el.textContent = "Aún no configurado"; el.style.color = "#8ba0b6"; }
-      else if (!conf.clave) { el.textContent = "Dirección guardada; falta la clave"; el.style.color = "#ffb37d"; }
-      else { el.textContent = "Listo para probar"; el.style.color = "#8ba0b6"; }
-    }
-
-    function guardarServidorDesdeFormulario() {
-      if (GMM.servidor.guardar($("entradaServidor").value, $("entradaServidorClave").value)) return true;
-      GMM.ui.aviso("La dirección de GMM Server debe empezar por http:// o https://", "error");
-      return false;
-    }
-
-    function abrirAjustesServidor() {
-      var conf = GMM.servidor.configuracion();
-      $("entradaServidor").value = conf.url;
-      $("entradaServidorClave").value = conf.clave;
-      reflejarEstadoServidor();
-      $("capaAjustes").classList.remove("oculto");
-      $("entradaServidor").focus();
-    }
-
     $("btnAjustes").addEventListener("click", function () {
       $("entradaClave").value = GMM.tmdb.clave();
       $("entradaClaveOmdb").value = GMM.omdb.clave();
       $("entradaGdrive").value = GMM.drive.clientId();
-      var conf = GMM.servidor.configuracion();
-      $("entradaServidor").value = conf.url;
-      $("entradaServidorClave").value = conf.clave;
       reflejarEstadoDrive();
-      reflejarEstadoServidor();
       $("capaAjustes").classList.remove("oculto");
       $("entradaClave").focus();
     });
@@ -5807,25 +5490,10 @@ GMM.app = (function () {
       GMM.tmdb.guardarClave(valor);
       GMM.omdb.guardarClave($("entradaClaveOmdb").value);
       GMM.drive.guardarClientId($("entradaGdrive").value);
-      if (!guardarServidorDesdeFormulario()) return;
       cerrarCapa("capaAjustes");
       GMM.ui.refrescarCabecera();
       montarPlataformas();
-      GMM.ui.aviso(valor ? "Ajustes guardados. Ya usas datos en vivo." : "Ajustes guardados. La app usa el modo demo.", "ok");
-    });
-
-    $("btnProbarServidor").addEventListener("click", function () {
-      if (!guardarServidorDesdeFormulario()) return;
-      var boton = this;
-      boton.disabled = true;
-      reflejarEstadoServidor("Probando conexión…", "#8ba0b6");
-      GMM.servidor.catalogo().then(function (catalogo) {
-        var total = catalogo.resumen ? Number(catalogo.resumen.total) || 0 : 0;
-        reflejarEstadoServidor("Conectado ✓ " + total + " película" + (total === 1 ? "" : "s"), "#6ff0c4");
-        GMM.ui.refrescarCabecera();
-      }).catch(function (error) {
-        reflejarEstadoServidor(textoErrorServidor(error), "#ff8a3d");
-      }).finally(function () { boton.disabled = false; });
+      GMM.ui.aviso(valor ? "Clave guardada. Ya usas datos en vivo." : "Clave borrada. Vuelves al modo demo.", "ok");
     });
 
     /* Conectar con Drive: guarda el Client ID que haya en el campo y arranca el
@@ -5841,12 +5509,6 @@ GMM.app = (function () {
     });
     $("entradaClaveOmdb").addEventListener("keydown", function (e) {
       if (e.key === "Enter") $("btnGuardarClave").click();
-    });
-    $("entradaServidor").addEventListener("keydown", function (e) {
-      if (e.key === "Enter") $("btnProbarServidor").click();
-    });
-    $("entradaServidorClave").addEventListener("keydown", function (e) {
-      if (e.key === "Enter") $("btnProbarServidor").click();
     });
 
     /* --- copia de seguridad --- */
@@ -6012,7 +5674,6 @@ GMM.app = (function () {
     else if (estado.vista === "persona") pintarPersona();
     else if (estado.vista === "listas") pintarListas();
     else if (estado.vista === "biblioteca") pintarBiblioteca();
-    else if (estado.vista === "servidor") pintarServidor();
   }
 
   /* ---------------------------------------------------------------- */
@@ -6314,21 +5975,9 @@ GMM.pwa = (function () {
     });
   }
 
-  /* Pide al navegador que trate el almacenamiento de este sitio como
-     "persistente": lo protege del borrado automático por poco espacio o
-     por no visitarse en un tiempo, que en Chrome puede llevarse
-     localStorage sin avisar. No pide permiso al usuario (el navegador
-     decide solo, según el historial del sitio) y nunca lanza si la API
-     no existe. */
-  function pedirAlmacenamientoPersistente() {
-    if (!navigator.storage || !navigator.storage.persist) return;
-    navigator.storage.persist().catch(function () {});
-  }
-
   function iniciar() {
     registrar();
     conectarInstalacion();
-    pedirAlmacenamientoPersistente();
   }
 
   return { iniciar: iniciar, seguro: seguro };

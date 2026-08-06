@@ -2,8 +2,8 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0033` (validación local; aún no publicada)
-**Próxima versión:** `V GMM 0034`
+**Versión activa:** `V GMM 0034` (validación local; aún no publicada)
+**Próxima versión:** `V GMM 0035`
 **Última actualización:** 2026-08-05
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies-g/> · GitHub Pages desde `main`, raíz.
@@ -222,6 +222,13 @@ tenga la app cacheada seguirá viendo la vieja. Es el mismo problema del `CACHE_
 
 **Solo funciona sobre HTTPS.** Al abrir el archivo con doble clic la app va igual de bien,
 simplemente no se instala ni cachea: `GMM.pwa.seguro()` lo detecta y no registra nada.
+
+**Desde V GMM 0034, `GMM.pwa.iniciar()` pide `navigator.storage.persist()`** al arrancar: le
+dice al navegador que no evicte el almacenamiento de este sitio bajo presión de espacio o por
+no visitarlo en un tiempo. No pide permiso al usuario (el navegador decide solo) y nunca lanza
+si la API no existe. Se añadió al investigar un reporte de claves "borradas" que resultó no ser
+un fallo (ver §4 «Persistencia» sobre por qué las claves no viajan entre dispositivos); se deja
+de todos modos como mejora de robustez.
 
 ### Estado
 
@@ -485,7 +492,15 @@ correcto. Es la misma filosofía del §2: decir *por qué* algo no funciona vale
 | `gmm_listas` | `{ favoritas: [], pendientes: [] }` |
 | `gmm_biblioteca` | `{ "tipo:id": { title, poster_path, enlace, guardada, … } }` — «Mis compras», el enlace a tu copia por título |
 | `gmm_gdrive_client_id` | Client ID de Google para el Nivel 2 (Drive). El **token** de acceso vive en `localStorage` (`gmm_gdrive_token`/`_exp`, 1 h; en `sessionStorage` se perdía al cerrar la app en iOS — ver V GMM 0028) |
+| `gmm_servidor` | `{ url, clave }` de GMM Server (desde V GMM 0033) — dirección y clave privada del servidor multimedia personal, ver «GMM Server» más abajo |
 | *(ninguna clave propia)* | La sesión de `GMM.cuenta` (Firebase, desde V GMM 0029) no usa `localStorage`: el SDK persiste su propia sesión internamente (IndexedDB) |
+
+**Ninguna de estas claves viaja entre dispositivos, ni con sesión iniciada.** Solo
+`gmm_listas` sincroniza vía Firestore (ver «La cuenta y sincronizar Mis listas»); `gmm_tmdb_key`,
+`gmm_omdb_key`, `gmm_gdrive_client_id` y `gmm_servidor` son **por dispositivo, a propósito**: se
+pegan una vez en ⚙ en cada aparato. Confundir esto con un fallo ya pasó una vez (V GMM 0034):
+el usuario reportó claves "borradas" al entrar en el móvil, y era justo esto — nunca se habían
+pegado ahí.
 
 ---
 
@@ -828,6 +843,7 @@ y aquí pesaban en cada sesión). **No los abordes por iniciativa propia.**
 | **1 · La clave de TMDB en el móvil** | **Resuelto** por la vía A desde la 0004 | La clave vive en el `localStorage` de cada dispositivo, no en el repositorio: se pega una vez en el ⚙ y basta. Solo volvería a abrirse si la usara alguien más que el usuario, y entonces la respuesta es un **proxy** (nunca hardcodear la clave) |
 | **2 · Login y sincronización de listas** | **Resuelto** desde la 0029, con matices | Se implementó con **correo/contraseña** (no Google, que era lo recomendado) y con el **SDK de Firebase** (no su API REST, que era el plan para no chocar con R3) — ambas cosas por decisión explícita del usuario. Ver §4 «La cuenta…» y §3 |
 | **3 · Premios (Oscar, Emmy)** | **Descartado** con el usuario | TMDB no publica datos de premios: no hay endpoint ni campo, y aproximarlo sería inventar. Haría falta otra fuente |
+| **4 · Sincronizar claves (TMDB/OMDb/GMM Server) entre dispositivos** | **Propuesto**, sin planificar | Pedido por el usuario tras la V GMM 0034: quiere que además de Mis listas, también viajen las claves con la cuenta. Falta decidir el diseño (qué va a Firestore, si aplica a las tres claves o solo a algunas) antes de tocar código |
 
 ---
 
@@ -843,7 +859,8 @@ en `HISTORIAL.md`.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
-| V GMM 0033 | 2026-08-05 | Integración local de GMM Server 0.2.0: la PWA añade la vista «▶ Te la tengo», guarda URL y clave únicamente en el navegador, consulta el catálogo y pide enlaces temporales para reproducir o descargar sin exponer rutas físicas. El servidor soporta rangos HTTP para adelantar y retroceder en formatos compatibles. `sw.js` 30→31; validación local pendiente de la prueba visual/manual antes de publicar. |
+| V GMM 0034 | 2026-08-05 | `GMM.pwa` pide almacenamiento persistente (`navigator.storage.persist()`) al arrancar, para que el navegador no evicte los datos del sitio. Se confirma además, tras investigar un reporte de claves "borradas", que TMDB/OMDb/GMM Server nunca sincronizan entre dispositivos por diseño (solo Mis listas lo hace) — no era un fallo. |
+| V GMM 0033 | 2026-08-05 | Integración local de GMM Server 0.2.0: la PWA añade la vista «▶ Te la tengo», guarda URL y clave únicamente en el navegador, consulta el catálogo y pide enlaces temporales para reproducir o descargar sin exponer rutas físicas. El servidor soporta rangos HTTP para adelantar y retroceder en formatos compatibles. `sw.js` 30→31. Publicada el mismo día. |
 | V GMM 0032 | 2026-08-05 | Se crea GMM Server 0.1.0: escáner local, catálogo privado, API protegida y detección de archivos todavía copiándose; primera biblioteca real validada con 37 vídeos. El proyecto pasa al repositorio `givemymovies-g` y a su nueva ruta de GitHub Pages. |
 | V GMM 0031 | 2026-08-05 | Si sincronizar Mis listas falla por permisos de Firestore, la app avisa en pantalla en vez de callarlo; se añade `firestore.rules` versionado como referencia. |
 | V GMM 0030 | 2026-08-02 | Se reubica la barra: cuenta al header, el punto de estado baja al título del buscador, ⚙ y el interruptor junto a Mis listas, y «Mis compras» queda oculto. |

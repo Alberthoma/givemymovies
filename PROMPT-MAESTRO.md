@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.35 · Aplicación V GMM 0033 (validación local) · 5 de agosto de 2026**
+**Documento v1.36 · Aplicación V GMM 0034 (validación local) · 5 de agosto de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies-g/>
 
 ---
@@ -694,7 +694,13 @@ en demo que en vivo.
 | `gmm_listas` | `{ favoritas: [], pendientes: [] }` |
 | `gmm_biblioteca` | `{ "tipo:id": { title, poster_path, enlace, guardada, … } }` — «Mis compras» (V GMM 0026) |
 | `gmm_gdrive_client_id` | Client ID de Google, Nivel 2 (V GMM 0027). El token va en `localStorage` (1 h; era `sessionStorage`, ver V GMM 0028) |
+| `gmm_servidor` | `{ url, clave }` de GMM Server (V GMM 0033) |
 | *(ninguna)* | La sesión de `GMM.cuenta` (Firebase, V GMM 0029) no usa `localStorage`: el SDK la persiste solo, en IndexedDB |
+
+**Ninguna de estas claves sincroniza entre dispositivos, ni con sesión iniciada.** Solo
+`gmm_listas` viaja vía Firestore; el resto es por dispositivo, a propósito (se pega una vez en
+⚙ en cada aparato). Confundido con un fallo una vez (V GMM 0034): el usuario reportó claves
+"borradas" en el móvil y era justo esto.
 
 **Cuenta con Firebase, vía su SDK (V GMM 0029).** Módulo `GMM.cuenta` (bloque JS 7d). Única
 excepción a R3 —sin librerías—, pedida explícitamente por el usuario tras plantearle la
@@ -890,6 +896,7 @@ Todos deben pasar:
 | A52 | Fusión de listas al iniciar sesión | `GMM.util.fusionarListas` une local y remoto por `(id, tipo)` sin duplicar, y ante un duplicado conserva la fecha `anadida` más antigua |
 | A53 | Sin el SDK cargado (sin internet) | `GMM.cuenta.disponible()` es `false`; el resto de la app arranca y funciona igual |
 | A54 | Barra reubicada (V GMM 0030) | El botón de cuenta vive en el header (arriba a la derecha); el punto de estado, en la fila del título del buscador (a su derecha, título sin descentrar); Mis listas, el interruptor y ⚙ quedan juntos a la izquierda de la barra; «Mis compras» no es visible en ningún sitio de la barra |
+| A55 | Claves de dispositivo no sincronizan (V GMM 0034) | Con sesión iniciada en dos navegadores distintos, `gmm_tmdb_key`/`gmm_omdb_key`/`gmm_servidor` guardados en uno **no** aparecen en el otro; solo `gmm_listas` (favoritas/pendientes) viaja entre ellos |
 
 ### Al tocar el catálogo demo, verifica cada imagen
 
@@ -1009,7 +1016,8 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
-| 1.35 | V GMM 0033 | 05-08-2026 | **GMM Server se integra localmente con la PWA.** Nace la vista «▶ Te la tengo»: URL y clave almacenadas solo en el navegador, catálogo del PC, carátulas TMDB y acciones Ver/Descargar. GMM Server 0.2.0 entrega enlaces temporales sin rutas físicas ni claves y soporta rangos HTTP. No configura aún acceso remoto ni FFmpeg. `sw.js` 30→31; `logica.js` 184/184 y servidor 16/16. Falta prueba visual/manual antes de publicar. |
+| 1.36 | V GMM 0034 | 05-08-2026 | **Solo robustez y documentación; se cierra un malentendido.** El usuario reportó que las claves de TMDB/OMDb/GMM Server se "borraban" al iniciar sesión en el móvil; investigación exhaustiva (código + reproducción automatizada con Playwright contra la web real, simulando cerrar/reabrir el navegador con la sesión persistida) no encontró ningún fallo: esas claves nunca han sincronizado entre dispositivos, por diseño (solo `gmm_listas` lo hace). Se añade `GMM.pwa.pedirAlmacenamientoPersistente()` (`navigator.storage.persist()` al arrancar) como mejora de robustez menor, sin relación con la causa real. Se documenta el porqué en §8 (tabla de `localStorage`) y criterio A55. De paso se completan dos respaldos que habían quedado a medias: `V-GMM-0032` estaba vacío y faltaba `V-GMM-0033`. `logica.js` 184/184, `pwa.js` 20/20; no toca CSS/DOM ni `sw.js`. |
+| 1.35 | V GMM 0033 | 05-08-2026 | **GMM Server se integra localmente con la PWA.** Nace la vista «▶ Te la tengo»: URL y clave almacenadas solo en el navegador, catálogo del PC, carátulas TMDB y acciones Ver/Descargar. GMM Server 0.2.0 entrega enlaces temporales sin rutas físicas ni claves y soporta rangos HTTP. No configura aún acceso remoto ni FFmpeg. `sw.js` 30→31; `logica.js` 184/184, `interfaz.js` 127/127, `pwa.js` 20/20, servidor 16/16. Preparada en un entorno remoto (Codex); comiteada y publicada (`push`) en la sesión siguiente. |
 | 1.32 | V GMM 0030 | 02-08-2026 | **Se reubica la barra de cabecera**, a petición del usuario (§6). Cuenta (`#btnCuenta`) sale de la barra y ocupa, en el header, el hueco que dejaba el punto de estado; el punto de estado (`#pastillaModo`) baja a la fila del título del buscador, a su derecha, en `position: absolute` para no descuadrar el centrado. `⚙` y el interruptor Película/Serie se mudan a la izquierda de la barra, junto a Mis listas; Instalar se queda solo a la derecha. **«Mis compras»** (`#btnBiblioteca`) queda **oculto** (`.oculto` estático): el usuario decidió que no aportaba lo suficiente para tener sitio en la barra; su lógica sigue intacta, «Mi copia» en cada ficha no cambia. Cambio de HTML/CSS puro —todo son selectores por `id`, ningún JS se toca—. Corregidos también dos puntos de documentación desactualizados que salieron a la luz al revisar esta zona (§5.2, §6). Criterio A54. `sw.js` 27→28, `logica.js` 177 (sin cambios de lógica), `interfaz.js` 127 (el test de «Mis compras» ahora le quita `.oculto` antes de pulsar: `{ force: true }` no sirve con `display: none`), `pwa.js` 20. |
 | 1.31 | V GMM 0029 | 02-08-2026 | **Cuenta opcional con Firebase: login, registro, recuperar contraseña y sincronizar Mis listas** (§5.5b). Retoma `PENDIENTES.md` §2, con dos decisiones distintas de lo planteado: **correo/contraseña** (no Google) y el **SDK de Firebase vía CDN** (no su API REST) — única excepción consciente a R3, «sin librerías», de todo el proyecto. Sin sesión la app funciona exactamente igual que siempre. Módulo nuevo `GMM.cuenta` (bloque 7d): `disponible()` guarda toda función pública y degrada sin romper nada si el SDK no cargó (sin internet); `registrar`/`iniciarSesion`/`cerrarSesion`/`recuperarContrasena` sobre `firebase.auth()`; `sincronizar`/`fusionarAlEntrar` sobre `firebase.firestore()` (`usuarios/{uid}`). `GMM.util.fusionarListas` (pura): une local+nube por `(id, tipo)`, conserva la fecha `anadida` más antigua ante un duplicado. Botón `#btnCuenta` en la barra y modal `#capaCuenta` con 4 vistas (entrar/registro/recuperar/perfil). Config `GMM.config.FIREBASE` (no secreta). Requiere, a mano en la consola de Firebase: activar «Correo/contraseña» y publicar las reglas de Firestore. Criterios A49–A53. `sw.js` 26→27, `logica.js` 166→177, `interfaz.js` 120→127 (`GMM.cuenta` stubeado, como `GMM.drive`), `pwa.js` 20. |
 | 1.30 | V GMM 0028 | 01-08-2026 | **Solo documentación, la app no cambia.** Segunda pasada de aligerado de `CLAUDE.md`: los temas abiertos salen a **`PENDIENTES.md`** (§11 se queda con una tabla de estado), el diseño ya construido del Nivel 2 de Drive se va al apéndice de `HISTORIAL.md`, y se retira la duplicación entre §4 y §9 dejando el desarrollo en §9. **Correcciones de contenido falso:** §10 afirmaba que GitHub Pages «no está activado» contradiciendo la cabecera —lo está desde la 0004—, y §8 listaba como «límites conocidos» tres cosas que ya no lo eran (series en las cuatro búsquedas, puntuaciones de otras plataformas, filmografía de dirección); §8 gana en cambio las condiciones reales del Nivel 2 de Drive. `CLAUDE.md`: 58.786 → 50.770 caracteres. |
