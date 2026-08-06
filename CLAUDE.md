@@ -2,8 +2,8 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0032`
-**Próxima versión:** `V GMM 0033`
+**Versión activa:** `V GMM 0033` (validación local; aún no publicada)
+**Próxima versión:** `V GMM 0034`
 **Última actualización:** 2026-08-05
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies-g/> · GitHub Pages desde `main`, raíz.
@@ -178,23 +178,27 @@ tocar ni una línea**: basta con enlazarlos en este orden.
 | 9 | `js/app.js` | `GMM.app` — estado, vistas, eventos, arranque |
 | 10 | `js/pwa.js` | `GMM.pwa` — service worker y botón de instalar |
 
-### GMM Server — proyecto propio aprobado, todavía separado de la PWA
+### GMM Server — integrado con “Te la tengo” en validación local
 
 `gmm-server/` es el servidor multimedia personal de GiveMyMovies, **no Jellyfin ni Plex**.
 Su objetivo es leer películas de carpetas locales o discos externos y entregarlas directamente
-a GMM sin subir los vídeos a Drive ni a otra nube. La fase 1 quedó construida el 2026-08-05
-sin modificar `index.html`: Node.js 22, sin dependencias npm, configuración y catálogo en
+a GMM sin subir los vídeos a Drive ni a otra nube. La fase 2 local conecta la PWA con el
+servidor: Node.js 22, sin dependencias npm, configuración y catálogo en
 `gmm-server/PRIVADO/` (ignorado), escaneo recursivo, título/año desde el nombre, persistencia,
-disco desconectado sin borrar el catálogo y API local protegida. `npm.cmd test` pasa **14/14**.
+disco desconectado sin borrar el catálogo y API local protegida. `npm.cmd test` pasa **16/16**.
 La primera biblioteca real completa detectó 37 vídeos disponibles (105,4 GB), 21 MP4 y
 16 MKV, sin publicar la ruta del disco; la ubicación exacta solo vive en `PRIVADO/`.
 Desde la V GMM 0032, un archivo nuevo o modificado debe conservar tamaño y fecha en dos
 revisiones consecutivas antes de pasar de `copiandose` a `disponible`.
 
-**Límites actuales:** aún no hay consulta TMDB desde el servidor, reproducción, descarga,
-emparejamiento con la PWA, FFmpeg ni acceso remoto. La API pública nunca entrega rutas físicas;
-no existe operación de borrado. La siguiente fase debe probar primero una carpeta real del
-usuario y después enriquecer el catálogo con TMDB. Manual y comandos en `gmm-server/README.md`.
+La PWA guarda en su propio navegador la URL y la clave, consulta `/api/catalogo`, completa las
+carátulas desde TMDB y muestra la vista **▶ Te la tengo**. Para cada reproducción o descarga pide
+un enlace temporal: el servidor conserva la ruta física internamente, admite solicitudes HTTP
+por rango y nunca envía la clave ni la ruta al reproductor. La API pública no tiene borrado.
+
+**Límites actuales:** no hay transcodificación con FFmpeg (algunos MKV pueden descargarse pero
+no reproducirse en el navegador) ni acceso remoto configurado. La siguiente fase de red es
+Tailscale, sin abrir el puerto 7399 al Internet público. Manual y comandos en `gmm-server/README.md`.
 
 ### Aplicación instalable (PWA)
 
@@ -569,7 +573,7 @@ el `og:image`. Y no cojas el primer `<img>` de la página: suele ser un recomend
 **La aplicación no tiene dependencias.** `pruebas/` es una herramienta aparte y opcional.
 
 ```bash
-node pruebas/logica.js      # 177 comprobaciones · sin dependencias · instantáneo
+node pruebas/logica.js      # 184 comprobaciones · sin dependencias · instantáneo
 node pruebas/imagenes.js    #  15 comprobaciones · necesita internet · ~30 s
 node pruebas/interfaz.js    # 127 comprobaciones · playwright-core y, desde 0029, internet ·  ~60 s
 node pruebas/pwa.js         #  20 comprobaciones · playwright-core · ~20 s
@@ -773,7 +777,7 @@ Comprobación manual rápida, si no quieres ejecutar nada:
 | `PROMPT-MAESTRO.md` | Prompt que reconstruye el proyecto entero. **Actualízalo con cada cambio.** No lo leas entero: trabaja por secciones (~22.000 tokens) |
 | `firestore.rules` | Copia de referencia de las reglas de seguridad de Firestore (desde V GMM 0031). **No se aplica solo:** hay que publicarlo a mano en la consola de Firebase. Ver §4 «La cuenta…» |
 | `pruebas/` | Herramienta de verificación, opcional y con dependencias propias |
-| `gmm-server/` | Servidor multimedia propio en desarrollo. Fase 1 local; código, pruebas y manual separados de la PWA. Sus secretos y catálogo viven en `gmm-server/PRIVADO/` |
+| `gmm-server/` | Servidor multimedia propio 0.2.0: catálogo privado, enlaces temporales de vídeo y descarga. Sus secretos y catálogo viven en `gmm-server/PRIVADO/` |
 | `.gitignore` | Excluye `node_modules`, capturas y **`PRIVADO/`** |
 | `PRIVADO/` | **Solo local, jamás versionado.** Credenciales y clave de TMDB |
 | `respaldos/` | **Versionado en git.** Copia de la app completa por versión, hecha antes de modificarla, como red de seguridad. Ver `respaldos/LEEME.md` |
@@ -839,6 +843,7 @@ en `HISTORIAL.md`.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| V GMM 0033 | 2026-08-05 | Integración local de GMM Server 0.2.0: la PWA añade la vista «▶ Te la tengo», guarda URL y clave únicamente en el navegador, consulta el catálogo y pide enlaces temporales para reproducir o descargar sin exponer rutas físicas. El servidor soporta rangos HTTP para adelantar y retroceder en formatos compatibles. `sw.js` 30→31; validación local pendiente de la prueba visual/manual antes de publicar. |
 | V GMM 0032 | 2026-08-05 | Se crea GMM Server 0.1.0: escáner local, catálogo privado, API protegida y detección de archivos todavía copiándose; primera biblioteca real validada con 37 vídeos. El proyecto pasa al repositorio `givemymovies-g` y a su nueva ruta de GitHub Pages. |
 | V GMM 0031 | 2026-08-05 | Si sincronizar Mis listas falla por permisos de Firestore, la app avisa en pantalla en vez de callarlo; se añade `firestore.rules` versionado como referencia. |
 | V GMM 0030 | 2026-08-02 | Se reubica la barra: cuenta al header, el punto de estado baja al título del buscador, ⚙ y el interruptor junto a Mis listas, y «Mis compras» queda oculto. |

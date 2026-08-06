@@ -16,5 +16,6 @@
   ],
   "escanearAlIniciar": true,
   "intervaloEscaneoMinutos": 0,
+  "duracionEnlaceMinutos": 10,
   "rutaCatalogo": "catalogo.json"
 }

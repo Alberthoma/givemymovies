@@ -207,14 +207,23 @@ Los países que no encajan se ocultan, con un botón para verlos igualmente.
 
 ---
 
-## GMM Server (en desarrollo)
+## GMM Server y “Te la tengo”
 
-El proyecto incluye ahora el núcleo local de **GMM Server**, un servidor propio para catalogar
-las películas guardadas en un PC o disco externo sin subir sus archivos a la nube. Vive en
-`gmm-server/` y todavía no está conectado a la interfaz pública: la fase actual solo prepara el
-escaneo seguro, el catálogo privado y la API local. La primera biblioteca real validada contiene
-37 vídeos (105,4 GB), y los archivos nuevos solo se marcan disponibles después de comprobar que
-dejaron de cambiar. Consulta `gmm-server/README.md` para conocer su estado y sus pruebas.
+**GMM Server** es tu servidor multimedia personal: lee las películas guardadas en el PC o en un
+disco externo, sin subir los vídeos a Google Drive ni a otra nube. La sección **▶ Te la tengo**
+de GiveMyMovies se conecta a él, muestra el catálogo y permite reproducir o descargar cada
+archivo disponible.
+
+1. Inicia el servidor desde `gmm-server/` con `npm.cmd start`.
+2. En GiveMyMovies abre **⚙ Ajustes** y escribe `http://127.0.0.1:7399` junto con la clave privada
+   creada en `gmm-server/PRIVADO/configuracion.json`.
+3. Pulsa **Probar conexión** y abre **▶ Te la tengo**.
+
+La dirección y la clave se quedan solo en ese navegador; ni el catálogo, ni la ruta del disco,
+ni los vídeos se publican en GitHub. El servidor entrega enlaces temporales para reproducir o
+descargar y nunca expone rutas físicas. Con una clave de TMDB, la sección completa las carátulas
+y datos de las películas. Para entrar desde fuera de casa falta configurar la red privada
+Tailscale; consulta `gmm-server/README.md`.
 
 ---
 
@@ -249,6 +258,7 @@ Cada banner indica a qué archivo correspondería si algún día quieres separar
 | 7b · Mi biblioteca | `js/biblioteca.js` | Enlace a tu copia por título |
 | 7c · Google Drive | `js/drive.js` | Buscar y reproducir tu copia (Nivel 2) |
 | 7d · Cuenta | `js/cuenta.js` | Login, registro, recuperar contraseña y sincronizar listas |
+| 7e · GMM Server | `js/servidor.js` | Conexión privada, catálogo y enlaces temporales de tus archivos |
 | 8 · Interfaz | `js/ui.js` | Pintado de componentes |
 | 9 · Aplicación | `js/app.js` | Vistas, eventos y arranque |
 | 10 · PWA | `js/pwa.js` | Service worker y botón de instalar |

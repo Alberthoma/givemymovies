@@ -1,9 +1,23 @@
 "use strict";
 
 const crypto = require("node:crypto");
+const fs = require("node:fs");
 const http = require("node:http");
 
-const VERSION_SERVIDOR = "0.1.0";
+const fsPromesas = fs.promises;
+const VERSION_SERVIDOR = "0.2.0";
+
+const TIPOS_VIDEO = {
+  ".mp4": "video/mp4",
+  ".m4v": "video/x-m4v",
+  ".mkv": "video/x-matroska",
+  ".webm": "video/webm",
+  ".mov": "video/quicktime",
+  ".avi": "video/x-msvideo",
+  ".ts": "video/mp2t",
+  ".mpeg": "video/mpeg",
+  ".mpg": "video/mpeg"
+};
 
 function responderJson(respuesta, estado, contenido) {
   const cuerpo = JSON.stringify(contenido);
@@ -16,6 +30,108 @@ function responderJson(respuesta, estado, contenido) {
     "Referrer-Policy": "no-referrer"
   });
   respuesta.end(cuerpo);
+}
+
+function cabeceraArchivo(nombre, descarga) {
+  const seguro = String(nombre || "pelicula").replace(/[\r\n]/g, " ");
+  const tipo = descarga ? "attachment" : "inline";
+  return tipo + "; filename*=UTF-8''" + encodeURIComponent(seguro);
+}
+
+function rangoSolicitado(cabecera, tamano) {
+  if (!cabecera) return null;
+  const coincidencia = /^bytes=(\d*)-(\d*)$/i.exec(String(cabecera).trim());
+  if (!coincidencia) return false;
+  let inicio = coincidencia[1] === "" ? null : Number(coincidencia[1]);
+  let fin = coincidencia[2] === "" ? null : Number(coincidencia[2]);
+  if ((inicio !== null && (!Number.isInteger(inicio) || inicio < 0)) ||
+      (fin !== null && (!Number.isInteger(fin) || fin < 0))) return false;
+  if (inicio === null && fin === null) return false;
+  if (inicio === null) {
+    const longitud = Math.min(fin, tamano);
+    inicio = Math.max(0, tamano - longitud);
+    fin = tamano - 1;
+  } else {
+    if (inicio >= tamano) return false;
+    fin = fin === null ? tamano - 1 : Math.min(fin, tamano - 1);
+  }
+  if (fin < inicio) return false;
+  return { inicio, fin };
+}
+
+async function responderArchivo(solicitud, respuesta, pelicula, descarga) {
+  let estadisticas;
+  try {
+    estadisticas = await fsPromesas.stat(pelicula.ruta);
+  } catch (error) {
+    responderJson(respuesta, 404, { error: "El archivo ya no est\u00e1 disponible" });
+    return;
+  }
+  if (!estadisticas.isFile() || estadisticas.size < 1) {
+    responderJson(respuesta, 404, { error: "El archivo ya no est\u00e1 disponible" });
+    return;
+  }
+
+  const rango = rangoSolicitado(solicitud.headers.range, estadisticas.size);
+  if (rango === false) {
+    respuesta.writeHead(416, {
+      "Content-Range": `bytes */${estadisticas.size}`,
+      "Cache-Control": "no-store",
+      "X-Content-Type-Options": "nosniff"
+    });
+    respuesta.end();
+    return;
+  }
+
+  const extension = String(pelicula.extension || "").toLowerCase();
+  const inicio = rango ? rango.inicio : 0;
+  const fin = rango ? rango.fin : estadisticas.size - 1;
+  const cabeceras = {
+    "Content-Type": TIPOS_VIDEO[extension] || "application/octet-stream",
+    "Content-Length": String(fin - inicio + 1),
+    "Content-Disposition": cabeceraArchivo(pelicula.nombreArchivo, descarga),
+    "Accept-Ranges": "bytes",
+    "Cache-Control": "no-store",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer"
+  };
+  if (rango) cabeceras["Content-Range"] = `bytes ${inicio}-${fin}/${estadisticas.size}`;
+  respuesta.writeHead(rango ? 206 : 200, cabeceras);
+
+  const lectura = fs.createReadStream(pelicula.ruta, { start: inicio, end: fin });
+  lectura.on("error", function () {
+    if (!respuesta.headersSent) responderJson(respuesta, 500, { error: "No se pudo leer el archivo" });
+    else respuesta.destroy();
+  });
+  lectura.pipe(respuesta);
+}
+
+function crearTickets(configuracion) {
+  const tickets = new Map();
+  const duracion = Math.max(1, Number(configuracion.duracionEnlaceMinutos) || 10) * 60 * 1000;
+
+  function limpiar() {
+    const ahora = Date.now();
+    tickets.forEach(function (entrada, token) {
+      if (entrada.expiraEn <= ahora) tickets.delete(token);
+    });
+  }
+
+  function emitir(id, descarga) {
+    limpiar();
+    const token = crypto.randomBytes(32).toString("base64url");
+    const expiraEn = Date.now() + duracion;
+    tickets.set(token, { id, descarga: Boolean(descarga), expiraEn });
+    return { token, expiraEn };
+  }
+
+  function consumir(token) {
+    limpiar();
+    const entrada = tickets.get(token);
+    return entrada || null;
+  }
+
+  return { emitir, consumir };
 }
 
 function origenPermitido(origen, configuracion) {
@@ -65,6 +181,7 @@ function autorizado(solicitud, configuracion) {
 
 function crearServidorApi(configuracion, gestorCatalogo, registro) {
   const log = registro || console;
+  const tickets = crearTickets(configuracion);
   return http.createServer(async function (solicitud, respuesta) {
     if (!aplicarCors(solicitud, respuesta, configuracion)) {
       responderJson(respuesta, 403, { error: "Origen no permitido" });
@@ -102,7 +219,8 @@ function crearServidorApi(configuracion, gestorCatalogo, registro) {
         responderJson(respuesta, 200, salud);
         return;
       }
-      if (url.pathname === "/api/catalogo" || url.pathname === "/api/escanear") {
+      if (url.pathname === "/api/catalogo" || url.pathname === "/api/escanear" ||
+          url.pathname.startsWith("/api/medios/")) {
         if (!autorizado(solicitud, configuracion)) {
           responderJson(respuesta, 401, { error: "Acceso no autorizado" });
           return;
@@ -116,6 +234,37 @@ function crearServidorApi(configuracion, gestorCatalogo, registro) {
         responderJson(respuesta, 200, await gestorCatalogo.escanearConfirmando());
         return;
       }
+      if (solicitud.method === "GET" && url.pathname.startsWith("/api/medios/")) {
+        const id = decodeURIComponent(url.pathname.slice("/api/medios/".length));
+        const pelicula = gestorCatalogo.obtenerArchivo && gestorCatalogo.obtenerArchivo(id);
+        if (!pelicula) {
+          responderJson(respuesta, 404, { error: "Pel\u00edcula no disponible" });
+          return;
+        }
+        const descarga = url.searchParams.get("tipo") === "descarga";
+        const ticket = tickets.emitir(id, descarga);
+        responderJson(respuesta, 200, {
+          ruta: `/_gmm/medio/${ticket.token}`,
+          expiraEn: new Date(ticket.expiraEn).toISOString(),
+          tipo: descarga ? "descarga" : "reproduccion"
+        });
+        return;
+      }
+      if (solicitud.method === "GET" && url.pathname.startsWith("/_gmm/medio/")) {
+        const token = url.pathname.slice("/_gmm/medio/".length);
+        const ticket = tickets.consumir(token);
+        if (!ticket) {
+          responderJson(respuesta, 410, { error: "El enlace temporal caduc\u00f3" });
+          return;
+        }
+        const pelicula = gestorCatalogo.obtenerArchivo && gestorCatalogo.obtenerArchivo(ticket.id);
+        if (!pelicula) {
+          responderJson(respuesta, 404, { error: "Pel\u00edcula no disponible" });
+          return;
+        }
+        await responderArchivo(solicitud, respuesta, pelicula, ticket.descarga);
+        return;
+      }
       responderJson(respuesta, 404, { error: "Ruta no encontrada" });
     } catch (error) {
       log.error("Fallo atendiendo una solicitud de GMM Server:", error);
@@ -127,8 +276,10 @@ function crearServidorApi(configuracion, gestorCatalogo, registro) {
 module.exports = {
   VERSION_SERVIDOR,
   autorizado,
+  crearTickets,
   crearServidorApi,
   esDireccionLocal,
   origenPermitido,
+  rangoSolicitado,
   secretosIguales
 };

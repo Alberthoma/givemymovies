@@ -181,6 +181,17 @@ class GestorCatalogo {
     return catalogoPublico(this.catalogo);
   }
 
+  /* Devuelve solo al servidor la ubicación de un archivo que ya formaba parte
+     del catálogo. Esta información nunca sale por la API JSON: la usa api.js
+     exclusivamente para abrir un stream temporal protegido. */
+  obtenerArchivo(id) {
+    const pelicula = this.catalogo.peliculas.find(function (entrada) {
+      return entrada.id === id;
+    });
+    if (!pelicula || !pelicula.disponible || pelicula.estadoArchivo !== "disponible") return null;
+    return pelicula;
+  }
+
   async escanear() {
     if (this.escaneoEnCurso) return this.escaneoEnCurso;
     this.escaneoEnCurso = this._escanear().finally(() => {

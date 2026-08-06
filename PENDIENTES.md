@@ -134,7 +134,25 @@ de `index.html` sin problema.
 
 ---
 
-## 3 — Premios (Oscar, Emmy)
+## 3 — Acceso remoto a GMM Server
+
+**Pendiente después de validar «▶ Te la tengo» dentro de la red local.** La app y el servidor ya
+se conectan por `http://127.0.0.1:7399` en este PC. Para ver la misma biblioteca desde el móvil
+fuera de casa hace falta una red privada entre ambos dispositivos, no publicar el puerto 7399 en
+Internet.
+
+**Propuesta para cuando el usuario lo autorice: Tailscale.** Se instala en el PC que conserva los
+vídeos y en el móvil, se inicia sesión en la misma cuenta y la app guarda la dirección Tailscale
+del PC (por ejemplo, `http://100.x.y.z:7399`) en lugar de `127.0.0.1`. La clave de GMM Server
+sigue siendo necesaria y permanece en cada navegador. Antes de configurarlo hay que decidir qué
+dispositivos tendrán acceso; no se instalará ni abrirá ningún puerto por iniciativa propia.
+
+No hay que subir películas a la nube. Los límites se mantienen: formatos no compatibles con el
+navegador (por ejemplo, algunos MKV) necesitarán descarga hasta añadir transcodificación.
+
+---
+
+## 4 — Premios (Oscar, Emmy)
 
 **Planteado en la V GMM 0024. Descartado, con el usuario.**
 

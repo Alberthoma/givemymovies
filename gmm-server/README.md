@@ -6,7 +6,7 @@ película se sube a Google Drive, Firebase ni otro almacenamiento en la nube.
 
 ## Estado de esta entrega
 
-Esta es la **fase 1** del proyecto:
+Esta es la **fase 2** del proyecto:
 
 - configuración privada separada del repositorio;
 - escaneo recursivo de una o varias carpetas;
@@ -15,11 +15,16 @@ Esta es la **fase 1** del proyecto:
 - confirmación en dos revisiones antes de marcar disponible un archivo nuevo o modificado;
 - detección de discos o carpetas desconectados;
 - API local protegida;
+- conexión desde la sección **▶ Te la tengo** de GiveMyMovies;
+- enlaces temporales para reproducción y descarga, sin exponer la ruta física;
+- reproducción HTTP con rangos, para poder avanzar y retroceder en formatos compatibles;
 - ninguna operación para borrar o modificar películas;
 - pruebas automáticas sin dependencias externas.
 
-Todavía no incluye TMDB, reproducción, descarga, emparejamiento con la PWA ni acceso
-remoto. Esas funciones se incorporarán por etapas después de validar este núcleo.
+Las carátulas y fichas se resuelven desde la PWA con la clave personal de TMDB del usuario.
+Todavía no incluye conversión de vídeo con FFmpeg ni acceso remoto: algunos MKV no se podrán
+reproducir en el navegador y deberán descargarse. El acceso desde fuera de casa se configurará
+con Tailscale, para no abrir puertos del router ni exponer este servidor a Internet.
 
 ## Requisitos
 
@@ -59,6 +64,23 @@ Con la configuración de ejemplo, el estado básico se puede comprobar en:
 
 El catálogo completo exige la clave privada y está pensado para que lo consulte GMM,
 no para exponerlo directamente en Internet.
+
+## Conectar GiveMyMovies
+
+Con el servidor iniciado, abre GiveMyMovies y ve a **⚙ Ajustes**. En la sección **GMM Server**
+escribe:
+
+- Dirección local: `http://127.0.0.1:7399`
+- Clave: el valor `claveAdministracion` de `PRIVADO/configuracion.json`
+
+Pulsa **Probar conexión**. Después abre **▶ Te la tengo**: verás el catálogo, con los botones
+**Ver** y **Descargar** para cada archivo disponible. La clave queda guardada únicamente en ese
+navegador. Cada reproducción genera un enlace temporal que caduca por defecto a los 10 minutos;
+puedes cambiarlo con `duracionEnlaceMinutos` (entre 1 y 60) en la configuración privada.
+
+Para entrar desde el móvil fuera de casa no cambies todavía `host` ni abras el puerto 7399:
+instala y configura primero Tailscale en el PC y en el dispositivo que reproducirá. Cuando esté
+listo, se usará su URL HTTPS privada en este mismo campo de Ajustes.
 
 ## Probar
 

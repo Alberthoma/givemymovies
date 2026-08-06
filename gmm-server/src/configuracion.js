@@ -122,6 +122,12 @@ function cargarConfiguracion(rutaSolicitada) {
       10080,
       "intervaloEscaneoMinutos"
     ),
+    duracionEnlaceMinutos: enteroEnRango(
+      datos.duracionEnlaceMinutos === undefined ? 10 : datos.duracionEnlaceMinutos,
+      1,
+      60,
+      "duracionEnlaceMinutos"
+    ),
     rutaCatalogo
   };
 }

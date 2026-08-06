@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.34 · Aplicación V GMM 0032 · 5 de agosto de 2026**
+**Documento v1.35 · Aplicación V GMM 0033 (validación local) · 5 de agosto de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies-g/>
 
 ---
@@ -626,18 +626,19 @@ los bloques en archivos **no exija tocar código**: basta enlazarlos en este ord
 | 7 | `js/listas.js` | `GMM.listas` | Favoritas y pendientes |
 | 7b | `js/biblioteca.js` | `GMM.biblioteca` | «Mis compras»: enlace a tu copia por título (Nivel 1) |
 | 7c | `js/drive.js` | `GMM.drive` | Google Drive (Nivel 2): OAuth implícito, buscar, reproducir |
+| 7e | `js/servidor.js` | `GMM.servidor` | GMM Server: URL y clave privadas del navegador, catálogo y enlaces temporales |
 | 7d | `js/cuenta.js` | `GMM.cuenta` | **(V GMM 0029)** Cuenta opcional con Firebase: login, registro, recuperar contraseña, sincronizar Mis listas |
 | 8 | `js/ui.js` | `GMM.ui` | Componentes, avisos |
 | 9 | `js/app.js` | `GMM.app` | Estado, vistas, eventos, arranque |
 | 10 | `js/pwa.js` | `GMM.pwa` | Service worker y botón de instalar |
 
-**Proyecto paralelo GMM Server (fase 1, 2026-08-05):** `gmm-server/` contiene el servidor
-multimedia propio de GiveMyMovies —no Jellyfin—, construido con Node.js 22 y sin dependencias
-npm. Por ahora está separado de `index.html`: escanea carpetas locales o discos externos,
-deduce título/año, conserva un catálogo privado, marca discos desconectados y ofrece una API
-local protegida que nunca publica rutas físicas. Configuración, clave y catálogo están en
-`gmm-server/PRIVADO/`, excluido del repositorio. Sus 14 pruebas pasan. Todavía no incluye TMDB,
-reproducción/descarga, emparejamiento con GMM, FFmpeg ni acceso remoto; ver su `README.md`.
+**GMM Server (fase 2 local, V GMM 0033):** `gmm-server/` contiene el servidor multimedia propio
+de GiveMyMovies —no Jellyfin—, construido con Node.js 22 y sin dependencias npm. La PWA lo usa
+desde la vista **▶ Te la tengo**: guarda su URL y clave solo en el navegador, consulta el
+catálogo privado y solicita enlaces temporales para reproducir o descargar. El servidor admite
+rangos HTTP y nunca publica rutas físicas ni su clave. Configuración, clave y catálogo están en
+`gmm-server/PRIVADO/`, excluido del repositorio. No hay FFmpeg ni red remota configurada; algunos
+MKV pueden requerir descarga y la siguiente etapa de red será Tailscale. Ver su `README.md`.
 La biblioteca real completa detectó 37 vídeos disponibles (105,4 GB) y confirmó que la API
 pública no contiene el campo `ruta` ni la ubicación del disco. Un archivo nuevo o modificado
 solo pasa de `copiandose` a `disponible` tras conservar tamaño y fecha en dos revisiones.
@@ -918,7 +919,7 @@ sirve una carátula distinta según el locale.
 | `firestore.rules` | Copia de referencia de las reglas de seguridad de Firestore (V GMM 0031). **No se aplica solo:** hay que publicarlo a mano en la consola de Firebase |
 | `manifest.json`, `sw.js`, `iconos/` | Lo que hace la app instalable en el móvil (§5.7) |
 | `pruebas/` | `cargar.js`, `logica.js`, `imagenes.js`, `interfaz.js`, `pwa.js`, `clave.js`, `LEEME.md` |
-| `gmm-server/` | Servidor multimedia propio en desarrollo; la fase 1 local incluye escáner, catálogo privado, API protegida, manual y pruebas |
+| `gmm-server/` | Servidor multimedia 0.2.0: escáner, catálogo privado, API protegida y enlaces temporales de vídeo/descarga |
 | `.gitignore` | Excluye `node_modules` de las pruebas y las capturas |
 
 Más un **skill de cierre de versión** en `~/.claude/skills/givemymovies-commit/SKILL.md`, que
@@ -1008,6 +1009,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.35 | V GMM 0033 | 05-08-2026 | **GMM Server se integra localmente con la PWA.** Nace la vista «▶ Te la tengo»: URL y clave almacenadas solo en el navegador, catálogo del PC, carátulas TMDB y acciones Ver/Descargar. GMM Server 0.2.0 entrega enlaces temporales sin rutas físicas ni claves y soporta rangos HTTP. No configura aún acceso remoto ni FFmpeg. `sw.js` 30→31; `logica.js` 184/184 y servidor 16/16. Falta prueba visual/manual antes de publicar. |
 | 1.32 | V GMM 0030 | 02-08-2026 | **Se reubica la barra de cabecera**, a petición del usuario (§6). Cuenta (`#btnCuenta`) sale de la barra y ocupa, en el header, el hueco que dejaba el punto de estado; el punto de estado (`#pastillaModo`) baja a la fila del título del buscador, a su derecha, en `position: absolute` para no descuadrar el centrado. `⚙` y el interruptor Película/Serie se mudan a la izquierda de la barra, junto a Mis listas; Instalar se queda solo a la derecha. **«Mis compras»** (`#btnBiblioteca`) queda **oculto** (`.oculto` estático): el usuario decidió que no aportaba lo suficiente para tener sitio en la barra; su lógica sigue intacta, «Mi copia» en cada ficha no cambia. Cambio de HTML/CSS puro —todo son selectores por `id`, ningún JS se toca—. Corregidos también dos puntos de documentación desactualizados que salieron a la luz al revisar esta zona (§5.2, §6). Criterio A54. `sw.js` 27→28, `logica.js` 177 (sin cambios de lógica), `interfaz.js` 127 (el test de «Mis compras» ahora le quita `.oculto` antes de pulsar: `{ force: true }` no sirve con `display: none`), `pwa.js` 20. |
 | 1.31 | V GMM 0029 | 02-08-2026 | **Cuenta opcional con Firebase: login, registro, recuperar contraseña y sincronizar Mis listas** (§5.5b). Retoma `PENDIENTES.md` §2, con dos decisiones distintas de lo planteado: **correo/contraseña** (no Google) y el **SDK de Firebase vía CDN** (no su API REST) — única excepción consciente a R3, «sin librerías», de todo el proyecto. Sin sesión la app funciona exactamente igual que siempre. Módulo nuevo `GMM.cuenta` (bloque 7d): `disponible()` guarda toda función pública y degrada sin romper nada si el SDK no cargó (sin internet); `registrar`/`iniciarSesion`/`cerrarSesion`/`recuperarContrasena` sobre `firebase.auth()`; `sincronizar`/`fusionarAlEntrar` sobre `firebase.firestore()` (`usuarios/{uid}`). `GMM.util.fusionarListas` (pura): une local+nube por `(id, tipo)`, conserva la fecha `anadida` más antigua ante un duplicado. Botón `#btnCuenta` en la barra y modal `#capaCuenta` con 4 vistas (entrar/registro/recuperar/perfil). Config `GMM.config.FIREBASE` (no secreta). Requiere, a mano en la consola de Firebase: activar «Correo/contraseña» y publicar las reglas de Firestore. Criterios A49–A53. `sw.js` 26→27, `logica.js` 166→177, `interfaz.js` 120→127 (`GMM.cuenta` stubeado, como `GMM.drive`), `pwa.js` 20. |
 | 1.30 | V GMM 0028 | 01-08-2026 | **Solo documentación, la app no cambia.** Segunda pasada de aligerado de `CLAUDE.md`: los temas abiertos salen a **`PENDIENTES.md`** (§11 se queda con una tabla de estado), el diseño ya construido del Nivel 2 de Drive se va al apéndice de `HISTORIAL.md`, y se retira la duplicación entre §4 y §9 dejando el desarrollo en §9. **Correcciones de contenido falso:** §10 afirmaba que GitHub Pages «no está activado» contradiciendo la cabecera —lo está desde la 0004—, y §8 listaba como «límites conocidos» tres cosas que ya no lo eran (series en las cuatro búsquedas, puntuaciones de otras plataformas, filmografía de dirección); §8 gana en cambio las condiciones reales del Nivel 2 de Drive. `CLAUDE.md`: 58.786 → 50.770 caracteres. |

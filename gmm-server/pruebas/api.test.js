@@ -3,13 +3,16 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { once } = require("node:events");
-const { crearServidorApi } = require("../src/api");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const { crearServidorApi, rangoSolicitado } = require("../src/api");
 
 function catalogoDePrueba() {
   return {
     version: 1,
     actualizadoEn: "2026-08-05T00:00:00.000Z",
-    resumen: { total: 1, disponibles: 1, carpetas: 1 },
+    resumen: { total: 1, disponibles: 1, copiandose: 0, carpetas: 1 },
     carpetas: [{ nombre: "Prueba", disponible: true, peliculas: 1 }],
     peliculas: [{ id: "abc", tituloDetectado: "Prueba", disponible: true }]
   };
@@ -18,7 +21,8 @@ function catalogoDePrueba() {
 async function levantar(t) {
   const gestor = {
     obtenerPublico: catalogoDePrueba,
-    escanearConfirmando: async function () { return catalogoDePrueba(); }
+    escanearConfirmando: async function () { return catalogoDePrueba(); },
+    obtenerArchivo: function () { return null; }
   };
   const configuracion = {
     nombreServidor: "GMM de prueba",
@@ -78,4 +82,62 @@ test("acepta el origen de GMM y rechaza otros", async function (t) {
     headers: { Origin: "https://ejemplo-malicioso.invalid" }
   });
   assert.equal(denegada.status, 403);
+});
+
+test("interpreta rangos simples de v\u00eddeo", function () {
+  assert.deepEqual(rangoSolicitado("bytes=2-4", 10), { inicio: 2, fin: 4 });
+  assert.deepEqual(rangoSolicitado("bytes=7-", 10), { inicio: 7, fin: 9 });
+  assert.deepEqual(rangoSolicitado("bytes=-3", 10), { inicio: 7, fin: 9 });
+  assert.equal(rangoSolicitado("bytes=20-21", 10), false);
+  assert.equal(rangoSolicitado("bytes=1-2,4-5", 10), false);
+});
+
+test("emite un enlace temporal y sirve reproducci\u00f3n o descarga sin revelar la ruta", async function (t) {
+  const carpeta = fs.mkdtempSync(path.join(os.tmpdir(), "gmm-media-"));
+  const archivo = path.join(carpeta, "Prueba (2024).mp4");
+  fs.writeFileSync(archivo, "abcdef");
+  t.after(function () { fs.rmSync(carpeta, { recursive: true, force: true }); });
+
+  const gestor = {
+    obtenerPublico: catalogoDePrueba,
+    escanearConfirmando: async function () { return catalogoDePrueba(); },
+    obtenerArchivo: function (id) {
+      if (id !== "abc") return null;
+      return { id: "abc", ruta: archivo, nombreArchivo: "Prueba (2024).mp4", extension: ".mp4", disponible: true };
+    }
+  };
+  const configuracion = {
+    nombreServidor: "GMM de prueba",
+    claveAdministracion: "secreto-de-prueba-12345678901234567890",
+    origenesPermitidos: ["https://alberthoma.github.io"],
+    duracionEnlaceMinutos: 10
+  };
+  const servidor = crearServidorApi(configuracion, gestor, { error: function () {} });
+  servidor.listen(0, "127.0.0.1");
+  await once(servidor, "listening");
+  t.after(function () { servidor.close(); });
+  const base = `http://127.0.0.1:${servidor.address().port}`;
+  const clave = { Authorization: "Bearer secreto-de-prueba-12345678901234567890" };
+
+  const denegada = await fetch(`${base}/api/medios/abc`);
+  assert.equal(denegada.status, 401);
+
+  const creada = await fetch(`${base}/api/medios/abc`, { headers: clave });
+  const datos = await creada.json();
+  assert.equal(creada.status, 200);
+  assert.match(datos.ruta, /^\/_gmm\/medio\/[A-Za-z0-9_-]{30,}$/);
+  assert.equal(JSON.stringify(datos).includes(archivo), false);
+
+  const parcial = await fetch(base + datos.ruta, { headers: { Range: "bytes=1-3" } });
+  assert.equal(parcial.status, 206);
+  assert.equal(parcial.headers.get("content-range"), "bytes 1-3/6");
+  assert.equal(await parcial.text(), "bcd");
+  assert.match(parcial.headers.get("content-type"), /^video\/mp4/);
+
+  const descarga = await fetch(`${base}/api/medios/abc?tipo=descarga`, { headers: clave });
+  const enlaceDescarga = await descarga.json();
+  const archivoDescarga = await fetch(base + enlaceDescarga.ruta);
+  assert.equal(archivoDescarga.status, 200);
+  assert.match(archivoDescarga.headers.get("content-disposition"), /^attachment/);
+  assert.equal(await archivoDescarga.text(), "abcdef");
 });

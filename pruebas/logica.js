@@ -186,6 +186,20 @@ GMM.biblioteca.quitar(157336, "movie");
 m.afirmar("quitar la elimina", !GMM.biblioteca.tiene(157336, "movie") && GMM.biblioteca.total() === 1);
 m.afirmar("todas() devuelve las entradas guardadas", GMM.biblioteca.todas().length === 1);
 
+/* ---------------------------------------------------------------- */
+m.titulo("GMM Server: conexión privada en este navegador (V GMM 0033)");
+
+m.afirmar("normaliza la dirección y retira la barra final",
+  GMM.servidor.normalizarUrl("http://127.0.0.1:7399/") === "http://127.0.0.1:7399");
+m.afirmar("rechaza una dirección que no sea HTTP(S)", GMM.servidor.normalizarUrl("ftp://ejemplo") === "");
+m.afirmar("guarda la dirección y la clave fuera del HTML", GMM.servidor.guardar("https://gmm.tailnet.ts.net/", "clave-prueba"));
+let conexionServidor = GMM.servidor.configuracion();
+m.afirmar("conserva una URL HTTPS normalizada", conexionServidor.url === "https://gmm.tailnet.ts.net");
+m.afirmar("conserva la clave solo en el almacenamiento del dispositivo", conexionServidor.clave === "clave-prueba" &&
+  global.__almacen[GMM.config.CLAVE_SERVIDOR].includes("clave-prueba"));
+m.afirmar("rechaza guardar una dirección inválida", !GMM.servidor.guardar("no es una url", "clave"));
+m.afirmar("permite borrar la conexión", GMM.servidor.guardar("", "") && !GMM.servidor.conectado());
+
 m.titulo("Interpretación del enlace de la copia (GMM.util.enlaceCopia)");
 const eDrive = GMM.util.enlaceCopia("https://drive.google.com/file/d/1AbC-dEfGhIJ/view?usp=sharing");
 m.afirmar("un enlace de Drive saca el id y arma ver + descargar directa",

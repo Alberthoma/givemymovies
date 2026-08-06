@@ -7,8 +7,12 @@ herramienta aparte, opcional, para comprobar que un cambio no rompió nada.
 
 Desde la raíz del proyecto:
 
+Para abrir la versión local de la app sin publicar, ejecuta `node pruebas/servidor-local.js` y
+entra en `http://127.0.0.1:8080`. Solo escucha en este PC y bloquea `PRIVADO/`, `gmm-server/` y
+los respaldos.
+
 ```bash
-node pruebas/logica.js      # 177 comprobaciones · sin dependencias · instantáneo
+node pruebas/logica.js      # 184 comprobaciones · sin dependencias · instantáneo
 node pruebas/imagenes.js    #  15 comprobaciones · necesita internet · ~30 s
 node pruebas/interfaz.js    # 127 comprobaciones · necesita playwright-core · ~60 s
 node pruebas/pwa.js         #  20 comprobaciones · necesita playwright-core · ~20 s
