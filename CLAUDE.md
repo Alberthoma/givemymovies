@@ -2,8 +2,8 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0036` (validación local; aún no publicada)
-**Próxima versión:** `V GMM 0037`
+**Versión activa:** `V GMM 0037` (validación local; aún no publicada)
+**Próxima versión:** `V GMM 0038`
 **Última actualización:** 2026-08-06
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies-g/> · GitHub Pages desde `main`, raíz.
@@ -883,6 +883,7 @@ y aquí pesaban en cada sesión). **No los abordes por iniciativa propia.**
 | **2 · Login y sincronización de listas** | **Resuelto** desde la 0029, con matices | Se implementó con **correo/contraseña** (no Google, que era lo recomendado) y con el **SDK de Firebase** (no su API REST, que era el plan para no chocar con R3) — ambas cosas por decisión explícita del usuario. Ver §4 «La cuenta…» y §3 |
 | **3 · Premios (Oscar, Emmy)** | **Descartado** con el usuario | TMDB no publica datos de premios: no hay endpoint ni campo, y aproximarlo sería inventar. Haría falta otra fuente |
 | **4 · Sincronizar claves (TMDB/OMDb/GMM Server) entre dispositivos** | **Resuelto** desde la 0035 | Se implementó con **«la nube siempre gana»**, sin fusión (decisión explícita del usuario, distinta del comportamiento de Mis listas). Ver §4 «La cuenta y sincronizar…» |
+| **5 · Acceso remoto a GMM Server (fuera de casa)** | **Sin empezar** | Hoy el servidor solo escucha en `127.0.0.1`: ni el móvil en la misma wifi se conecta. El plan es Tailscale (instalar en PC y móvil, usar su IP privada en ⚙ en vez de `127.0.0.1`), nunca abrir el puerto directo a Internet. Desarrollo en `PENDIENTES.md` §3 |
 
 ---
 
@@ -898,6 +899,7 @@ en `HISTORIAL.md`.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| V GMM 0037 | 2026-08-06 | Solo documentación: se añade a `CLAUDE.md` §11 el pendiente «Acceso remoto a GMM Server» (Tailscale), que existía en `PENDIENTES.md` §3 pero nunca se había resumido en el índice — una auditoría del usuario sobre qué faltaba de la función GMM Server lo sacó a la luz. |
 | V GMM 0036 | 2026-08-06 | Nueva app de escritorio para GMM Server (`GMM-Server.vbs` + `GMM-Server-Panel.ps1`, PowerShell + Windows Forms): iniciar/detener, escanear sin reiniciar, añadir/quitar carpetas con selector nativo, bandeja del sistema. No toca la PWA. |
 | V GMM 0035 | 2026-08-05 | Las claves de TMDB, OMDb y GMM Server sincronizan con la cuenta, junto a Mis listas: «la nube siempre gana», a petición explícita del usuario. `sw.js` 31→32 (cubre también el código JS de la 0034, que no subió VERSION por error). |
 | V GMM 0034 | 2026-08-05 | `GMM.pwa` pide almacenamiento persistente (`navigator.storage.persist()`) al arrancar, para que el navegador no evicte los datos del sitio. Se confirma además, tras investigar un reporte de claves "borradas", que TMDB/OMDb/GMM Server nunca sincronizaban entre dispositivos por diseño (solo Mis listas lo hacía) — no era un fallo. Resuelto de raíz en la 0035. |
