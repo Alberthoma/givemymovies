@@ -2,9 +2,9 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0037` (validación local; aún no publicada)
-**Próxima versión:** `V GMM 0038`
-**Última actualización:** 2026-08-06
+**Versión activa:** `V GMM 0038`
+**Próxima versión:** `V GMM 0039`
+**Última actualización:** 2026-08-07
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies-g/> · GitHub Pages desde `main`, raíz.
 
@@ -185,7 +185,7 @@ Su objetivo es leer películas de carpetas locales o discos externos y entregarl
 a GMM sin subir los vídeos a Drive ni a otra nube. La fase 2 local conecta la PWA con el
 servidor: Node.js 22, sin dependencias npm, configuración y catálogo en
 `gmm-server/PRIVADO/` (ignorado), escaneo recursivo, título/año desde el nombre, persistencia,
-disco desconectado sin borrar el catálogo y API local protegida. `npm.cmd test` pasa **16/16**.
+disco desconectado sin borrar el catálogo y API local protegida. `npm.cmd test` pasa **34/34**.
 La primera biblioteca real completa detectó 37 vídeos disponibles (105,4 GB), 21 MP4 y
 16 MKV, sin publicar la ruta del disco; la ubicación exacta solo vive en `PRIVADO/`.
 Desde la V GMM 0032, un archivo nuevo o modificado debe conservar tamaño y fecha en dos
@@ -196,9 +196,37 @@ carátulas desde TMDB y muestra la vista **▶ Te la tengo**. Para cada reproduc
 un enlace temporal: el servidor conserva la ruta física internamente, admite solicitudes HTTP
 por rango y nunca envía la clave ni la ruta al reproductor. La API pública no tiene borrado.
 
-**Límites actuales:** no hay transcodificación con FFmpeg (algunos MKV pueden descargarse pero
-no reproducirse en el navegador) ni acceso remoto configurado. La siguiente fase de red es
-Tailscale, sin abrir el puerto 7399 al Internet público. Manual y comandos en `gmm-server/README.md`.
+**Desde V GMM 0038, ya no quedan límites de FFmpeg ni de acceso remoto — los dos se resolvieron.**
+Ver los dos bloques nuevos más abajo («Conversión con FFmpeg» y «Acceso remoto: HTTPS con
+Tailscale Serve»). Manual y comandos completos en `gmm-server/README.md`.
+
+**Conversión con FFmpeg (desde V GMM 0038).** `src/compatibilidad.js` sondea cada vídeo con
+`ffprobe` en el escaneo (`evaluarCompatibilidad`, pura y testeada) y lo clasifica en
+`"compatible"` (se sirve tal cual), `"remux"` (contenedor incompatible pero códecs válidos —
+cambio de contenedor rápido, sin pérdida) o `"transcodificar"` (códec no soportado por el
+navegador — recodificación real, lenta). `src/transcodificar.js` hace el trabajo con `ffmpeg`,
+en cola de una conversión a la vez, cacheando el resultado en disco (`rutaCacheTranscodificacion`)
+para no repetirlo. `GET /api/medios/:id` devuelve **202 "preparando"** mientras convierte, en vez
+de fallar; la PWA sondea hasta que hay ticket. **Si `ffmpeg`/`ffprobe` no están instalados, todo
+sigue funcionando exactamente igual que antes** (solo sin conversión): la ausencia se detecta
+sola, nunca hace falta desactivar nada a mano.
+
+**Acceso remoto: HTTPS con Tailscale Serve (desde V GMM 0038, reemplaza el plan de `host:
+0.0.0.0` de versiones anteriores).** GiveMyMovies se sirve por `https://`, y los navegadores
+bloquean que una página segura hable con una dirección `http://` sin cifrar («contenido mixto») —
+así que poner `host: 0.0.0.0` y usar la IP de Tailscale en `http://` (el plan original) conecta
+bien a mano desde el propio PC pero **falla en silencio desde el navegador del móvil**, sin
+explicar por qué. Se descubrió así, en vivo, con un usuario real bloqueado. La solución correcta:
+`tailscale serve --bg <puerto>` pone un certificado HTTPS real (de Let's Encrypt, vía Tailscale)
+delante de `http://127.0.0.1:<puerto>`, sin tocar nada de la configuración de GMM Server — `host`
+puede quedarse en `127.0.0.1`, el valor seguro por defecto. El panel (`GMM-Server-Panel.ps1`)
+automatiza esto con el botón **"Activar HTTPS con Tailscale"**: detecta el nombre de este
+dispositivo en la tailnet (`tailscale status --json`) y ejecuta `tailscale serve` por el usuario;
+si la cuenta de Tailscale todavía no tiene activados los certificados HTTPS, se lo dice con el
+enlace exacto (`login.tailscale.com/admin/dns`) — ese paso web, con cuenta propia, es el único
+que no se puede automatizar. **Aviso también documentado en la propia app:** dos VPN a la vez en
+el mismo dispositivo (por ejemplo NordVPN y Tailscale) es un conflicto conocido — Tailscale puede
+seguir mostrando «Connected» en verde mientras el tráfico real entre dispositivos deja de pasar.
 
 **Desde V GMM 0036, `gmm-server/GMM-Server.vbs` abre una app de escritorio propia** —
 `GMM-Server-Panel.ps1`, PowerShell + Windows Forms, sin dependencias— para manejar el servidor
@@ -214,6 +242,54 @@ sola por el puerto ocupado (comprobación con temporizador tras el arranque). Lo
 cree el proceso —el propio formulario— nazca invisible (herencia del estado inicial de Windows);
 el lanzador abre PowerShell normal y es el script el que se oculta su propia consola ya en
 marcha, así el formulario sale visible sin problema.
+
+**Desde V GMM 0038, GMM Server se entrega como dos `.exe` sueltos** —`GMM-Server.exe` (enciende
+el servidor) y `GMM-Instalar.exe` (instala Node.js, FFmpeg y Tailscale con `winget`, con botón,
+sin consola)— compilados con **ps2exe** desde los mismos `.ps1` de siempre
+(`gmm-server/build/Compilar.ps1`, herramienta de desarrollo, no se distribuye). `GMM-Server.exe`
+lleva el motor entero (`servidor.js`, `src/*.js`, `preparar.js`, `configuracion.ejemplo.json`)
+**incrustado dentro del propio `.exe`** (`-embedFiles` de ps2exe); en el primer arranque se
+autoextrae a `%LOCALAPPDATA%\GMM-Server\motor`, y ahí vive también su `PRIVADO\configuracion.json`
+— por eso el `.exe` es portable (se copia a cualquier PC, sin arrastrar una carpeta con
+docenas de archivos) y dos copias en dos PCs distintos no se pisan. La configuración privada
+**se crea sola la primera vez** (`Crear-ConfiguracionSiFalta`, llama al mismo `preparar.js` de
+siempre para no duplicar la lógica de generar la clave al azar) — ya no hace falta abrir
+PowerShell ni ejecutar nada a mano en un PC nuevo. La carpeta de distribución final,
+`GMM-Server-para-instalar/` (en la raíz del proyecto, gitignorada), contiene **solo esos dos
+`.exe`** — nada de código suelto ni instrucciones, a petición explícita del usuario.
+
+**Dos fallos reales encontrados y arreglados en V GMM 0038, los dos por la misma causa raíz:**
+dentro de un `.exe` compilado con ps2exe en modo `-noConsole`, **los callbacks asíncronos que
+capturan una variable local por cierre no se resuelven bien** — funcionaban al ejecutar el mismo
+`.ps1` sin compilar, pero fallaban compilados, con el mensaje genérico de PowerShell "No se puede
+llamar a un método en una expresión con valor NULL". Se encontró primero en el temporizador de
+un solo disparo que comprueba si el servidor se cayó justo al arrancar (una variable `$comprobacion`
+local que su propio `Add_Tick` no encontraba al dispararse más tarde) — arreglado usando
+`$script:comprobacionArranque` en vez de una variable de función. La misma causa hacía que
+`Register-ObjectEvent` (capturar la salida en vivo de `node.exe` con `OutputDataReceived`) nunca
+disparase sus eventos dentro del `.exe` compilado, ni con el evento de PowerShell ni con un
+delegado .NET directo — se comprobó con una reproducción mínima antes de tocar el código real.
+Se quitó esa captura en vivo; ahora, si el servidor se cae justo al arrancar, se lee su salida de
+forma **síncrona** (`ReadToEnd`, seguro porque el proceso ya está muerto en ese punto) solo para
+explicar por qué. Además, `[System.Windows.Forms.Application]::add_ThreadException` capta
+cualquier excepción no prevista en cualquier parte de la ventana (no solo al arrancar) y muestra
+un aviso propio traducido, con el detalle completo apuntado en
+`%LOCALAPPDATA%\GMM-Server\errores.log`, en vez de dejar que se vea el diálogo crudo de .NET.
+
+**También en V GMM 0038: un clic de más ya no apila ventanas.** Antes, doblar clic en
+`GMM-Server.exe` mientras ya había una copia abierta mostraba un aviso «ya está abierto» — y
+como la app no tiene ventana de consola, es fácil no ver reacción inmediata y hacer varios clics
+seguidos, apilando un aviso idéntico por cada uno (visto en la práctica: una fila entera de
+ventanas). Ahora una copia de más no muestra nada: como mucho intenta traer al frente la ventana
+que ya existe (`FindWindow` + `SetForegroundWindow`), y se cierra en silencio con
+`[System.Environment]::Exit(0)`.
+
+**Documentación para el usuario final, en tres niveles** (todas en `gmm-server/`, no en la
+carpeta de distribución de dos archivos): `EMPEZAR-DESDE-CERO.md` (guía completa por si se
+trabaja desde el código fuente), `GUIA-PASO-A-PASO.txt` (texto plano, para acompañar los dos
+`.exe` si se entregan a otra persona) y `GUIA-VISUAL.html` (tutorial en carrusel de 8
+diapositivas, con recreaciones en CSS de las ventanas reales y el botón exacto marcado con un
+número — pensado para quien prefiere ver antes de leer).
 
 ### Aplicación instalable (PWA)
 
@@ -272,6 +348,28 @@ funcionan igual. **La app arranca sin método elegido** (`estado.metodo = ""`; d
 antes era «buscar»), y el método no se restaura de `gmm_prefs`: cada recarga vuelve a ese arranque
 limpio. **El botón ⚙ sigue siendo un círculo compacto** (`#btnAjustes`, 34 px, el engranaje sin
 reducir), solo que ya no está pegado a la derecha de la barra: vive en `.barra-izq`.
+
+**Desde V GMM 0038, el interruptor muestra «Películas» antes que «Series»** (los dos
+`.tipo-op` intercambiaron su orden en el DOM, a petición del usuario). Seguro de tocar: ni el
+CSS (`.tipo-op[data-tipo="…"].activa`) ni el JS (`closest("[data-tipo]")`, en `reflejar()` y en
+el manejador de clic) dependen de la posición, solo del atributo `data-tipo`.
+
+**La barra bajo el header se reorganiza en el móvil (≤620px) en una rejilla de 2 filas**, a
+petición del usuario, harto de que en su móvil los controles quedaran amontonados: arriba,
+volver (solo en resultados) / interruptor centrado / ⚙; abajo, Mis listas / Te la tengo /
+Instalar. `.barra-listas` y `.barra-volver` —hasta entonces bloques hermanos independientes,
+el segundo con su propio `.oculto` según haya resultados— se envuelven en un nuevo contenedor
+puramente estructural, `.barra-superior`, que en escritorio es `display: contents` (no existe a
+efectos visuales: sus dos hijas siguen fluyendo exactamente igual que antes) y solo en el móvil
+pasa a `display: grid` con `grid-template-areas`. Para que los botones sean hijos directos de
+esa rejilla sin duplicarlos ni tocar una línea de JS, `.barra-listas`, `.barra-izq` y
+`.barra-der` también se «aplanan» (`display: contents`) en el móvil — mismo truco que ya usa el
+modal-formulario (`.forma` + `display: contents` en `.panel-buscar`/`.descubrir`/`.filtros`) para
+repartir campos de varios bloques en una sola rejilla. `.barra-volver` **no** se aplana: viaja
+como un único elemento de rejilla, así que el botón ← y el desplegable «Ordenar» siguen
+apareciendo juntos, tal como ya iban. `#btnBiblioteca` («Mis compras») no recibe área propia a
+propósito: sigue oculto por la regla global `.oculto` (con `!important`), y **darle una regla
+`display: none` aparte rompía la prueba que lo destapa a mano para probarlo** (ver §9).
 
 ### El modal-formulario (desde V GMM 0022)
 
@@ -627,7 +725,7 @@ el `og:image`. Y no cojas el primer `<img>` de la página: suele ser un recomend
 **La aplicación no tiene dependencias.** `pruebas/` es una herramienta aparte y opcional.
 
 ```bash
-node pruebas/logica.js      # 184 comprobaciones · sin dependencias · instantáneo
+node pruebas/logica.js      # 188 comprobaciones · sin dependencias · instantáneo
 node pruebas/imagenes.js    #  15 comprobaciones · necesita internet · ~30 s
 node pruebas/interfaz.js    # 127 comprobaciones · playwright-core y, desde 0029, internet ·  ~60 s
 node pruebas/pwa.js         #  20 comprobaciones · playwright-core · ~20 s
@@ -667,6 +765,18 @@ llamar a `GMM.ui.aviso` según `error.code === "permission-denied"`—, y `inter
 `GMM.cuenta` entero, de modo que no exercitaría el cambio; no se añadieron comprobaciones. Al
 publicar hay que subir `sw.js` a `gmm-app-v29` (ya hecho) para que los navegadores con la app
 cacheada reciban esta versión.
+
+**La V GMM 0038 se cerró en local**, las cuatro suites que tocaba: `logica.js` **188/188**
+(4 comprobaciones nuevas, sobre los estados 202/409/500 de `GMM.servidor.enlace`), `interfaz.js`
+**127/127** (sin cambio de número: la reorganización móvil de la barra es solo CSS, sobre
+elementos que ya existían) y `pwa.js` **20/20** (caché `gmm-app-v33`) para la PWA; y, aparte,
+el `npm.cmd test` de `gmm-server` **34/34** (18 comprobaciones nuevas de esta versión: detección
+de compatibilidad de vídeo, transcodificación con caché, y los nuevos estados de `/api/medios/:id`).
+Verificado además visualmente contra `pruebas/capturas/05-movil.png` para la rejilla de 2 filas.
+El acceso remoto real (Tailscale Serve, el botón «Activar HTTPS con Tailscale», el conflicto con
+otra VPN) **no se puede probar en CI** —necesita una tailnet real, una cuenta de Tailscale y un
+segundo dispositivo—, así que la verificación de punta a punta la hizo el usuario en su propio
+PC y móvil, en vivo, incluido el diagnóstico del conflicto con NordVPN.
 
 > **Correr `interfaz.js`/`pwa.js` en remoto, sin npm** (aprendido en la 0024): aunque
 > `npm install playwright-core` esté bloqueado por la política de red, el entorno suele traer un
@@ -816,6 +926,9 @@ Comprobación manual rápida, si no quieres ejecutar nada:
 | **El texto de consola de un recurso 404 es genérico** (0024) | `interfaz.js` filtra el error esperado de `clave-local.js`, pero lo hace por el **texto de consola**, que en un fallo de recurso es solo «Failed to load resource: …» **sin la URL**: el filtro no casa. En local no salta porque `PRIVADO/clave-local.js` existe y hay internet; en un entorno cerrado (sin `PRIVADO/`, con `image.tmdb.org` bloqueado) esos contadores de «errores acumulados» fallan **sin ser regresión**. Compara contra el respaldo antes de dar por rota la interfaz. |
 | **Un comentario con la palabra `<script>` rompe la extracción del test** (0029) | `pruebas/cargar.js` localiza el `<script>` de la app con `lastIndexOf("<script>", fin)` (ver la trampa de los «Dos bloques `<script>`» más arriba): busca la ÚLTIMA aparición literal de esa cadena antes del cierre. Un comentario dentro del propio bloque JS que mencionara «…ver los `<script>` antes del bloque 1» quedaba más cerca del final que la etiqueta de apertura real, así que `lastIndexOf` la tomaba a ELLA como inicio y `logica.js` reventaba con un `SyntaxError` sin sentido aparente. No escribas la cadena literal `<script>` dentro de un comentario que viva dentro del bloque `<script>` de la app; dila de otra forma («los scripts», «las tres etiquetas»…). |
 | **`{ force: true }` de Playwright no rescata un `display: none`** (0030) | Al ocultar `#btnBiblioteca` con `.oculto` estático, el test que lo pulsaba (`pagina.click("#btnBiblioteca")`) empezó a fallar con «Element is not visible» **incluso añadiendo `{ force: true }`**: ese flag salta las comprobaciones de accionabilidad (tapado, inestable…), pero un elemento `display: none` no tiene caja en la página, así que Playwright no tiene dónde hacer clic. La solución fue quitarle `.oculto` con `page.evaluate` justo antes del clic, probando así que la lógica sigue intacta detrás de un botón oculto a propósito. Si ocultas algo que un test pulsa, este es el patrón: **destapar, pulsar, no forzar**. |
+| **Callbacks asíncronos capturados por cierre, rotos solo al compilar con ps2exe** (0038, `gmm-server`) | `Register-ObjectEvent` (capturar en vivo la salida de `node.exe`) y un `Add_Tick` de `System.Windows.Forms.Timer` que leía una variable **local** de la función que lo creó funcionaban perfectamente al ejecutar el `.ps1` sin compilar, pero fallaban compilados en `-noConsole`, con «No se puede llamar a un método en una expresión con valor NULL» — sin relación aparente con la causa real. Se confirmó con una reproducción mínima aparte antes de tocar el código de producción. Arreglo del Timer: variable **`$script:`**, no local, dentro del `Add_Tick`. Arreglo del `Register-ObjectEvent`: se abandonó la captura en vivo; la salida solo se lee si hace falta, de forma síncrona (`ReadToEnd`, tras confirmar que el proceso ya murió). Cualquier callback nuevo en un `.ps1` que se vaya a compilar con ps2exe: probarlo primero **ya compilado**, no solo como script. |
+| **Un clic de más, si muestra su propio aviso, se convierte en una fila de ventanas** (0038, `gmm-server`) | El mutex de instancia única SÍ bloqueaba bien los duplicados, pero cada intento de más mostraba un `MessageBox` — y sin consola visible es fácil hacer varios doble clics seguidos por impaciencia, apilando avisos idénticos (visto en la práctica: una fila entera). No era un fallo del mutex, era mostrar algo por cada intento de más. Arreglo: un intento de más no muestra nada, como mucho intenta enfocar la ventana que ya existe. |
+| **Una regla CSS "de más" puede romper el patrón "destapar, pulsar, no forzar"** (0038) | Al ocultar `#btnBiblioteca` con una regla nueva dentro del media query del móvil (redundante: la global `.oculto` con `!important` ya lo cubría en todos los anchos), el test de la trampa 0030 —que le quita `.oculto` a mano antes de pulsarlo— dejó de encontrarlo, porque mi regla nueva no tenía `!important` pero tampoco dependía de `.oculto`, así que seguía aplicando aunque el test la quitase. Antes de añadir un ocultado "por si acaso", comprueba si ya hay uno cubriéndolo. |
 
 ---
 
@@ -831,8 +944,9 @@ Comprobación manual rápida, si no quieres ejecutar nada:
 | `PROMPT-MAESTRO.md` | Prompt que reconstruye el proyecto entero. **Actualízalo con cada cambio.** No lo leas entero: trabaja por secciones (~22.000 tokens) |
 | `firestore.rules` | Copia de referencia de las reglas de seguridad de Firestore (desde V GMM 0031). **No se aplica solo:** hay que publicarlo a mano en la consola de Firebase. Ver §4 «La cuenta…» |
 | `pruebas/` | Herramienta de verificación, opcional y con dependencias propias |
-| `gmm-server/` | Servidor multimedia propio 0.2.0: catálogo privado, enlaces temporales de vídeo y descarga. Sus secretos y catálogo viven en `gmm-server/PRIVADO/` |
-| `.gitignore` | Excluye `node_modules`, capturas y **`PRIVADO/`** |
+| `gmm-server/` | Servidor multimedia propio 0.2.0: catálogo privado, enlaces temporales de vídeo, descarga, conversión con FFmpeg y HTTPS por Tailscale Serve. Sus secretos y catálogo viven en `gmm-server/PRIVADO/`. `gmm-server/build/Compilar.ps1` genera los `.exe` de distribución (herramienta de desarrollo, no se distribuye; necesita el módulo `ps2exe`) |
+| `GMM-Server-para-instalar/` | Los dos únicos archivos que necesita un usuario final: `GMM-Server.exe` y `GMM-Instalar.exe`, ya compilados. A propósito no lleva nada más —ni guías, ni código suelto—; sus `.exe` **no se versionan** (mismo motivo que `build/salida/`), se copian ahí a mano tras compilar |
+| `.gitignore` | Excluye `node_modules`, capturas, **`PRIVADO/`** y los `.exe` compilados de GMM Server (se generan en cada PC de desarrollo, no se versionan binarios) |
 | `PRIVADO/` | **Solo local, jamás versionado.** Credenciales y clave de TMDB |
 | `respaldos/` | **Versionado en git.** Copia de la app completa por versión, hecha antes de modificarla, como red de seguridad. Ver `respaldos/LEEME.md` |
 
@@ -883,7 +997,7 @@ y aquí pesaban en cada sesión). **No los abordes por iniciativa propia.**
 | **2 · Login y sincronización de listas** | **Resuelto** desde la 0029, con matices | Se implementó con **correo/contraseña** (no Google, que era lo recomendado) y con el **SDK de Firebase** (no su API REST, que era el plan para no chocar con R3) — ambas cosas por decisión explícita del usuario. Ver §4 «La cuenta…» y §3 |
 | **3 · Premios (Oscar, Emmy)** | **Descartado** con el usuario | TMDB no publica datos de premios: no hay endpoint ni campo, y aproximarlo sería inventar. Haría falta otra fuente |
 | **4 · Sincronizar claves (TMDB/OMDb/GMM Server) entre dispositivos** | **Resuelto** desde la 0035 | Se implementó con **«la nube siempre gana»**, sin fusión (decisión explícita del usuario, distinta del comportamiento de Mis listas). Ver §4 «La cuenta y sincronizar…» |
-| **5 · Acceso remoto a GMM Server (fuera de casa)** | **Sin empezar** | Hoy el servidor solo escucha en `127.0.0.1`: ni el móvil en la misma wifi se conecta. El plan es Tailscale (instalar en PC y móvil, usar su IP privada en ⚙ en vez de `127.0.0.1`), nunca abrir el puerto directo a Internet. Desarrollo en `PENDIENTES.md` §3 |
+| **5 · Acceso remoto a GMM Server (fuera de casa)** | **Resuelto** desde la 0038 | Tailscale + HTTPS real vía `tailscale serve` (no la IP en `http://` a secas, que probaba bien a mano pero el navegador la bloqueaba desde la PWA por contenido mixto). Automatizado con el botón «Activar HTTPS con Tailscale» del panel. Ver §4 «Acceso remoto: HTTPS con Tailscale Serve» |
 
 ---
 
@@ -899,6 +1013,7 @@ en `HISTORIAL.md`.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| V GMM 0038 | 2026-08-07 | GMM Server: conversión con FFmpeg, acceso remoto real por HTTPS (Tailscale Serve, reemplaza el plan de `host: 0.0.0.0`), empaquetado en dos `.exe` (`GMM-Server.exe` + `GMM-Instalar.exe`, ps2exe), auto-configuración sin consola, dos bugs de producción arreglados (variable local en un `Timer`, eventos asíncronos que no disparaban al compilar) y tres guías nuevas para el usuario final. PWA: la barra superior se reorganiza en 2 filas en el móvil (solo CSS) y se desactiva el zoom por pellizco/doble toque. `sw.js` 32→33. |
 | V GMM 0037 | 2026-08-06 | Solo documentación: se añade a `CLAUDE.md` §11 el pendiente «Acceso remoto a GMM Server» (Tailscale), que existía en `PENDIENTES.md` §3 pero nunca se había resumido en el índice — una auditoría del usuario sobre qué faltaba de la función GMM Server lo sacó a la luz. |
 | V GMM 0036 | 2026-08-06 | Nueva app de escritorio para GMM Server (`GMM-Server.vbs` + `GMM-Server-Panel.ps1`, PowerShell + Windows Forms): iniciar/detener, escanear sin reiniciar, añadir/quitar carpetas con selector nativo, bandeja del sistema. No toca la PWA. |
 | V GMM 0035 | 2026-08-05 | Las claves de TMDB, OMDb y GMM Server sincronizan con la cuenta, junto a Mis listas: «la nube siempre gana», a petición explícita del usuario. `sw.js` 31→32 (cubre también el código JS de la 0034, que no subió VERSION por error). |

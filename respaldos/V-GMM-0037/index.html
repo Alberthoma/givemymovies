@@ -2,11 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<!-- Sin zoom por pellizco ni doble toque: la app quedaba "desajustada" al
-     pellizcar sin querer, sin forma de deshacerlo salvo pellizcar al revés.
-     Efecto secundario asumido: quien necesite ampliar texto por accesibilidad
-     ya no puede hacerlo con este gesto. -->
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>givemymovies — ¿dónde puedo verla?</title>
 <meta name="description" content="Busca una película, un actor o una trama y descubre en qué plataforma y en qué país puedes verla en tu idioma.">
 
@@ -28,10 +24,7 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* Refuerza el "user-scalable=no" del viewport: en varios navegadores (Safari
-   incluido) eso solo frena el pellizco, y el doble toque para ampliar
-   sigue colándose. touch-action lo bloquea de verdad. */
-html { scroll-behavior: smooth; touch-action: manipulation; }
+html { scroll-behavior: smooth; }
 
 body {
   font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -130,11 +123,6 @@ a:hover { text-decoration: underline; }
   background: #2ee6a8;
   box-shadow: 0 0 0 3px rgba(46, 230, 168, 0.18);
 }
-
-/* Envoltorio de .barra-listas + .barra-volver: en escritorio no pinta nada
-   (sus dos hijas siguen fluyendo tal cual, como si el envoltorio no
-   existiera); solo se convierte en rejilla en el móvil, ver 620px. */
-.barra-superior { display: contents; }
 
 /* Barra bajo el header: Mis listas y, a su derecha, instalar y ajustes. */
 .barra-listas { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin: 2px 0 10px; }
@@ -1012,32 +1000,10 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
 @media (max-width: 620px) {
   .app { padding: 0 14px 60px; }
   .buscador { padding: 4px 0 6px; }
-  /* La barra superior pasa a una rejilla de 2 filas: arriba, volver (solo
-     en resultados) / interruptor centrado / ajustes; abajo, Mis listas /
-     Te la tengo / instalar. .barra-superior, .barra-listas, .barra-izq y
-     .barra-der se "aplanan" (display: contents) para que los botones sean
-     hijos directos de la rejilla y se repartan sin duplicarlos ni tocar
-     su JS — mismo botón, mismo id, solo cambia dónde cae visualmente. */
-  .barra-superior {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    grid-template-areas:
-      "volver  switch   ajustes"
-      "listas  tetengo  instalar";
-    align-items: center;
-    gap: 8px;
-    margin: 2px 0 10px;
-  }
-  .barra-listas, .barra-izq, .barra-der { display: contents; }
-  .barra-volver { grid-area: volver; margin: 0; justify-self: start; }
-  #btnListas { grid-area: listas; justify-self: start; }
-  #btnServidor { grid-area: tetengo; justify-self: start; }
-  #tipoSwitch { grid-area: switch; justify-self: center; }
-  #btnAjustes { grid-area: ajustes; justify-self: end; }
-  #btnInstalar { grid-area: instalar; justify-self: end; }
-  /* #btnBiblioteca no lleva área propia a propósito: sigue oculto por la
-     regla global .oculto (con !important), estática, no condicional — igual
-     que en escritorio. No hace falta duplicar el ocultado aquí. */
+  /* La barra superior, apretada para que quepa en una sola línea: Mis
+     listas, interruptor y ⚙ a la izquierda; instalar a la derecha. */
+  .barra-listas { gap: 8px; }
+  .barra-izq, .barra-der { gap: 8px; }
   .barra-listas .boton-cabecera { padding: 7px 11px; font-size: 12.5px; }
   .barra-listas .tipo-op { padding: 6px 11px; font-size: 12px; }
   /* La frase, a una sola línea: fuente más pequeña y sin partir. */
@@ -1105,13 +1071,6 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
     </div>
   </header>
 
-  <!-- Envoltorio puramente estructural: en escritorio es "display: contents"
-       (no pinta nada, ni cambia el flujo de sus dos hijas) y solo cobra vida
-       en el móvil (ver el media query de 620px), donde reparte los mismos
-       botones —sin duplicarlos ni tocar su JS— en una rejilla de 2 filas.
-       Mismo truco que ya usa el modal del formulario (.forma) para no
-       duplicar campos entre bloques. -->
-  <div class="barra-superior">
   <!-- Barra bajo el header. Izquierda: Mis listas, el interruptor peli/serie
        y ajustes. Derecha: instalar. «Mis compras» (V GMM 0026) queda oculto
        desde V GMM 0030 a petición del usuario: no aportaba lo suficiente
@@ -1134,8 +1093,8 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
       </button>
       <!-- Interruptor global: ¿película o serie? Tiñe los acentos. -->
       <div class="tipo-switch" id="tipoSwitch" role="group" aria-label="¿Películas o series?">
-        <button class="tipo-op activa" data-tipo="movie">Películas</button>
         <button class="tipo-op" data-tipo="tv">Series</button>
+        <button class="tipo-op activa" data-tipo="movie">Películas</button>
       </div>
       <button class="boton-cabecera" id="btnAjustes" title="Ajustes y clave de TMDB">
         <span aria-hidden="true">&#9881;</span>
@@ -1166,7 +1125,6 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
       </div>
     </div>
   </div>
-  </div><!-- /.barra-superior -->
 
   <!-- ═════════════ DESCUBRIMIENTO (carruseles) ═════════════ -->
   <!-- Vive solo en el inicio (fijarPantalla lo oculta con resultados). Desde
@@ -1202,7 +1160,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   <footer class="pie">
     <span>givemymovies · datos de disponibilidad vía TMDB / JustWatch</span>
     <span>Tus listas se guardan en este navegador — inicia sesión para llevarlas a otros</span>
-    <span id="version-app">V GMM 0038</span>
+    <span id="version-app">V GMM 0035</span>
   </footer>
 </div>
 
@@ -3417,32 +3375,15 @@ GMM.servidor = (function () {
     });
   }
 
-  /* A diferencia de pedir(), necesita distinguir 202 (el servidor está convirtiendo el vídeo
-     todavía) de 200 (enlace listo) y de los errores propios de la conversión, así que no
-     reutiliza pedir(): ese helper solo sabe de éxito u error, no de un estado intermedio. */
   function enlace(id, descarga) {
-    var actual = configuracion();
-    if (!actual.url) return Promise.reject(new Error("SIN_CONFIGURAR"));
-    var cabeceras = { Accept: "application/json" };
-    if (actual.clave) cabeceras.Authorization = "Bearer " + actual.clave;
-    var ruta = "/api/medios/" + encodeURIComponent(id) + "?tipo=" + (descarga ? "descarga" : "reproduccion");
-    return fetch(actual.url + ruta, { headers: cabeceras }).then(function (respuesta) {
-      return respuesta.json().catch(function () { return {}; }).then(function (cuerpo) {
-        if (respuesta.status === 200) {
-          if (typeof cuerpo.ruta !== "string" || cuerpo.ruta.indexOf("/_gmm/medio/") !== 0) {
-            throw new Error("RESPUESTA_INVALIDA");
-          }
-          return { preparando: false, url: actual.url + cuerpo.ruta, expiraEn: cuerpo.expiraEn, tipo: cuerpo.tipo };
+    return pedir("/api/medios/" + encodeURIComponent(id) + "?tipo=" + (descarga ? "descarga" : "reproduccion"))
+      .then(function (resultado) {
+        var base = configuracion().url;
+        if (!resultado || typeof resultado.ruta !== "string" || resultado.ruta.indexOf("/_gmm/medio/") !== 0) {
+          throw new Error("RESPUESTA_INVALIDA");
         }
-        if (respuesta.status === 202) return { preparando: true, estadoConversion: cuerpo.estado || "preparando" };
-        if (respuesta.status === 401) throw new Error("CLAVE_INCORRECTA");
-        if (respuesta.status === 403) throw new Error("ORIGEN_NO_PERMITIDO");
-        if (respuesta.status === 404) throw new Error("NO_ENCONTRADO");
-        if (respuesta.status === 409) throw new Error("FFMPEG_NO_CONFIGURADO");
-        if (respuesta.status === 500 && cuerpo.error === "NO_SE_PUDO_CONVERTIR") throw new Error("NO_SE_PUDO_CONVERTIR");
-        throw new Error("HTTP_" + respuesta.status);
+        return { url: base + resultado.ruta, expiraEn: resultado.expiraEn, tipo: resultado.tipo };
       });
-    });
   }
 
   return {
@@ -4866,8 +4807,6 @@ GMM.app = (function () {
     if (codigo === "CLAVE_INCORRECTA") return "La clave de GMM Server no coincide.";
     if (codigo === "ORIGEN_NO_PERMITIDO") return "Este navegador no está autorizado por GMM Server.";
     if (codigo === "NO_ENCONTRADO") return "No encontré esa ruta en GMM Server. Actualiza el servidor a la versión 0.2 o superior.";
-    if (codigo === "FFMPEG_NO_CONFIGURADO") return "Este vídeo necesita conversión y tu GMM Server no tiene FFmpeg configurado. Puedes descargarlo igualmente.";
-    if (codigo === "NO_SE_PUDO_CONVERTIR") return "No se pudo convertir este vídeo a un formato reproducible. Puedes descargarlo igualmente.";
     return "No pude conectar con GMM Server. Comprueba que está iniciado y que la dirección es correcta.";
   }
 
@@ -4942,47 +4881,21 @@ GMM.app = (function () {
     '</article>';
   }
 
-  /* Si el vídeo necesita FFmpeg (ver src/transcodificar.js en gmm-server), la primera
-     petición devuelve "preparando" en vez de un enlace: se reintenta cada pocos segundos hasta
-     que esté listo, con un tope para no reintentar para siempre si algo se atasca. El propio
-     estado de la capa (abierta/cerrada) hace de guarda: si el usuario la cierra a media espera,
-     el siguiente intento no toca un modal que ya no está a la vista. */
   function abrirReproductorServidor(item) {
     if (!item) return;
-    var LIMITE_INTENTOS = 90;
-    var RETARDO_MS = 4000;
     $("tituloReproductor").textContent = item.tituloDetectado || item.nombreArchivo || "Reproducir";
     $("cuerpoReproductor").innerHTML = '<div class="estado"><div class="estado-txt">Preparando reproducción segura…</div></div>';
     $("capaReproductor").classList.remove("oculto");
-
-    function intentar(numero) {
-      if ($("capaReproductor").classList.contains("oculto")) return;
-      GMM.servidor.enlace(item.id, false).then(function (enlace) {
-        if ($("capaReproductor").classList.contains("oculto")) return;
-        if (enlace.preparando) {
-          if (numero >= LIMITE_INTENTOS) {
-            $("cuerpoReproductor").innerHTML = '<div class="estado"><div class="estado-tit">Sigue preparándose</div>' +
-              '<p class="estado-txt">Tu GMM Server está tardando más de lo normal en convertir este vídeo. ' +
-              'Vuelve a intentarlo más tarde o descárgalo.</p></div>';
-            return;
-          }
-          $("cuerpoReproductor").innerHTML = '<div class="estado"><div class="estado-txt">Preparando vídeo… tu GMM Server lo está ' +
-            'convirtiendo a un formato reproducible. Puede tardar varios minutos la primera vez; las siguientes será inmediato.</div></div>';
-          setTimeout(function () { intentar(numero + 1); }, RETARDO_MS);
-          return;
-        }
-        $("cuerpoReproductor").innerHTML =
-          '<div class="repro-marco"><video controls autoplay playsinline preload="metadata" src="' + GMM.util.esc(enlace.url) + '">' +
-            'Tu navegador no puede reproducir este formato. Usa Descargar para guardar el archivo.' +
-          '</video></div>' +
-          '<p class="modal-nota" style="margin-top:12px">Si este formato no abre, descárgalo. Algunos MKV necesitan conversión para reproducirse en el navegador.</p>';
-      }).catch(function (error) {
-        if ($("capaReproductor").classList.contains("oculto")) return;
-        $("cuerpoReproductor").innerHTML = '<div class="estado"><div class="estado-tit">No se pudo abrir el vídeo</div><p class="estado-txt">' +
-          GMM.util.esc(textoErrorServidor(error)) + '</p></div>';
-      });
-    }
-    intentar(0);
+    GMM.servidor.enlace(item.id, false).then(function (enlace) {
+      $("cuerpoReproductor").innerHTML =
+        '<div class="repro-marco"><video controls autoplay playsinline preload="metadata" src="' + GMM.util.esc(enlace.url) + '">' +
+          'Tu navegador no puede reproducir este formato. Usa Descargar para guardar el archivo.' +
+        '</video></div>' +
+        '<p class="modal-nota" style="margin-top:12px">Si este formato no abre, descárgalo. Algunos MKV necesitan conversión para reproducirse en el navegador.</p>';
+    }).catch(function (error) {
+      $("cuerpoReproductor").innerHTML = '<div class="estado"><div class="estado-tit">No se pudo abrir el vídeo</div><p class="estado-txt">' +
+        GMM.util.esc(textoErrorServidor(error)) + '</p></div>';
+    });
   }
 
   function descargarServidor(item) {

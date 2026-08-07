@@ -219,18 +219,21 @@ disco externo, sin subir los vídeos a Google Drive ni a otra nube. La sección 
 de GiveMyMovies se conecta a él, muestra el catálogo y permite reproducir o descargar cada
 archivo disponible.
 
-1. Inicia el servidor: haz doble clic en `gmm-server/GMM-Server.vbs` (abre una app de
-   escritorio con botones para iniciar, detener, escanear y añadir carpetas — nada de
-   PowerShell a la vista), o a mano con `npm.cmd start` desde `gmm-server/`.
-2. En GiveMyMovies abre **⚙ Ajustes** y escribe `http://127.0.0.1:7399` junto con la clave privada
-   creada en `gmm-server/PRIVADO/configuracion.json`.
+1. Inicia el servidor: haz doble clic en `GMM-Server.exe` (o, trabajando desde el código
+   fuente, en `gmm-server/GMM-Server.vbs`) — se abre una app de escritorio con botones para
+   iniciar, detener, escanear y añadir carpetas, nada de PowerShell a la vista. La primera vez
+   se prepara solo, sin consola.
+2. En GiveMyMovies abre **⚙ Ajustes** y escribe `http://127.0.0.1:7399` junto con la clave que
+   copias del propio panel.
 3. Pulsa **Probar conexión** y abre **▶ Te la tengo**.
 
 La dirección y la clave se quedan solo en ese navegador; ni el catálogo, ni la ruta del disco,
 ni los vídeos se publican en GitHub. El servidor entrega enlaces temporales para reproducir o
 descargar y nunca expone rutas físicas. Con una clave de TMDB, la sección completa las carátulas
-y datos de las películas. Para entrar desde fuera de casa falta configurar la red privada
-Tailscale; consulta `gmm-server/README.md`.
+y datos de las películas. Los vídeos que el navegador no reproduce tal cual (algunos MKV) se
+convierten solos si tienes **FFmpeg** instalado — el propio `GMM-Instalar.exe` lo instala con un
+botón. Para entrar desde fuera de casa, el botón **«Activar HTTPS con Tailscale»** del panel deja
+una dirección `https://…` segura, sin abrir ningún puerto; consulta `gmm-server/README.md`.
 
 ---
 
@@ -309,7 +312,8 @@ orden e intervalo de años en Descubrir (V GMM 0015); Mi biblioteca, enlace manu
 buscar/reproducir desde tu Google Drive (Nivel 2) (V GMM 0026–0027); cuenta con Firebase y
 sincronizar Mis listas entre dispositivos (V GMM 0029); GMM Server, tu servidor multimedia
 personal (V GMM 0032–0033); sincronizar también tus claves de TMDB/OMDb/GMM Server con la
-cuenta (V GMM 0035); app de escritorio para manejar GMM Server (V GMM 0036).*
+cuenta (V GMM 0035); app de escritorio para manejar GMM Server (V GMM 0036); conversión con
+FFmpeg, acceso remoto por HTTPS con Tailscale y empaquetado en dos `.exe` (V GMM 0038).*
 
 ---
 

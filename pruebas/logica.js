@@ -200,6 +200,40 @@ m.afirmar("conserva la clave solo en el almacenamiento del dispositivo", conexio
 m.afirmar("rechaza guardar una dirección inválida", !GMM.servidor.guardar("no es una url", "clave"));
 m.afirmar("permite borrar la conexión", GMM.servidor.guardar("", "") && !GMM.servidor.conectado());
 
+/* ---------------------------------------------------------------- */
+m.titulo("GMM Server: estados de /api/medios al pedir un vídeo (V GMM 0038)");
+
+const fetchOriginalServidor = global.fetch;
+GMM.servidor.guardar("http://127.0.0.1:7399", "clave-prueba-medios");
+function respuestaFalsaServidor(estadoHttp, cuerpo) {
+  return Promise.resolve({ status: estadoHttp, json: () => Promise.resolve(cuerpo) });
+}
+const pEnlaceServidor = (async function () {
+  global.fetch = () => respuestaFalsaServidor(202, { estado: "preparando" });
+  const preparando = await GMM.servidor.enlace("id1", false);
+  m.afirmar("202 se interpreta como 'todavía preparando', no como error",
+    preparando.preparando === true && preparando.estadoConversion === "preparando");
+
+  global.fetch = () => respuestaFalsaServidor(200,
+    { ruta: "/_gmm/medio/token123", expiraEn: "2026-01-01T00:00:00.000Z", tipo: "reproduccion" });
+  const listo = await GMM.servidor.enlace("id1", false);
+  m.afirmar("200 con ticket arma la URL completa a partir de la dirección guardada",
+    listo.preparando === false && listo.url === "http://127.0.0.1:7399/_gmm/medio/token123");
+
+  global.fetch = () => respuestaFalsaServidor(409, { error: "FFMPEG_NO_CONFIGURADO" });
+  let errorFFmpeg = null;
+  try { await GMM.servidor.enlace("id1", false); } catch (error) { errorFFmpeg = error.message; }
+  m.afirmar("409 (sin ffmpeg configurado) se traduce a FFMPEG_NO_CONFIGURADO", errorFFmpeg === "FFMPEG_NO_CONFIGURADO");
+
+  global.fetch = () => respuestaFalsaServidor(500, { error: "NO_SE_PUDO_CONVERTIR", mensaje: "códec no soportado" });
+  let errorConversion = null;
+  try { await GMM.servidor.enlace("id1", false); } catch (error) { errorConversion = error.message; }
+  m.afirmar("500 con error NO_SE_PUDO_CONVERTIR se propaga tal cual", errorConversion === "NO_SE_PUDO_CONVERTIR");
+
+  global.fetch = fetchOriginalServidor;
+  GMM.servidor.guardar("", "");
+})();
+
 m.titulo("Interpretación del enlace de la copia (GMM.util.enlaceCopia)");
 const eDrive = GMM.util.enlaceCopia("https://drive.google.com/file/d/1AbC-dEfGhIJ/view?usp=sharing");
 m.afirmar("un enlace de Drive saca el id y arma ver + descargar directa",
@@ -634,5 +668,7 @@ GMM.util.enLotes(trabajo, 5, (n) => {
   m.afirmar("respeta el tope de 5 simultáneas", pico <= 5, "pico " + pico);
   m.afirmar("devuelve los 13 resultados en orden",
     res.join(",") === trabajo.map((n) => n * 2).join(","));
+  return pEnlaceServidor;
+}).then(() => {
   process.exit(m.resumir() ? 1 : 0);
 });

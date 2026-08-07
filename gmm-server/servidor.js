@@ -1,8 +1,25 @@
 "use strict";
 
+const os = require("node:os");
+
 const { cargarConfiguracion } = require("./src/configuracion");
 const { GestorCatalogo } = require("./src/catalogo");
 const { crearServidorApi, VERSION_SERVIDOR } = require("./src/api");
+const { GestorTranscodificacion } = require("./src/transcodificar");
+
+function direccionesAlcanzables(host, puerto) {
+  if (host !== "0.0.0.0") return [`http://${host}:${puerto}`];
+  const direcciones = [`http://127.0.0.1:${puerto}`];
+  const interfaces = os.networkInterfaces();
+  Object.values(interfaces).forEach(function (lista) {
+    (lista || []).forEach(function (info) {
+      if (info.family === "IPv4" && !info.internal) {
+        direcciones.push(`http://${info.address}:${puerto}`);
+      }
+    });
+  });
+  return direcciones;
+}
 
 async function iniciar() {
   const configuracion = cargarConfiguracion(process.argv[2]);
@@ -14,10 +31,13 @@ async function iniciar() {
     console.log(`Catálogo revisado: ${catalogo.resumen.total} película(s).`);
   }
 
-  const servidor = crearServidorApi(configuracion, gestor, console);
+  const transcodificador = new GestorTranscodificacion(configuracion, { registro: console });
+  const servidor = crearServidorApi(configuracion, gestor, console, transcodificador);
   servidor.listen(configuracion.puerto, configuracion.host, function () {
     console.log(`GMM Server ${VERSION_SERVIDOR} está funcionando.`);
-    console.log(`Dirección local: http://${configuracion.host}:${configuracion.puerto}`);
+    direccionesAlcanzables(configuracion.host, configuracion.puerto).forEach(function (direccion) {
+      console.log(`Dirección: ${direccion}`);
+    });
     console.log(`Carpetas configuradas: ${configuracion.carpetas.length}`);
     console.log("Pulsa Ctrl+C para detenerlo.");
   });

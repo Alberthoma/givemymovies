@@ -6,6 +6,13 @@ echo ============================================================
 echo  PASO 1: configurar carpetas y escanear
 echo ============================================================
 echo.
+
+if not exist "PRIVADO\configuracion.json" (
+    echo Primera vez: creando la configuracion privada...
+    call npm.cmd run configurar
+    echo.
+)
+
 echo Se va a abrir el archivo de configuracion en el Bloc de notas.
 echo Dentro, en "carpetas", anade o cambia la ruta de tus peliculas
 echo (una entrada por carpeta o disco). Ejemplo:

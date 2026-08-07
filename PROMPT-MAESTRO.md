@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.39 · Aplicación V GMM 0037 (validación local) · 6 de agosto de 2026**
+**Documento v1.40 · Aplicación V GMM 0038 · 7 de agosto de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies-g/>
 
 ---
@@ -582,6 +582,11 @@ Borde claro      #2f4356      Verde ✓  #6ff0c4   Azul ✓ #8fc9ff    Naranja �
   en la barra justo debajo del header, a la izquierda; **Instalar** queda solo a la derecha de
   esa misma barra. **«Mis compras»** (§5.2, 2c) vive ahí también pero **oculto**: sigue
   funcionando —«Mi copia» en cada ficha no cambia—, solo sin entrada visible en la barra.
+  **Desde V GMM 0038, el interruptor muestra «Películas» antes que «Series»**, y **en el móvil
+  (≤620px) esa barra pasa a una rejilla de 2 filas**: arriba, volver (solo en resultados) /
+  interruptor centrado / ⚙; abajo, Mis listas / Te la tengo / Instalar. Solo CSS
+  (`display: contents` en escritorio, `display: grid` en el móvil sobre el mismo HTML): ningún
+  botón se duplica ni cambia de id.
 - **Degradados que mezclan los tres colores** en: marca, botón *Buscar*, pestaña activa y
   barra de progreso.
 - **Fondo** con tres resplandores radiales sutiles, uno por color.
@@ -632,27 +637,42 @@ los bloques en archivos **no exija tocar código**: basta enlazarlos en este ord
 | 9 | `js/app.js` | `GMM.app` | Estado, vistas, eventos, arranque |
 | 10 | `js/pwa.js` | `GMM.pwa` | Service worker y botón de instalar |
 
-**GMM Server (fase 2 local, V GMM 0033):** `gmm-server/` contiene el servidor multimedia propio
-de GiveMyMovies —no Jellyfin—, construido con Node.js 22 y sin dependencias npm. La PWA lo usa
-desde la vista **▶ Te la tengo**: guarda su URL y clave solo en el navegador, consulta el
-catálogo privado y solicita enlaces temporales para reproducir o descargar. El servidor admite
-rangos HTTP y nunca publica rutas físicas ni su clave. Configuración, clave y catálogo están en
-`gmm-server/PRIVADO/`, excluido del repositorio. No hay FFmpeg ni red remota configurada; algunos
-MKV pueden requerir descarga y la siguiente etapa de red será Tailscale. Ver su `README.md`.
+**GMM Server (V GMM 0033; FFmpeg y acceso remoto desde la 0038):** `gmm-server/` contiene el
+servidor multimedia propio de GiveMyMovies —no Jellyfin—, construido con Node.js 22 y sin
+dependencias npm. La PWA lo usa desde la vista **▶ Te la tengo**: guarda su URL y clave solo en
+el navegador, consulta el catálogo privado y solicita enlaces temporales para reproducir o
+descargar. El servidor admite rangos HTTP y nunca publica rutas físicas ni su clave.
+Configuración, clave y catálogo están en `gmm-server/PRIVADO/`, excluido del repositorio.
+**Conversión con FFmpeg:** `src/compatibilidad.js` sondea cada vídeo con `ffprobe` en el
+escaneo y lo clasifica en compatible / remux / a transcodificar; `src/transcodificar.js`
+convierte con `ffmpeg`, en cola de una a la vez, con caché en disco; `GET /api/medios/:id`
+responde 202 "preparando" mientras tanto. Sin `ffmpeg` instalado, todo sigue igual que antes.
+**Acceso remoto real:** HTTPS de verdad con `tailscale serve` (no la IP en `http://` a secas,
+que el navegador bloquea desde una PWA servida por HTTPS, por contenido mixto) — automatizado
+con el botón «Activar HTTPS con Tailscale» del panel de escritorio. Ver su `README.md`.
 La biblioteca real completa detectó 37 vídeos disponibles (105,4 GB) y confirmó que la API
 pública no contiene el campo `ruta` ni la ubicación del disco. Un archivo nuevo o modificado
 solo pasa de `copiandose` a `disponible` tras conservar tamaño y fecha en dos revisiones.
 
-**App de escritorio "GMM-Server" (V GMM 0036):** `gmm-server/GMM-Server.vbs` abre
-`GMM-Server-Panel.ps1` (PowerShell + Windows Forms, cero dependencias) para manejar el servidor
-sin PowerShell a la vista: iniciar/detener con un botón, **escanear ahora** sin reiniciar
-(`POST /api/escanear`, que ya existía), **añadir/quitar carpetas** con el selector nativo de
-Windows (`FolderBrowserDialog`), la clave visible con «Copiar», y **bandeja del sistema** —
-cerrar la ventana con el servidor encendido la oculta ahí en vez de apagarlo. Protegida con un
-`Mutex` con nombre contra abrir dos copias a la vez, y con un temporizador que detecta si el
-proceso se cayó solo justo tras arrancar (típicamente el puerto ya ocupado). Los `.bat`
-anteriores (`1-configurar-y-escanear.bat`, `2-iniciar-servidor.bat`) siguen ahí como alternativa
-manual. No toca `gmm-server/src/` ni la PWA.
+**App de escritorio "GMM-Server" (V GMM 0036; compilada en dos `.exe` desde la 0038):**
+`gmm-server/GMM-Server-Panel.ps1` (PowerShell + Windows Forms, cero dependencias) maneja el
+servidor sin PowerShell a la vista: iniciar/detener con un botón, **escanear ahora** sin
+reiniciar (`POST /api/escanear`), **añadir/quitar carpetas** con el selector nativo de Windows
+(`FolderBrowserDialog`), la clave visible con «Copiar», el botón **«Activar HTTPS con
+Tailscale»**, y **bandeja del sistema** — cerrar la ventana con el servidor encendido la oculta
+ahí en vez de apagarlo. Protegida con un `Mutex` con nombre contra abrir dos copias a la vez (un
+intento de más no muestra nada, como mucho enfoca la ventana existente); un temporizador
+detecta si el proceso se cayó solo justo tras arrancar; y una red de seguridad global
+(`add_ThreadException`) capta cualquier error no previsto en cualquier parte de la ventana,
+mostrando un aviso propio y apuntando el detalle en `%LOCALAPPDATA%\GMM-Server\errores.log`.
+La configuración privada **se crea sola la primera vez**, sin consola. **Se distribuye como dos
+`.exe` independientes** —`GMM-Server.exe` (con el motor entero incrustado, autoextraído a
+`%LOCALAPPDATA%\GMM-Server\motor` en el primer arranque) y `GMM-Instalar.exe` (instala Node.js,
+FFmpeg y Tailscale con `winget`, con botón)—, compilados con **ps2exe** desde estos mismos
+`.ps1` vía `gmm-server/build/Compilar.ps1`. La carpeta de entrega final, `GMM-Server-para-
+instalar/`, lleva **solo esos dos archivos**, nada más. Los `.bat` anteriores
+(`1-configurar-y-escanear.bat`, `2-iniciar-servidor.bat`) siguen en `gmm-server/` como
+alternativa manual, sin formar parte de la entrega. No toca `gmm-server/src/` ni la PWA.
 
 **Reglas de código:**
 
@@ -912,7 +932,11 @@ Todos deben pasar:
 | A54 | Barra reubicada (V GMM 0030) | El botón de cuenta vive en el header (arriba a la derecha); el punto de estado, en la fila del título del buscador (a su derecha, título sin descentrar); Mis listas, el interruptor y ⚙ quedan juntos a la izquierda de la barra; «Mis compras» no es visible en ningún sitio de la barra |
 | A55 | Claves de dispositivo sincronizan, «la nube gana» (V GMM 0035) | Con `gmm_tmdb_key`/`gmm_omdb_key`/`gmm_servidor` guardados en un dispositivo con sesión iniciada, al iniciar sesión en OTRO dispositivo con esos campos vacíos, adopta los valores de la nube; si el segundo dispositivo ya tenía sus propios valores, la nube los sustituye igual (nube siempre gana, no se fusiona) |
 | A56 | Cuenta nueva no vacía un dispositivo (V GMM 0035) | Con un dispositivo que ya tiene sus claves configuradas, iniciar sesión por primera vez en una cuenta sin `ajustes` todavía en Firestore **no** las borra: `aplicarAjustesRemotos` solo actúa sobre campos no vacíos |
-| A57 | App GMM-Server: instancia única (V GMM 0036) | Con la app ya abierta (visible o en la bandeja), abrirla de nuevo muestra un aviso y la segunda copia se cierra sola, sin intentar levantar un segundo servidor en el mismo puerto |
+| A57 | App GMM-Server: instancia única (V GMM 0036; silenciosa desde la 0038) | Con la app ya abierta (visible o en la bandeja), abrirla de nuevo **no muestra ningún aviso** (antes sí, y apilar varios clics apilaba avisos idénticos): como mucho enfoca la ventana existente y se cierra sola, sin intentar levantar un segundo servidor en el mismo puerto |
+| A58 | GMM Server sirve vídeos incompatibles (V GMM 0038) | Con `ffmpeg` instalado y un vídeo marcado `"remux"`/`"transcodificar"`, `GET /api/medios/:id` responde 202 mientras convierte y 200 con ticket cuando termina; sin `ffmpeg`, el comportamiento es idéntico al de antes de esta versión |
+| A59 | Acceso remoto por HTTPS (V GMM 0038) | Con Tailscale conectado y HTTPS Certificates activado en la cuenta, el botón «Activar HTTPS con Tailscale» deja una dirección `https://…` que responde `/api/salud` sin aviso de "no seguro"; la misma prueba con `http://` y la IP de Tailscale falla desde una página servida por HTTPS (contenido mixto), aunque funcione probada a mano fuera del navegador |
+| A60 | Barra móvil reorganizada (V GMM 0038) | A ≤620px: fila 1 = volver (si hay resultados) / interruptor centrado, mostrando «Películas» antes que «Series» / ⚙; fila 2 = Mis listas / Te la tengo. En escritorio, sin cambios respecto a A54 |
+| A61 | Sin zoom por gesto (V GMM 0038) | Pellizcar o tocar dos veces seguidas la pantalla en el móvil **no** cambia el nivel de zoom de la página |
 
 ### Al tocar el catálogo demo, verifica cada imagen
 
@@ -1032,6 +1056,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.40 | V GMM 0038 | 07-08-2026 | **GMM Server termina FFmpeg y acceso remoto; se empaqueta en dos `.exe`; la PWA reorganiza su barra móvil.** GMM Server: `src/compatibilidad.js` + `src/transcodificar.js` (nuevos) convierten vídeos incompatibles con FFmpeg, en cola, con caché; `/api/medios/:id` responde 202 mientras tanto. El plan de acceso remoto de la 0037 (`host: 0.0.0.0` + IP de Tailscale en `http://`) se descarta **en vivo, con un usuario real bloqueado**: la PWA por HTTPS bloquea peticiones a `http://` (contenido mixto), confirmado abriendo la misma URL directamente en Safari. Se reemplaza por `tailscale serve` (HTTPS real, `host` vuelve a `127.0.0.1`), automatizado con el botón «Activar HTTPS con Tailscale»; de paso se diagnostica un conflicto real con NordVPN (dos VPN a la vez bloquean el tráfico aunque Tailscale siga en verde). GMM Server se compila con **ps2exe** en `GMM-Server.exe` (motor incrustado, autoextraído a `%LOCALAPPDATA%`) y `GMM-Instalar.exe` (Node.js/FFmpeg/Tailscale por `winget`); configuración privada que se crea sola. Dos bugs de producción, misma causa raíz —callbacks asíncronos con variable local no resuelven bien dentro de un `.exe` compilado con ps2exe `-noConsole`—: `Register-ObjectEvent` nunca disparaba (se cambió a lectura síncrona) y un `Timer` con variable local tumbaba la app (se cambió a `$script:`); ambos encontrados con reproducciones mínimas antes de tocar el código real. Un clic de más ya no apila avisos (mutex silencioso). Tres guías nuevas para el usuario final. PWA: barra móvil en rejilla de 2 filas (`.barra-superior`, `display: contents` en escritorio / `display: grid` en el móvil, mismo truco que `.forma`), interruptor Películas/Series reordenado, zoom por gesto desactivado. `sw.js` 32→33. Criterios A57 (reescrito) y A58–A61 (nuevos). `logica.js` 188/188, `interfaz.js` 127/127, `pwa.js` 20/20, GMM Server 34/34. |
 | 1.39 | V GMM 0037 | 06-08-2026 | Solo documentación: el usuario pidió una auditoría completa de GMM Server (qué se cumplió, qué se hizo distinto, qué falta). Resultado: acceso remoto (Tailscale) sigue sin empezar — hoy el servidor solo escucha en `127.0.0.1`. Se corrige que `CLAUDE.md` §11 nunca listaba ese pendiente, aunque ya estaba desarrollado en `PENDIENTES.md` §3. Sin cambios de código. |
 | 1.38 | V GMM 0036 | 06-08-2026 | **Nueva app de escritorio "GMM-Server".** `GMM-Server.vbs` + `GMM-Server-Panel.ps1` (PowerShell + Windows Forms, elegido sobre Electron por el peso de sus dependencias y sobre .NET/C# por no exigir un SDK instalado). Iniciar/detener con un botón, escanear sin reiniciar (reutiliza `POST /api/escanear`, ya existente), añadir/quitar carpetas con `FolderBrowserDialog` nativo, clave con «Copiar», bandeja del sistema. Dos bugs reales corregidos probando en Windows de verdad con UI Automation, no solo revisando código: `-WindowStyle Hidden` dejaba el formulario invisible (herencia del estado inicial de Windows; se resolvió ocultando la consola desde dentro del script, ya en marcha) y un `[ref]` sobre una variable de script nunca asignada tumbaba la app al abrir (PowerShell 5.1). Protección de instancia única con `Mutex` con nombre, y detección de arranque fallido (puerto ocupado) con un temporizador de un disparo. Los `.bat` anteriores se conservan como alternativa manual, a petición del usuario. No toca `gmm-server/src/` ni la PWA: `npm.cmd test` de gmm-server sigue 16/16; no aplica ninguna suite de `pruebas/`. Criterio A57. De paso se completaron los respaldos `V-GMM-0034` y `V-GMM-0035`. |
 | 1.37 | V GMM 0035 | 05-08-2026 | **Las claves de TMDB/OMDb/GMM Server sincronizan con la cuenta.** Pedido explícito del usuario tras el malentendido de la 0034. Diseño acordado: **«la nube siempre gana», sin fusión** (a diferencia de Mis listas). `GMM.cuenta.sincronizarYa()` sube `ajustes: { tmdb, omdb, servidorUrl, servidorClave }` en el mismo documento que las listas; `aplicarAjustesRemotos()` (nueva, en `fusionarAlEntrar()`) adopta cada campo solo si la nube trae un valor no vacío, y refresca ⚙ si está abierto. El botón Guardar de ⚙ ahora llama a `GMM.cuenta.sincronizar()`. Seguridad: la clave de GMM Server (token real de acceso al servidor personal) pasa a vivir en Firestore, con la misma protección de propietario único que ya tenían las listas. `sw.js` 31→32 (cubre también el JS de la 0034, que no lo subió). Criterios A55 (reescrito) y A56 (nuevo). `logica.js` 184/184 (sin comprobaciones nuevas: función no pura, depende de Firebase/DOM, mismo criterio que `tratarFalloSync` en la 0031), `interfaz.js` 127/127, `pwa.js` 20/20. |

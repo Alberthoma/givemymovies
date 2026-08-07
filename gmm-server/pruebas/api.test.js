@@ -141,3 +141,130 @@ test("emite un enlace temporal y sirve reproducci\u00f3n o descarga sin revelar 
   assert.match(archivoDescarga.headers.get("content-disposition"), /^attachment/);
   assert.equal(await archivoDescarga.text(), "abcdef");
 });
+
+test("sin GestorTranscodificacion, reproducir un vídeo incompatible pide FFmpeg pero la descarga funciona igual", async function (t) {
+  const carpeta = fs.mkdtempSync(path.join(os.tmpdir(), "gmm-media-"));
+  const archivo = path.join(carpeta, "Prueba (2024).mkv");
+  fs.writeFileSync(archivo, "abcdef");
+  t.after(function () { fs.rmSync(carpeta, { recursive: true, force: true }); });
+
+  const gestor = {
+    obtenerPublico: catalogoDePrueba,
+    escanearConfirmando: async function () { return catalogoDePrueba(); },
+    obtenerArchivo: function (id) {
+      if (id !== "abc") return null;
+      return {
+        id: "abc", ruta: archivo, nombreArchivo: "Prueba (2024).mkv", extension: ".mkv",
+        disponible: true, compatibilidad: "remux"
+      };
+    }
+  };
+  const configuracion = {
+    nombreServidor: "GMM de prueba",
+    claveAdministracion: "secreto-de-prueba-12345678901234567890",
+    origenesPermitidos: ["https://alberthoma.github.io"],
+    duracionEnlaceMinutos: 10
+  };
+  const servidor = crearServidorApi(configuracion, gestor, { error: function () {} });
+  servidor.listen(0, "127.0.0.1");
+  await once(servidor, "listening");
+  t.after(function () { servidor.close(); });
+  const base = `http://127.0.0.1:${servidor.address().port}`;
+  const clave = { Authorization: "Bearer secreto-de-prueba-12345678901234567890" };
+
+  const reproduccion = await fetch(`${base}/api/medios/abc`, { headers: clave });
+  assert.equal(reproduccion.status, 409);
+  assert.equal((await reproduccion.json()).error, "FFMPEG_NO_CONFIGURADO");
+
+  const descarga = await fetch(`${base}/api/medios/abc?tipo=descarga`, { headers: clave });
+  assert.equal(descarga.status, 200);
+});
+
+test("con GestorTranscodificacion, pide la conversión mientras no está lista y luego sirve el archivo cacheado", async function (t) {
+  const carpetaOriginal = fs.mkdtempSync(path.join(os.tmpdir(), "gmm-original-"));
+  const archivoOriginal = path.join(carpetaOriginal, "Prueba (2024).mkv");
+  fs.writeFileSync(archivoOriginal, "original-mkv");
+  const carpetaCache = fs.mkdtempSync(path.join(os.tmpdir(), "gmm-cache-"));
+  t.after(function () {
+    fs.rmSync(carpetaOriginal, { recursive: true, force: true });
+    fs.rmSync(carpetaCache, { recursive: true, force: true });
+  });
+
+  const pelicula = {
+    id: "abc", ruta: archivoOriginal, nombreArchivo: "Prueba (2024).mkv", extension: ".mkv",
+    disponible: true, compatibilidad: "remux"
+  };
+  const gestor = {
+    obtenerPublico: catalogoDePrueba,
+    escanearConfirmando: async function () { return catalogoDePrueba(); },
+    obtenerArchivo: function (id) { return id === "abc" ? pelicula : null; }
+  };
+  const configuracion = {
+    nombreServidor: "GMM de prueba",
+    claveAdministracion: "secreto-de-prueba-12345678901234567890",
+    origenesPermitidos: ["https://alberthoma.github.io"],
+    duracionEnlaceMinutos: 10,
+    rutaCacheTranscodificacion: carpetaCache
+  };
+
+  let listo = false;
+  const transcodificador = {
+    archivoListo: async function () { return listo; },
+    solicitar: function () {
+      listo = true;
+      fs.writeFileSync(path.join(carpetaCache, "abc.mp4"), "video-cacheado");
+      return { estado: "preparando" };
+    }
+  };
+
+  const servidor = crearServidorApi(configuracion, gestor, { error: function () {} }, transcodificador);
+  servidor.listen(0, "127.0.0.1");
+  await once(servidor, "listening");
+  t.after(function () { servidor.close(); });
+  const base = `http://127.0.0.1:${servidor.address().port}`;
+  const clave = { Authorization: "Bearer secreto-de-prueba-12345678901234567890" };
+
+  const primera = await fetch(`${base}/api/medios/abc`, { headers: clave });
+  assert.equal(primera.status, 202);
+  assert.equal((await primera.json()).estado, "preparando");
+
+  const segunda = await fetch(`${base}/api/medios/abc`, { headers: clave });
+  assert.equal(segunda.status, 200);
+  const datos = await segunda.json();
+
+  const contenido = await fetch(base + datos.ruta);
+  assert.equal(await contenido.text(), "video-cacheado");
+  assert.match(contenido.headers.get("content-type"), /^video\/mp4/);
+});
+
+test("con GestorTranscodificacion, un trabajo en error se reporta como fallo de conversión", async function (t) {
+  const gestor = {
+    obtenerPublico: catalogoDePrueba,
+    escanearConfirmando: async function () { return catalogoDePrueba(); },
+    obtenerArchivo: function (id) {
+      if (id !== "abc") return null;
+      return { id: "abc", ruta: "/no-importa.mkv", nombreArchivo: "Prueba.mkv", extension: ".mkv", disponible: true, compatibilidad: "transcodificar" };
+    }
+  };
+  const configuracion = {
+    nombreServidor: "GMM de prueba",
+    claveAdministracion: "secreto-de-prueba-12345678901234567890",
+    origenesPermitidos: ["https://alberthoma.github.io"],
+    duracionEnlaceMinutos: 10,
+    rutaCacheTranscodificacion: "/no-importa"
+  };
+  const transcodificador = {
+    archivoListo: async function () { return false; },
+    solicitar: function () { return { estado: "error", error: "códec no soportado" }; }
+  };
+  const servidor = crearServidorApi(configuracion, gestor, { error: function () {} }, transcodificador);
+  servidor.listen(0, "127.0.0.1");
+  await once(servidor, "listening");
+  t.after(function () { servidor.close(); });
+  const base = `http://127.0.0.1:${servidor.address().port}`;
+  const clave = { Authorization: "Bearer secreto-de-prueba-12345678901234567890" };
+
+  const respuesta = await fetch(`${base}/api/medios/abc`, { headers: clave });
+  assert.equal(respuesta.status, 500);
+  assert.equal((await respuesta.json()).error, "NO_SE_PUDO_CONVERTIR");
+});

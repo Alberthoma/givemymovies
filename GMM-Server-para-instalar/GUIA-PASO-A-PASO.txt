@@ -1,0 +1,109 @@
+GMM SERVER - GUIA PASO A PASO
+================================
+
+Que es esto
+-----------
+Con esto vas a poder ver, desde tu movil, las peliculas que tienes
+guardadas en tu PC - estes en casa o fuera.
+
+Solo necesitas dos archivos: GMM-Server.exe y GMM-Instalar.exe.
+Copialos juntos a cualquier PC donde tengas tus peliculas guardadas.
+
+
+PASO 1 - Instalar Node.js
+---------------------------
+Node.js es el programa que hace funcionar a GMM Server. Hace falta
+siempre, es el unico paso obligatorio antes de lo demas.
+
+1. Haz doble clic en GMM-Instalar.exe
+2. Pulsa el boton "Instalar Node.js"
+3. Espera a que la lista de abajo diga "instalado correctamente"
+   (uno o dos minutos)
+
+
+PASO 2 - Decir donde estan tus peliculas y encenderlo
+--------------------------------------------------------
+1. Haz doble clic en GMM-Server.exe
+2. Pulsa "Anadir carpeta..." y elige, con el selector de Windows,
+   la carpeta donde tienes tus peliculas
+3. Pulsa "Iniciar servidor" - las revisa solo, lo veras en la
+   lista de "Actividad"
+4. Pulsa "Copiar", junto a la "Clave de administracion" - la vas
+   a necesitar en el siguiente paso
+
+No cierres esta ventana del todo mientras quieras ver tus peliculas
+(puedes minimizarla, se queda funcionando en la bandeja del sistema,
+junto al reloj).
+
+
+PASO 3 - Conectar la app en el propio PC
+--------------------------------------------
+1. Abre GiveMyMovies (https://alberthoma.github.io/givemymovies-g/)
+2. Toca el icono de la ruedita (Ajustes)
+3. En "GMM Server" escribe:
+     Direccion:  http://127.0.0.1:7399
+     Clave:      la que copiaste en el Paso 2
+4. Pulsa "Probar conexion" y guarda
+5. Abre "Te la tengo": ya deberias ver tus peliculas
+
+Si llegaste hasta aqui y las ves, GMM Server funciona. Lo que sigue
+es para verlas TAMBIEN desde el movil, fuera de casa.
+
+
+PASO 4 - Instalar Tailscale (PC y movil)
+---------------------------------------------
+Tailscale es lo que conecta tu movil con tu PC de casa, aunque no
+estes ahi, sin abrir nada a Internet.
+
+1. En GMM-Instalar.exe, pulsa "Instalar Tailscale en este PC"
+2. Pulsa "Iniciar sesion en Tailscale" y entra con tu cuenta
+   (Google, Microsoft o correo)
+3. En el movil, instala la app "Tailscale" (Google Play o App Store)
+4. Inicia sesion ahi con la MISMA cuenta que en el PC
+
+
+PASO 5 - Activar el acceso seguro (HTTPS)
+----------------------------------------------
+GiveMyMovies solo puede hablar con direcciones seguras (https).
+Este paso pone ese candado delante de tu GMM Server.
+
+1. En GMM-Server.exe, busca la seccion "Acceso remoto seguro"
+2. Pulsa "Activar HTTPS con Tailscale"
+3. Si es la primera vez, puede pedirte un paso que solo tu puedes
+   hacer:
+     - Ve a https://login.tailscale.com/admin/dns
+     - Busca "HTTPS Certificates" y activalo
+     - Vuelve a GMM Server y pulsa el boton otra vez
+4. Cuando funcione, aparece una direccion tipo
+   https://tu-pc.tailXXXXX.ts.net - pulsa "Copiar"
+
+
+PASO 6 - Conectar el movil de verdad
+-----------------------------------------
+1. En el movil, abre GiveMyMovies
+2. Ajustes -> GMM Server:
+     Direccion:  la que copiaste en el Paso 5 (empieza por https://,
+                 SIN ningun numero de puerto al final)
+     Clave:      la misma del Paso 2
+3. Pulsa "Probar conexion"
+4. Abre "Te la tengo"
+
+Prueba a salir de tu wifi (datos moviles, por ejemplo) y repetir:
+si ves tus peliculas, todo el circuito funciona de verdad.
+
+
+COSAS A TENER EN CUENTA
+---------------------------
+- Para que funcione desde fuera, el PC de casa tiene que estar
+  encendido y GMM-Server.exe abierto (aunque este minimizado).
+
+- Tailscale, una vez conectado, se enciende solo con el PC y con
+  el movil - no hay que abrirlo cada vez.
+
+- Si tienes otra VPN instalada (NordVPN, ExpressVPN...), desconectala
+  mientras uses "Te la tengo" fuera de casa. Es un conflicto conocido:
+  dos VPN a la vez en el mismo aparato pueden bloquear el paso de
+  datos entre tu movil y tu PC, aunque las dos digan "conectado".
+
+- Si algo no funciona, cierra GMM-Server.exe del todo (clic derecho
+  en la bandeja -> "Detener servidor y salir") y vuelve a abrirlo.

@@ -88,3 +88,46 @@ test("mantiene como copiándose un archivo cuyo tamaño cambia", async function 
   assert.equal(duneEstable.estadoArchivo, "disponible");
   assert.equal(duneEstable.disponible, true);
 });
+
+test("sondea la compatibilidad de cada archivo y la reutiliza mientras no cambie", async function (t) {
+  const temporal = await entornoTemporal(t);
+  let sondeos = 0;
+  const gestor = new GestorCatalogo(configuracion(temporal.base, temporal.peliculas), {
+    sondear: async function (ruta) {
+      sondeos += 1;
+      return ruta.endsWith(".mkv")
+        ? { codecVideo: "hevc", codecAudio: "ac3" }
+        : { codecVideo: "h264", codecAudio: "aac" };
+    }
+  });
+  await gestor.iniciar();
+
+  const primero = await gestor.escanear();
+  const dune = primero.peliculas.find(function (p) { return p.tituloDetectado === "Dune Part Two"; });
+  const arrival = primero.peliculas.find(function (p) { return p.tituloDetectado === "Arrival"; });
+  assert.equal(dune.compatibilidad, "transcodificar");
+  assert.equal(arrival.compatibilidad, "compatible");
+  assert.equal(sondeos, 2);
+
+  await gestor.escanear();
+  assert.equal(sondeos, 2, "un archivo sin cambios no debe volver a sondearse");
+});
+
+test("si no se pudo sondear, vuelve a intentarlo en el siguiente escaneo en vez de quedarse en null para siempre", async function (t) {
+  const temporal = await entornoTemporal(t);
+  let sondeos = 0;
+  const gestor = new GestorCatalogo(configuracion(temporal.base, temporal.peliculas), {
+    sondear: async function () {
+      sondeos += 1;
+      return null;
+    }
+  });
+  await gestor.iniciar();
+
+  const primero = await gestor.escanear();
+  assert.ok(primero.peliculas.every(function (p) { return p.compatibilidad === null; }));
+  assert.equal(sondeos, 2);
+
+  await gestor.escanear();
+  assert.equal(sondeos, 4, "sin ffmpeg instalado, cada escaneo debe reintentar el sondeo");
+});

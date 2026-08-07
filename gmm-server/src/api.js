@@ -3,6 +3,7 @@
 const crypto = require("node:crypto");
 const fs = require("node:fs");
 const http = require("node:http");
+const { rutaCache } = require("./transcodificar");
 
 const fsPromesas = fs.promises;
 const VERSION_SERVIDOR = "0.2.0";
@@ -117,11 +118,11 @@ function crearTickets(configuracion) {
     });
   }
 
-  function emitir(id, descarga) {
+  function emitir(id, descarga, transcodificado) {
     limpiar();
     const token = crypto.randomBytes(32).toString("base64url");
     const expiraEn = Date.now() + duracion;
-    tickets.set(token, { id, descarga: Boolean(descarga), expiraEn });
+    tickets.set(token, { id, descarga: Boolean(descarga), transcodificado: Boolean(transcodificado), expiraEn });
     return { token, expiraEn };
   }
 
@@ -179,7 +180,7 @@ function autorizado(solicitud, configuracion) {
   return secretosIguales(clave, configuracion.claveAdministracion);
 }
 
-function crearServidorApi(configuracion, gestorCatalogo, registro) {
+function crearServidorApi(configuracion, gestorCatalogo, registro, gestorTranscodificacion) {
   const log = registro || console;
   const tickets = crearTickets(configuracion);
   return http.createServer(async function (solicitud, respuesta) {
@@ -242,12 +243,46 @@ function crearServidorApi(configuracion, gestorCatalogo, registro) {
           return;
         }
         const descarga = url.searchParams.get("tipo") === "descarga";
-        const ticket = tickets.emitir(id, descarga);
-        responderJson(respuesta, 200, {
-          ruta: `/_gmm/medio/${ticket.token}`,
-          expiraEn: new Date(ticket.expiraEn).toISOString(),
-          tipo: descarga ? "descarga" : "reproduccion"
-        });
+
+        /* La descarga siempre entrega el archivo original: no tiene sentido esperar una
+           conversi\u00f3n para algo que no se reproduce en el navegador. Lo mismo si nunca se pudo
+           analizar el archivo (sin ffmpeg) o si ya es compatible tal cual: comportamiento
+           id\u00e9ntico al de antes de este a\u00f1adido. */
+        const necesitaConversion = !descarga && pelicula.compatibilidad &&
+          pelicula.compatibilidad !== "compatible";
+        if (!necesitaConversion) {
+          const ticket = tickets.emitir(id, descarga, false);
+          responderJson(respuesta, 200, {
+            ruta: `/_gmm/medio/${ticket.token}`,
+            expiraEn: new Date(ticket.expiraEn).toISOString(),
+            tipo: descarga ? "descarga" : "reproduccion"
+          });
+          return;
+        }
+
+        if (!gestorTranscodificacion) {
+          responderJson(respuesta, 409, {
+            error: "FFMPEG_NO_CONFIGURADO",
+            mensaje: "Este v\u00eddeo necesita conversi\u00f3n y el servidor no tiene FFmpeg configurado. Puedes descargarlo."
+          });
+          return;
+        }
+        const listo = await gestorTranscodificacion.archivoListo(pelicula);
+        if (listo) {
+          const ticket = tickets.emitir(id, false, true);
+          responderJson(respuesta, 200, {
+            ruta: `/_gmm/medio/${ticket.token}`,
+            expiraEn: new Date(ticket.expiraEn).toISOString(),
+            tipo: "reproduccion"
+          });
+          return;
+        }
+        const trabajo = gestorTranscodificacion.solicitar(pelicula);
+        if (trabajo.estado === "error") {
+          responderJson(respuesta, 500, { error: "NO_SE_PUDO_CONVERTIR", mensaje: trabajo.error });
+          return;
+        }
+        responderJson(respuesta, 202, { estado: trabajo.estado });
         return;
       }
       if (solicitud.method === "GET" && url.pathname.startsWith("/_gmm/medio/")) {
@@ -262,7 +297,16 @@ function crearServidorApi(configuracion, gestorCatalogo, registro) {
           responderJson(respuesta, 404, { error: "Pel\u00edcula no disponible" });
           return;
         }
-        await responderArchivo(solicitud, respuesta, pelicula, ticket.descarga);
+        if (!ticket.transcodificado) {
+          await responderArchivo(solicitud, respuesta, pelicula, ticket.descarga);
+          return;
+        }
+        const peliculaCacheada = Object.assign({}, pelicula, {
+          ruta: rutaCache(configuracion, pelicula),
+          extension: ".mp4",
+          nombreArchivo: pelicula.nombreArchivo.replace(/\.[^.]+$/, ".mp4")
+        });
+        await responderArchivo(solicitud, respuesta, peliculaCacheada, ticket.descarga);
         return;
       }
       responderJson(respuesta, 404, { error: "Ruta no encontrada" });

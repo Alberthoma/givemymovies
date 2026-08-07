@@ -4,6 +4,7 @@ const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const { analizarNombreArchivo, esArchivoDeVideo } = require("./nombres");
+const { evaluarCompatibilidad, sondearArchivo } = require("./compatibilidad");
 
 const fsPromesas = fs.promises;
 const VERSION_CATALOGO = 1;
@@ -159,17 +160,27 @@ function catalogoPublico(catalogo) {
         modificadoEn: pelicula.modificadoEn,
         disponible: pelicula.disponible,
         estadoArchivo: pelicula.estadoArchivo || (pelicula.disponible ? "disponible" : "no_disponible"),
-        tmdb: pelicula.tmdb || null
+        tmdb: pelicula.tmdb || null,
+        /* null = no se pudo analizar con ffprobe (no instalado, o aún no escaneado con esta
+           versión); "compatible" = se sirve tal cual; "remux"/"transcodificar" = necesita
+           GMM.servidor -> transcodificar.js antes de reproducirse en el navegador. */
+        compatibilidad: pelicula.compatibilidad || null
       };
     })
   };
 }
 
 class GestorCatalogo {
-  constructor(configuracion) {
+  constructor(configuracion, opciones) {
     this.configuracion = configuracion;
     this.catalogo = catalogoVacio();
     this.escaneoEnCurso = null;
+    /* Inyectable para las pruebas: por defecto llama a ffprobe de verdad. Si el binario no
+       existe, sondearArchivo resuelve null y el archivo se cataloga sin compatibilidad
+       conocida (ver conservarCompatibilidad más abajo). */
+    this.sondear = (opciones && opciones.sondear) || function (ruta) {
+      return sondearArchivo(configuracion.rutaFFprobe, ruta);
+    };
   }
 
   async iniciar() {
@@ -190,6 +201,40 @@ class GestorCatalogo {
     });
     if (!pelicula || !pelicula.disponible || pelicula.estadoArchivo !== "disponible") return null;
     return pelicula;
+  }
+
+  /* Reutiliza la compatibilidad ya conocida si el archivo no cambió desde el último escaneo
+     (mismo criterio de "estable" que conservarDatosEnriquecidos); si es nuevo o cambió, vuelve
+     a sondearlo. Sondear cuesta una llamada a ffprobe por archivo, así que solo se paga una vez
+     por archivo estable. Muta "nueva" en vez de devolver, porque conservarDatosEnriquecidos ya
+     espera un objeto plano con todos los campos del archivo.
+
+     Si la vez anterior quedó en null (típicamente porque ffmpeg no estaba instalado todavía),
+     "estable" no basta para reutilizarlo: se vuelve a sondear en cada escaneo hasta obtener un
+     valor real, para que instalar ffmpeg más tarde lo resuelva solo, sin tener que tocar los
+     archivos para forzar un re-análisis. */
+  async _probarCompatibilidad(nueva, anterior) {
+    const estable = Boolean(anterior &&
+      anterior.tamanoBytes === nueva.tamanoBytes &&
+      anterior.modificadoEn === nueva.modificadoEn);
+    if (estable && anterior.compatibilidad) {
+      nueva.compatibilidad = anterior.compatibilidad;
+      nueva.codecVideo = anterior.codecVideo || null;
+      nueva.codecAudio = anterior.codecAudio || null;
+      return;
+    }
+    const sondeo = await this.sondear(nueva.ruta);
+    if (!sondeo) {
+      nueva.compatibilidad = null;
+      return;
+    }
+    nueva.codecVideo = sondeo.codecVideo || null;
+    nueva.codecAudio = sondeo.codecAudio || null;
+    nueva.compatibilidad = evaluarCompatibilidad({
+      extension: nueva.extension,
+      codecVideo: sondeo.codecVideo,
+      codecAudio: sondeo.codecAudio
+    });
   }
 
   async escanear() {
@@ -230,9 +275,11 @@ class GestorCatalogo {
       if (disponible) {
         const encontradas = [];
         await recorrerCarpeta(raiz, raiz.ruta, this.configuracion, encontradas, avisos);
-        encontradas.forEach(function (nueva) {
-          peliculas.push(conservarDatosEnriquecidos(nueva, anteriores.get(nueva.id), ahora));
-        });
+        for (const nueva of encontradas) {
+          const anterior = anteriores.get(nueva.id);
+          await this._probarCompatibilidad(nueva, anterior);
+          peliculas.push(conservarDatosEnriquecidos(nueva, anterior, ahora));
+        }
         raices.push({
           nombre: raiz.nombre,
           ruta: raiz.ruta,

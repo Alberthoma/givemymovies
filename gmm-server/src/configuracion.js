@@ -100,6 +100,13 @@ function cargarConfiguracion(rutaSolicitada) {
   const rutaCatalogo = path.isAbsolute(rutaCatalogoConfigurada)
     ? rutaCatalogoConfigurada
     : path.resolve(basePrivada, rutaCatalogoConfigurada);
+  const rutaCacheConfigurada = textoNoVacio(
+    datos.rutaCacheTranscodificacion || "transcodificado",
+    "rutaCacheTranscodificacion"
+  );
+  const rutaCacheTranscodificacion = path.isAbsolute(rutaCacheConfigurada)
+    ? rutaCacheConfigurada
+    : path.resolve(basePrivada, rutaCacheConfigurada);
 
   return {
     rutaConfiguracion: ruta,
@@ -128,7 +135,13 @@ function cargarConfiguracion(rutaSolicitada) {
       60,
       "duracionEnlaceMinutos"
     ),
-    rutaCatalogo
+    rutaCatalogo,
+    /* Sin instalar, ffmpeg/ffprobe simplemente no se encuentran en el PATH: el sondeo y la
+       transcodificación fallan en silencio (ver compatibilidad.js y transcodificar.js) y la
+       app sigue funcionando exactamente igual que antes de este añadido. */
+    rutaFFmpeg: textoNoVacio(datos.rutaFFmpeg || "ffmpeg", "rutaFFmpeg"),
+    rutaFFprobe: textoNoVacio(datos.rutaFFprobe || "ffprobe", "rutaFFprobe"),
+    rutaCacheTranscodificacion
   };
 }
 

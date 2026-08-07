@@ -26,6 +26,11 @@ gmm-server/node_modules/
 gmm-server/PRIVADO/
 gmm-server/*.log
 
+# GMM Server: .exe compilados (build/Compilar.ps1 es la fuente; los binarios
+# no se versionan, se generan en cada PC de desarrollo)
+gmm-server/build/salida/
+GMM-Server-para-instalar/*.exe
+
 # Copia histórica local previa; la fuente activa vive en la raíz
 Por Codex/
 
