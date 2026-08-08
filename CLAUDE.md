@@ -2,8 +2,8 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0040`
-**Próxima versión:** `V GMM 0041`
+**Versión activa:** `V GMM 0041`
+**Próxima versión:** `V GMM 0042`
 **Última actualización:** 2026-08-08
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies-g/> · GitHub Pages desde `main`, raíz.
@@ -271,13 +271,19 @@ el servidor) y `GMM-Instalar.exe` (instala Node.js, FFmpeg y Tailscale con `wing
 sin consola)— compilados con **ps2exe** desde los mismos `.ps1` de siempre
 (`gmm-server/build/Compilar.ps1`, herramienta de desarrollo, no se distribuye). `GMM-Server.exe`
 lleva el motor entero (`servidor.js`, `src/*.js`, `preparar.js`, `configuracion.ejemplo.json`)
-**incrustado dentro del propio `.exe`** (`-embedFiles` de ps2exe); en el primer arranque se
-autoextrae a `%LOCALAPPDATA%\GMM-Server\motor`, y ahí vive también su `PRIVADO\configuracion.json`
-— por eso el `.exe` es portable (se copia a cualquier PC, sin arrastrar una carpeta con
-docenas de archivos) y dos copias en dos PCs distintos no se pisan. La configuración privada
-**se crea sola la primera vez** (`Crear-ConfiguracionSiFalta`, llama al mismo `preparar.js` de
-siempre para no duplicar la lógica de generar la clave al azar) — ya no hace falta abrir
-PowerShell ni ejecutar nada a mano en un PC nuevo. La carpeta de distribución final,
+**incrustado dentro del propio `.exe`** (`-embedFiles` de ps2exe), y lo extrae a
+`%LOCALAPPDATA%\GMM-Server\motor` — ahí vive también su `PRIVADO\configuracion.json` — por eso
+el `.exe` es portable (se copia a cualquier PC, sin arrastrar una carpeta con docenas de
+archivos) y dos copias en dos PCs distintos no se pisan. **Importante y contraintuitivo,
+comprobado en la práctica en la V GMM 0039–0040 (ver §9): ps2exe re-extrae esos archivos
+incrustados EN CADA ARRANQUE del `.exe`, no solo la primera vez** — sobrescribe siempre
+`servidor.js`/`src/*.js`/`preparar.js`/`configuracion.ejemplo.json` con lo que lleve incrustado
+el `.exe` que se ejecuta, cada vez que se abre. `PRIVADO\configuracion.json` (y el catálogo) NO
+se ven afectados por esto — viven fuera del conjunto de archivos incrustados y solo
+`Crear-ConfiguracionSiFalta` los toca, y solo si faltan. La configuración privada **se crea sola
+la primera vez** (mismo `Crear-ConfiguracionSiFalta`, llama al `preparar.js` de siempre para no
+duplicar la lógica de generar la clave al azar) — ya no hace falta abrir PowerShell ni ejecutar
+nada a mano en un PC nuevo. La carpeta de distribución final,
 `GMM-Server-para-instalar/` (en la raíz del proyecto, gitignorada), contiene **solo esos dos
 `.exe`** — nada de código suelto ni instrucciones, a petición explícita del usuario.
 
@@ -998,6 +1004,7 @@ Comprobación manual rápida, si no quieres ejecutar nada:
 | **FFmpeg elige el contenedor por la extensión del archivo de destino, no por su contenido** (0039) | El nombre temporal de la transcodificación era `<id>.mp4.parcial-<pid>`: para FFmpeg, la "extensión" de eso es `.parcial-1234`, no reconocible, y fallaba con *"use a standard extension for the filename or specify the format manually"* el 100% de las veces (remux y transcodificar por igual). Las pruebas no lo detectaron porque inyectan un ejecutor falso que no reproduce ese sniffing real. Cualquier nombre temporal que le pases a FFmpeg como destino de salida debe seguir terminando en una extensión real (`<id>.parcial-<pid>.mp4`, no `<id>.mp4.parcial-<pid>`). |
 | **Dos pruebas asíncronas que comparten estado global no se pueden lanzar con `Promise.all`** (0039) | Dos bloques de prueba para `GMM.servidor` (uno para `enlace()`, otro nuevo para `enlaceOriginal()`) reasignan `global.fetch` y la configuración guardada (`GMM.servidor.guardar`) — estado mutable compartido, no aislado por bloque. Como son funciones `async` definidas como IIFE, las dos EMPIEZAN a ejecutarse a la vez en cuanto se definen, sin importar cómo se las espere después: cada `await` cede el control y deja que la otra pise el `fetch`/config a medio usar. Un test empezó a fallar sin que su lógica cambiara. Arreglo: encadenarlas en serie (`pEnlaceServidor.then(pruebaEnlaceOriginalServidor)`), nunca `Promise.all`, cuando comparten un mock global. |
 | **Un modal reutilizado sigue "abierto" al cambiar de contenido, y un bucle de sondeo no lo sabe** (0040) | `abrirReproductorServidor` sondeaba cada 4 s si la conversión había terminado, y solo paraba si la capa `#capaReproductor` estaba oculta. Pero cerrar la película A y abrir la película B **no oculta la capa** —la reutiliza con contenido nuevo—, así que el sondeo de A seguía vivo, viendo la capa "abierta" y seguía preguntando por A cada 4 s indefinidamente, sin relación con lo que había en pantalla. Con varias películas probadas seguidas (visto en la pestaña Network del usuario: 1045 peticiones en 5 minutos), se acumulan varios sondeos sueltos a la vez, suficiente para saturar el servidor local y hacer fallar peticiones nuevas sin relación aparente. La guarda correcta no es "¿sigue visible el contenedor?", es "¿sigo siendo yo quien lo abrió?": un contador (`tokenReproductor`) que cambia en cada apertura, comprobado en cada paso del sondeo. Cualquier bucle de fondo (`setTimeout` recursivo) sobre un contenedor compartido y reutilizable necesita este mismo patrón, no solo comprobar visibilidad. |
+| **Recompilar los `.exe` de GMM Server no es opcional tras tocar `gmm-server/src/`, y el protocolo de cierre de versión NO lo hace por su cuenta** (0039–0040) | Se arregló `tipo=original` en `src/api.js`, pero el `.exe` de `GMM-Server-para-instalar/` solo se había recompilado **antes** de ese cambio (con el arreglo de FFmpeg anterior, no con este). El usuario seguía abriendo el mismo `.exe` de siempre, que en cada arranque re-extrae SU PROPIA copia incrustada, vieja, sobre `%LOCALAPPDATA%\GMM-Server\motor\src\` (ver §4: ps2exe re-extrae en cada arranque, no solo la primera vez) — así que el botón nuevo parecía "no funcionar" pese a que el código fuente, los tests y hasta el commit publicado en GitHub estaban bien. Costó varias horas de diagnóstico en vivo con el usuario (se investigaron permisos nuevos de Chrome, un bucle de peticiones sueltas real que también hacía falta arreglar) antes de comparar `diff` entre el código fuente y el `motor/src` instalado y ver la diferencia exacta. **Parchear archivos a mano dentro de `%LOCALAPPDATA%\GMM-Server\motor\src\` es un arreglo temporal, no uno real** — se borra solo la próxima vez que se abra el `.exe`. La regla: **cualquier cambio a `gmm-server/src/*.js` exige, sin excepción, volver a `gmm-server/build/Compilar.ps1` y copiar los `.exe` nuevos a `GMM-Server-para-instalar/`** antes de dar el cambio por probado o cerrado — el skill `givemymovies-commit` no lo hace por su cuenta, porque no toca nada de `gmm-server/`. |
 
 ---
 
@@ -1082,6 +1089,7 @@ en `HISTORIAL.md`.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| V GMM 0041 | 2026-08-08 | El aviso de "enlace copiado" del botón «Abrir en otro reproductor» pasa de 3,2 s a **12 s** y muestra los 4 pasos completos para VLC, en vez de una frase corta que no daba tiempo a leer. De paso, arreglado que usaba un tipo de color `"exito"` inexistente en el CSS (los válidos son `ok`/`error`/`info`) y nunca se veía en verde. `GMM.ui.aviso` gana un tercer parámetro opcional, `duracionMs`. `sw.js` 35→36. |
 | V GMM 0040 | 2026-08-08 | Arreglado un bug real del reproductor de «Te la tengo»: al cerrar la película abierta y abrir otra, el sondeo de fondo de la primera (que revisa cada 4 s si la conversión terminó) no se cancelaba, y se iban acumulando sondeos sueltos hasta machacar el servidor (más de 1000 peticiones en 5 minutos, visto en vivo con el usuario). Nuevo `tokenReproductor`: cada apertura del reproductor invalida cualquier sondeo anterior. `sw.js` 34→35. |
 | V GMM 0039 | 2026-08-08 | GMM Server: arreglado un bug que hacía fallar el 100% de las conversiones de FFmpeg (el nombre temporal no terminaba en `.mp4`, y FFmpeg elige el contenedor por la extensión). Nuevo botón «Abrir en otro reproductor» en el visor de «Te la tengo»: da un enlace directo al archivo original (sin conversión) para VLC, el reproductor del móvil o una TV — nueva ruta `tipo=original` en `/api/medios/:id` y `GMM.servidor.enlaceOriginal`. `sw.js` 33→34. |
 | V GMM 0038 | 2026-08-07 | GMM Server: conversión con FFmpeg, acceso remoto real por HTTPS (Tailscale Serve, reemplaza el plan de `host: 0.0.0.0`), empaquetado en dos `.exe` (`GMM-Server.exe` + `GMM-Instalar.exe`, ps2exe), auto-configuración sin consola, dos bugs de producción arreglados (variable local en un `Timer`, eventos asíncronos que no disparaban al compilar) y tres guías nuevas para el usuario final. PWA: la barra superior se reorganiza en 2 filas en el móvil (solo CSS) y se desactiva el zoom por pellizco/doble toque. `sw.js` 32→33. |

@@ -1211,7 +1211,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   <footer class="pie">
     <span>givemymovies · datos de disponibilidad vía TMDB / JustWatch</span>
     <span>Tus listas se guardan en este navegador — inicia sesión para llevarlas a otros</span>
-    <span id="version-app">V GMM 0041</span>
+    <span id="version-app">V GMM 0040</span>
   </footer>
 </div>
 
@@ -3747,10 +3747,7 @@ GMM.ui = (function () {
   function $(id) { return document.getElementById(id); }
 
   /* ---- avisos flotantes ---- */
-  /* duracionMs es opcional (por defecto 3200): un aviso con varios pasos a seguir
-     (p.ej. cómo pegar un enlace en VLC) necesita quedarse en pantalla más tiempo que un
-     "guardado" de una línea, o desaparece antes de que dé tiempo a leerlo. */
-  function aviso(mensaje, tipo, duracionMs) {
+  function aviso(mensaje, tipo) {
     var caja = $("avisos");
     var nodo = document.createElement("div");
     nodo.className = "aviso " + (tipo || "info");
@@ -3760,7 +3757,7 @@ GMM.ui = (function () {
       nodo.style.opacity = "0";
       nodo.style.transition = "opacity .3s";
       setTimeout(function () { if (nodo.parentNode) nodo.parentNode.removeChild(nodo); }, 320);
-    }, duracionMs || 3200);
+    }, 3200);
   }
 
   /* ---- carátula con reserva cuando no hay imagen o falla la descarga ---- */
@@ -5049,10 +5046,7 @@ GMM.app = (function () {
     GMM.servidor.enlaceOriginal(id).then(function (url) {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(url).then(function () {
-          GMM.ui.aviso(
-            "Enlace copiado. En VLC: Medio → Abrir ubicación de red… (Ctrl+N), pega el enlace y dale a Reproducir.",
-            "ok", 12000
-          );
+          GMM.ui.aviso("Enlace copiado. Pégalo en VLC (Archivo → Abrir ubicación de red…) o en el reproductor que prefieras.", "exito");
         }).catch(function () {
           window.prompt("Copia este enlace y pégalo en tu reproductor (VLC, etc.):", url);
         });
