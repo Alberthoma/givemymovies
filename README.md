@@ -232,7 +232,11 @@ ni los vídeos se publican en GitHub. El servidor entrega enlaces temporales par
 descargar y nunca expone rutas físicas. Con una clave de TMDB, la sección completa las carátulas
 y datos de las películas. Los vídeos que el navegador no reproduce tal cual (algunos MKV) se
 convierten solos si tienes **FFmpeg** instalado — el propio `GMM-Instalar.exe` lo instala con un
-botón. Para entrar desde fuera de casa, el botón **«Activar HTTPS con Tailscale»** del panel deja
+botón; la primera vez que abres cada título puede tardar varios minutos, las siguientes es
+inmediato. **Si no quieres esperar**, el propio reproductor tiene un enlace «Abre el archivo tal
+cual en VLC u otro reproductor»: copia un enlace directo al archivo original (sin convertir) para
+pegarlo en VLC, el reproductor del móvil o una TV, que a diferencia del navegador leen MKV sin
+ayuda. Para entrar desde fuera de casa, el botón **«Activar HTTPS con Tailscale»** del panel deja
 una dirección `https://…` segura, sin abrir ningún puerto; consulta `gmm-server/README.md`.
 
 ---
@@ -313,7 +317,8 @@ buscar/reproducir desde tu Google Drive (Nivel 2) (V GMM 0026–0027); cuenta co
 sincronizar Mis listas entre dispositivos (V GMM 0029); GMM Server, tu servidor multimedia
 personal (V GMM 0032–0033); sincronizar también tus claves de TMDB/OMDb/GMM Server con la
 cuenta (V GMM 0035); app de escritorio para manejar GMM Server (V GMM 0036); conversión con
-FFmpeg, acceso remoto por HTTPS con Tailscale y empaquetado en dos `.exe` (V GMM 0038).*
+FFmpeg, acceso remoto por HTTPS con Tailscale y empaquetado en dos `.exe` (V GMM 0038); arreglo
+de la conversión con FFmpeg y enlace para abrir el original en otro reproductor (V GMM 0039).*
 
 ---
 

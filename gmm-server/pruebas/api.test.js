@@ -142,6 +142,53 @@ test("emite un enlace temporal y sirve reproducci\u00f3n o descarga sin revelar 
   assert.equal(await archivoDescarga.text(), "abcdef");
 });
 
+test("tipo=original entrega el archivo tal cual, sin pasar por conversión, para abrirlo en otro reproductor", async function (t) {
+  const carpeta = fs.mkdtempSync(path.join(os.tmpdir(), "gmm-media-"));
+  const archivo = path.join(carpeta, "Prueba (2024).mkv");
+  fs.writeFileSync(archivo, "abcdef");
+  t.after(function () { fs.rmSync(carpeta, { recursive: true, force: true }); });
+
+  let seSolicitoConversion = false;
+  const gestor = {
+    obtenerPublico: catalogoDePrueba,
+    escanearConfirmando: async function () { return catalogoDePrueba(); },
+    obtenerArchivo: function (id) {
+      if (id !== "abc") return null;
+      return {
+        id: "abc", ruta: archivo, nombreArchivo: "Prueba (2024).mkv", extension: ".mkv",
+        disponible: true, compatibilidad: "transcodificar"
+      };
+    }
+  };
+  const configuracion = {
+    nombreServidor: "GMM de prueba",
+    claveAdministracion: "secreto-de-prueba-12345678901234567890",
+    origenesPermitidos: ["https://alberthoma.github.io"],
+    duracionEnlaceMinutos: 10
+  };
+  const gestorTranscodificacion = {
+    archivoListo: async function () { return false; },
+    solicitar: function () { seSolicitoConversion = true; return { estado: "en_cola" }; }
+  };
+  const servidor = crearServidorApi(configuracion, gestor, { error: function () {} }, gestorTranscodificacion);
+  servidor.listen(0, "127.0.0.1");
+  await once(servidor, "listening");
+  t.after(function () { servidor.close(); });
+  const base = `http://127.0.0.1:${servidor.address().port}`;
+  const clave = { Authorization: "Bearer secreto-de-prueba-12345678901234567890" };
+
+  const creada = await fetch(`${base}/api/medios/abc?tipo=original`, { headers: clave });
+  const datos = await creada.json();
+  assert.equal(creada.status, 200);
+  assert.match(datos.ruta, /^\/_gmm\/medio\/[A-Za-z0-9_-]{30,}$/);
+  assert.equal(seSolicitoConversion, false);
+
+  const archivoOriginal = await fetch(base + datos.ruta);
+  assert.equal(archivoOriginal.status, 200);
+  assert.match(archivoOriginal.headers.get("content-disposition"), /^inline/);
+  assert.equal(await archivoOriginal.text(), "abcdef");
+});
+
 test("sin GestorTranscodificacion, reproducir un vídeo incompatible pide FFmpeg pero la descarga funciona igual", async function (t) {
   const carpeta = fs.mkdtempSync(path.join(os.tmpdir(), "gmm-media-"));
   const archivo = path.join(carpeta, "Prueba (2024).mkv");

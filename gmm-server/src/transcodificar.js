@@ -93,7 +93,12 @@ class GestorTranscodificacion {
   async _transcodificar(pelicula, trabajo) {
     trabajo.estado = "preparando";
     const destino = rutaCache(this.configuracion, pelicula);
-    const temporal = `${destino}.parcial-${process.pid}`;
+    /* El nombre temporal DEBE terminar en ".mp4": ffmpeg elige el contenedor de salida por la
+       extensión del archivo de destino, y algo como "…mp4.parcial-1234" no es una extensión que
+       reconozca ("use a standard extension for the filename or specify the format manually").
+       Comprobado con ffmpeg real: fallaba el 100% de las conversiones, tanto remux como
+       transcodificar, con ese error exacto. */
+    const temporal = destino.replace(/\.mp4$/, `.parcial-${process.pid}.mp4`);
     try {
       await fsPromesas.mkdir(path.dirname(destino), { recursive: true });
       await ejecutarFFmpeg(this.configuracion.rutaFFmpeg, construirArgumentos(pelicula, temporal), this.ejecutar);

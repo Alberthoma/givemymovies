@@ -244,6 +244,21 @@ function crearServidorApi(configuracion, gestorCatalogo, registro, gestorTransco
         }
         const descarga = url.searchParams.get("tipo") === "descarga";
 
+        /* "original": para quien prefiere abrir el archivo tal cual en su propio reproductor
+           (VLC, el reproductor del m\u00f3vil, una TV) en vez de esperar la conversi\u00f3n. La mayor\u00eda
+           de reproductores de escritorio y m\u00f3vil leen MKV/AC3 sin ayuda; el navegador es el
+           \u00fanico exigente. Mismo enlace que la reproducci\u00f3n normal cuando el archivo ya es
+           compatible, pero aqu\u00ed se salta la conversi\u00f3n aunque hiciera falta. */
+        if (url.searchParams.get("tipo") === "original") {
+          const ticket = tickets.emitir(id, false, false);
+          responderJson(respuesta, 200, {
+            ruta: `/_gmm/medio/${ticket.token}`,
+            expiraEn: new Date(ticket.expiraEn).toISOString(),
+            tipo: "original"
+          });
+          return;
+        }
+
         /* La descarga siempre entrega el archivo original: no tiene sentido esperar una
            conversi\u00f3n para algo que no se reproduce en el navegador. Lo mismo si nunca se pudo
            analizar el archivo (sin ffmpeg) o si ya es compatible tal cual: comportamiento

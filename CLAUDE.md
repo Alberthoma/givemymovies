@@ -2,9 +2,9 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0038`
-**Próxima versión:** `V GMM 0039`
-**Última actualización:** 2026-08-07
+**Versión activa:** `V GMM 0039`
+**Próxima versión:** `V GMM 0040`
+**Última actualización:** 2026-08-08
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies-g/> · GitHub Pages desde `main`, raíz.
 
@@ -210,6 +210,29 @@ para no repetirlo. `GET /api/medios/:id` devuelve **202 "preparando"** mientras 
 de fallar; la PWA sondea hasta que hay ticket. **Si `ffmpeg`/`ffprobe` no están instalados, todo
 sigue funcionando exactamente igual que antes** (solo sin conversión): la ausencia se detecta
 sola, nunca hace falta desactivar nada a mano.
+
+**Bug real de la 0038, arreglado en V GMM 0039: el 100% de las conversiones fallaban.**
+`_transcodificar` escribía primero a un archivo temporal (`<id>.mp4.parcial-<pid>`) para
+renombrarlo al terminar. FFmpeg elige el contenedor de salida **por la extensión del nombre de
+archivo**, y `.parcial-<pid>` no es una extensión reconocible — fallaba con *"use a standard
+extension for the filename or specify the format manually"*, tanto en remux como en
+transcodificar. No se detectó en la 0038 porque en ese momento el usuario todavía no tenía
+`ffmpeg` instalado: las pruebas inyectan un ejecutor falso (`opciones.ejecutar`) que no
+reproduce el sniffing de extensión real de FFmpeg, así que no lo habrían pillado tampoco. Se
+encontró pidiéndole al servidor real que convirtiera un archivo real y leyendo el error.
+Arreglo: el nombre temporal ahora conserva `.mp4` al final (`<id>.parcial-<pid>.mp4`).
+
+**Abrir el original en otro reproductor (desde V GMM 0039).** Además de esperar la conversión,
+`GET /api/medios/:id?tipo=original` da un enlace temporal al archivo **tal cual**, sin pasar por
+compatibilidad ni FFmpeg — para quien prefiere pegarlo en VLC ("Abrir ubicación de red…"), en el
+reproductor del móvil o en una TV, que a diferencia del `<video>` del navegador sí leen MKV/AC3
+sin ayuda. En la PWA es `GMM.servidor.enlaceOriginal(id)` y el botón «Abre el archivo tal cual en
+VLC u otro reproductor» del visor de «Te la tengo» — vive **fuera** de `#estadoReproductor`
+(el contenedor que el sondeo de conversión reescribe cada pocos segundos), para que no
+desaparezca a media espera. Copia el enlace con `navigator.clipboard`; si no está disponible,
+cae a `window.prompt()` para copiarlo a mano. Los navegadores no dejan que una página lance otro
+programa por su cuenta (por seguridad), así que el paso de pegarlo en el reproductor es siempre
+manual — no hay forma de automatizarlo desde la web en PC ni iPhone.
 
 **Acceso remoto: HTTPS con Tailscale Serve (desde V GMM 0038, reemplaza el plan de `host:
 0.0.0.0` de versiones anteriores).** GiveMyMovies se sirve por `https://`, y los navegadores
@@ -725,7 +748,7 @@ el `og:image`. Y no cojas el primer `<img>` de la página: suele ser un recomend
 **La aplicación no tiene dependencias.** `pruebas/` es una herramienta aparte y opcional.
 
 ```bash
-node pruebas/logica.js      # 188 comprobaciones · sin dependencias · instantáneo
+node pruebas/logica.js      # 190 comprobaciones · sin dependencias · instantáneo
 node pruebas/imagenes.js    #  15 comprobaciones · necesita internet · ~30 s
 node pruebas/interfaz.js    # 127 comprobaciones · playwright-core y, desde 0029, internet ·  ~60 s
 node pruebas/pwa.js         #  20 comprobaciones · playwright-core · ~20 s
@@ -777,6 +800,23 @@ El acceso remoto real (Tailscale Serve, el botón «Activar HTTPS con Tailscale�
 otra VPN) **no se puede probar en CI** —necesita una tailnet real, una cuenta de Tailscale y un
 segundo dispositivo—, así que la verificación de punta a punta la hizo el usuario en su propio
 PC y móvil, en vivo, incluido el diagnóstico del conflicto con NordVPN.
+
+**La V GMM 0039 se cerró en local**, contra el servidor real del usuario, no solo con simulacros.
+El bug de FFmpeg se encontró pidiéndole al servidor en marcha que convirtiera un MKV real de la
+biblioteca y leyendo el error exacto de `ffmpeg`; el arreglo se verificó copiándolo a la
+extracción real (`%LOCALAPPDATA%\GMM-Server\motor\src\`) y viendo crecer el archivo temporal sin
+errores, primero con un archivo de prueba y después con una conversión real del usuario (*12
+Monos*) ya con el panel funcionando con normalidad. Suites: `logica.js` **190/190** (2
+comprobaciones nuevas: `GMM.servidor.enlaceOriginal` armando la URL y traduciendo un 404),
+`interfaz.js` **127/127** (sin cambio de número: la nota con el botón nuevo no tiene cobertura
+en esta suite, ver más abajo) y `pwa.js` **20/20** (caché `gmm-app-v34`); y, aparte, el
+`npm.cmd test` de `gmm-server` **35/35** (1 comprobación nueva: `tipo=original` entrega el
+archivo sin pedir conversión). El botón «Abrir en otro reproductor» se verificó además con un
+script de Playwright aparte (no versionado, fuera de `pruebas/`): abre el reproductor, encuentra
+el botón, lo pulsa y comprueba que pide el enlace correcto y cae al `prompt()` cuando el
+portapapeles no está disponible — `interfaz.js` no tiene todavía un bloque dedicado a «Te la
+tengo» (ni lo tenía antes de esta versión), así que no se sumaron comprobaciones ahí para no
+mezclar un cambio puntual con la cobertura más amplia que le falta a esa vista entera.
 
 > **Correr `interfaz.js`/`pwa.js` en remoto, sin npm** (aprendido en la 0024): aunque
 > `npm install playwright-core` esté bloqueado por la política de red, el entorno suele traer un
@@ -929,6 +969,8 @@ Comprobación manual rápida, si no quieres ejecutar nada:
 | **Callbacks asíncronos capturados por cierre, rotos solo al compilar con ps2exe** (0038, `gmm-server`) | `Register-ObjectEvent` (capturar en vivo la salida de `node.exe`) y un `Add_Tick` de `System.Windows.Forms.Timer` que leía una variable **local** de la función que lo creó funcionaban perfectamente al ejecutar el `.ps1` sin compilar, pero fallaban compilados en `-noConsole`, con «No se puede llamar a un método en una expresión con valor NULL» — sin relación aparente con la causa real. Se confirmó con una reproducción mínima aparte antes de tocar el código de producción. Arreglo del Timer: variable **`$script:`**, no local, dentro del `Add_Tick`. Arreglo del `Register-ObjectEvent`: se abandonó la captura en vivo; la salida solo se lee si hace falta, de forma síncrona (`ReadToEnd`, tras confirmar que el proceso ya murió). Cualquier callback nuevo en un `.ps1` que se vaya a compilar con ps2exe: probarlo primero **ya compilado**, no solo como script. |
 | **Un clic de más, si muestra su propio aviso, se convierte en una fila de ventanas** (0038, `gmm-server`) | El mutex de instancia única SÍ bloqueaba bien los duplicados, pero cada intento de más mostraba un `MessageBox` — y sin consola visible es fácil hacer varios doble clics seguidos por impaciencia, apilando avisos idénticos (visto en la práctica: una fila entera). No era un fallo del mutex, era mostrar algo por cada intento de más. Arreglo: un intento de más no muestra nada, como mucho intenta enfocar la ventana que ya existe. |
 | **Una regla CSS "de más" puede romper el patrón "destapar, pulsar, no forzar"** (0038) | Al ocultar `#btnBiblioteca` con una regla nueva dentro del media query del móvil (redundante: la global `.oculto` con `!important` ya lo cubría en todos los anchos), el test de la trampa 0030 —que le quita `.oculto` a mano antes de pulsarlo— dejó de encontrarlo, porque mi regla nueva no tenía `!important` pero tampoco dependía de `.oculto`, así que seguía aplicando aunque el test la quitase. Antes de añadir un ocultado "por si acaso", comprueba si ya hay uno cubriéndolo. |
+| **FFmpeg elige el contenedor por la extensión del archivo de destino, no por su contenido** (0039) | El nombre temporal de la transcodificación era `<id>.mp4.parcial-<pid>`: para FFmpeg, la "extensión" de eso es `.parcial-1234`, no reconocible, y fallaba con *"use a standard extension for the filename or specify the format manually"* el 100% de las veces (remux y transcodificar por igual). Las pruebas no lo detectaron porque inyectan un ejecutor falso que no reproduce ese sniffing real. Cualquier nombre temporal que le pases a FFmpeg como destino de salida debe seguir terminando en una extensión real (`<id>.parcial-<pid>.mp4`, no `<id>.mp4.parcial-<pid>`). |
+| **Dos pruebas asíncronas que comparten estado global no se pueden lanzar con `Promise.all`** (0039) | Dos bloques de prueba para `GMM.servidor` (uno para `enlace()`, otro nuevo para `enlaceOriginal()`) reasignan `global.fetch` y la configuración guardada (`GMM.servidor.guardar`) — estado mutable compartido, no aislado por bloque. Como son funciones `async` definidas como IIFE, las dos EMPIEZAN a ejecutarse a la vez en cuanto se definen, sin importar cómo se las espere después: cada `await` cede el control y deja que la otra pise el `fetch`/config a medio usar. Un test empezó a fallar sin que su lógica cambiara. Arreglo: encadenarlas en serie (`pEnlaceServidor.then(pruebaEnlaceOriginalServidor)`), nunca `Promise.all`, cuando comparten un mock global. |
 
 ---
 
@@ -1013,6 +1055,7 @@ en `HISTORIAL.md`.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| V GMM 0039 | 2026-08-08 | GMM Server: arreglado un bug que hacía fallar el 100% de las conversiones de FFmpeg (el nombre temporal no terminaba en `.mp4`, y FFmpeg elige el contenedor por la extensión). Nuevo botón «Abrir en otro reproductor» en el visor de «Te la tengo»: da un enlace directo al archivo original (sin conversión) para VLC, el reproductor del móvil o una TV — nueva ruta `tipo=original` en `/api/medios/:id` y `GMM.servidor.enlaceOriginal`. `sw.js` 33→34. |
 | V GMM 0038 | 2026-08-07 | GMM Server: conversión con FFmpeg, acceso remoto real por HTTPS (Tailscale Serve, reemplaza el plan de `host: 0.0.0.0`), empaquetado en dos `.exe` (`GMM-Server.exe` + `GMM-Instalar.exe`, ps2exe), auto-configuración sin consola, dos bugs de producción arreglados (variable local en un `Timer`, eventos asíncronos que no disparaban al compilar) y tres guías nuevas para el usuario final. PWA: la barra superior se reorganiza en 2 filas en el móvil (solo CSS) y se desactiva el zoom por pellizco/doble toque. `sw.js` 32→33. |
 | V GMM 0037 | 2026-08-06 | Solo documentación: se añade a `CLAUDE.md` §11 el pendiente «Acceso remoto a GMM Server» (Tailscale), que existía en `PENDIENTES.md` §3 pero nunca se había resumido en el índice — una auditoría del usuario sobre qué faltaba de la función GMM Server lo sacó a la luz. |
 | V GMM 0036 | 2026-08-06 | Nueva app de escritorio para GMM Server (`GMM-Server.vbs` + `GMM-Server-Panel.ps1`, PowerShell + Windows Forms): iniciar/detener, escanear sin reiniciar, añadir/quitar carpetas con selector nativo, bandeja del sistema. No toca la PWA. |

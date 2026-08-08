@@ -924,15 +924,6 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
    100%, y aquí el tope evita que se estire de más en escritorio. */
 .modal.modal-forma { max-width: 620px; }
 .modal-nota { font-size: 13.5px; color: #8ba0b6; margin-bottom: 4px; }
-/* Botón con pinta de enlace, para meter dentro de un párrafo de nota (p.ej. "abrir en
-   otro reproductor"): mismo estilo que .cambiar-metodo pero sin sus propiedades de grid. */
-.enlace-servidor {
-  color: #8fc9ff; font: inherit; font-weight: 600;
-  border: 0; border-bottom: 1px dashed rgba(74, 168, 255, 0.45);
-  background: none; padding: 0; cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
-}
-.enlace-servidor:hover { color: #e8f0f8; border-color: #4aa8ff; }
 /* Pie con un solo botón: centrado, no a la derecha. */
 .modal-pie.centrado { justify-content: center; }
 .modal-pie.centrado .boton-buscar { min-width: 190px; text-align: center; }
@@ -1211,7 +1202,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   <footer class="pie">
     <span>givemymovies · datos de disponibilidad vía TMDB / JustWatch</span>
     <span>Tus listas se guardan en este navegador — inicia sesión para llevarlas a otros</span>
-    <span id="version-app">V GMM 0039</span>
+    <span id="version-app">V GMM 0038</span>
   </footer>
 </div>
 
@@ -3454,32 +3445,9 @@ GMM.servidor = (function () {
     });
   }
 
-  /* Enlace al archivo TAL CUAL, sin pasar por la conversión: para quien prefiere abrirlo en
-     VLC, el reproductor del móvil o una TV, que a diferencia del <video> del navegador sí
-     entienden MKV/AC3 sin ayuda. Siempre listo al instante, nunca "preparando". */
-  function enlaceOriginal(id) {
-    var actual = configuracion();
-    if (!actual.url) return Promise.reject(new Error("SIN_CONFIGURAR"));
-    var cabeceras = { Accept: "application/json" };
-    if (actual.clave) cabeceras.Authorization = "Bearer " + actual.clave;
-    var ruta = "/api/medios/" + encodeURIComponent(id) + "?tipo=original";
-    return fetch(actual.url + ruta, { headers: cabeceras }).then(function (respuesta) {
-      return respuesta.json().catch(function () { return {}; }).then(function (cuerpo) {
-        if (respuesta.status === 200 && typeof cuerpo.ruta === "string") {
-          return actual.url + cuerpo.ruta;
-        }
-        if (respuesta.status === 401) throw new Error("CLAVE_INCORRECTA");
-        if (respuesta.status === 403) throw new Error("ORIGEN_NO_PERMITIDO");
-        if (respuesta.status === 404) throw new Error("NO_ENCONTRADO");
-        throw new Error("HTTP_" + respuesta.status);
-      });
-    });
-  }
-
   return {
     catalogo: catalogo, configuracion: configuracion, conectado: conectado,
-    enlace: enlace, enlaceOriginal: enlaceOriginal, guardar: guardar,
-    normalizarUrl: normalizarUrl, total: total
+    enlace: enlace, guardar: guardar, normalizarUrl: normalizarUrl, total: total
   };
 })();
 
@@ -4979,72 +4947,42 @@ GMM.app = (function () {
      que esté listo, con un tope para no reintentar para siempre si algo se atasca. El propio
      estado de la capa (abierta/cerrada) hace de guarda: si el usuario la cierra a media espera,
      el siguiente intento no toca un modal que ya no está a la vista. */
-  /* La nota con "abrir en otro reproductor" vive FUERA de #estadoReproductor a propósito:
-     ese enlace no depende de la conversión (sirve el archivo tal cual, con GMM.servidor.
-     enlaceOriginal) y tiene que seguir ahí sin importar cuántas veces se repinte el estado
-     de la espera. */
   function abrirReproductorServidor(item) {
     if (!item) return;
     var LIMITE_INTENTOS = 90;
     var RETARDO_MS = 4000;
     $("tituloReproductor").textContent = item.tituloDetectado || item.nombreArchivo || "Reproducir";
-    $("cuerpoReproductor").innerHTML =
-      '<div id="estadoReproductor"><div class="estado"><div class="estado-txt">Preparando reproducción segura…</div></div></div>' +
-      '<p class="modal-nota" style="margin-top:12px">¿No quieres esperar? ' +
-      '<button type="button" class="enlace-servidor" data-gmm-externo="' + GMM.util.esc(item.id) + '">Abre el archivo tal cual en VLC u otro reproductor</button>. ' +
-      'A diferencia del navegador, la mayoría de reproductores leen MKV sin necesidad de convertir nada.</p>';
+    $("cuerpoReproductor").innerHTML = '<div class="estado"><div class="estado-txt">Preparando reproducción segura…</div></div>';
     $("capaReproductor").classList.remove("oculto");
 
     function intentar(numero) {
       if ($("capaReproductor").classList.contains("oculto")) return;
-      var contenedor = $("estadoReproductor");
-      if (!contenedor) return;
       GMM.servidor.enlace(item.id, false).then(function (enlace) {
-        var contenedor = $("estadoReproductor");
-        if (!contenedor) return;
+        if ($("capaReproductor").classList.contains("oculto")) return;
         if (enlace.preparando) {
           if (numero >= LIMITE_INTENTOS) {
-            contenedor.innerHTML = '<div class="estado"><div class="estado-tit">Sigue preparándose</div>' +
+            $("cuerpoReproductor").innerHTML = '<div class="estado"><div class="estado-tit">Sigue preparándose</div>' +
               '<p class="estado-txt">Tu GMM Server está tardando más de lo normal en convertir este vídeo. ' +
-              'Vuelve a intentarlo más tarde, descárgalo o ábrelo en otro reproductor con el enlace de abajo.</p></div>';
+              'Vuelve a intentarlo más tarde o descárgalo.</p></div>';
             return;
           }
-          contenedor.innerHTML = '<div class="estado"><div class="estado-txt">Preparando vídeo… tu GMM Server lo está ' +
+          $("cuerpoReproductor").innerHTML = '<div class="estado"><div class="estado-txt">Preparando vídeo… tu GMM Server lo está ' +
             'convirtiendo a un formato reproducible. Puede tardar varios minutos la primera vez; las siguientes será inmediato.</div></div>';
           setTimeout(function () { intentar(numero + 1); }, RETARDO_MS);
           return;
         }
-        contenedor.innerHTML =
+        $("cuerpoReproductor").innerHTML =
           '<div class="repro-marco"><video controls autoplay playsinline preload="metadata" src="' + GMM.util.esc(enlace.url) + '">' +
             'Tu navegador no puede reproducir este formato. Usa Descargar para guardar el archivo.' +
-          '</video></div>';
+          '</video></div>' +
+          '<p class="modal-nota" style="margin-top:12px">Si este formato no abre, descárgalo. Algunos MKV necesitan conversión para reproducirse en el navegador.</p>';
       }).catch(function (error) {
-        var contenedor = $("estadoReproductor");
-        if (!contenedor) return;
-        contenedor.innerHTML = '<div class="estado"><div class="estado-tit">No se pudo abrir el vídeo</div><p class="estado-txt">' +
+        if ($("capaReproductor").classList.contains("oculto")) return;
+        $("cuerpoReproductor").innerHTML = '<div class="estado"><div class="estado-tit">No se pudo abrir el vídeo</div><p class="estado-txt">' +
           GMM.util.esc(textoErrorServidor(error)) + '</p></div>';
       });
     }
     intentar(0);
-  }
-
-  /* Copia (o, si el navegador no deja, muestra para copiar a mano) el enlace directo al
-     archivo original, sin conversión: para pegarlo en VLC ("Abrir ubicación de red…"), el
-     reproductor del móvil o una TV. */
-  function abrirEnOtroReproductor(id) {
-    GMM.servidor.enlaceOriginal(id).then(function (url) {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(url).then(function () {
-          GMM.ui.aviso("Enlace copiado. Pégalo en VLC (Archivo → Abrir ubicación de red…) o en el reproductor que prefieras.", "exito");
-        }).catch(function () {
-          window.prompt("Copia este enlace y pégalo en tu reproductor (VLC, etc.):", url);
-        });
-        return;
-      }
-      window.prompt("Copia este enlace y pégalo en tu reproductor (VLC, etc.):", url);
-    }).catch(function (error) {
-      GMM.ui.aviso(textoErrorServidor(error), "error");
-    });
   }
 
   function descargarServidor(item) {
@@ -5802,14 +5740,6 @@ GMM.app = (function () {
        El retardo da tiempo a que se registre el clic sobre una sugerencia. */
     $("entrada").addEventListener("blur", function () {
       setTimeout(cerrarSugerencias, 160);
-    });
-
-    /* --- reproductor de GMM Server: el modal vive fuera de #resultados, así que necesita
-       su propio delegado para el botón "abrir en otro reproductor" --- */
-    $("cuerpoReproductor").addEventListener("click", function (e) {
-      var nodo = e.target.closest("[data-gmm-externo]");
-      if (!nodo) return;
-      abrirEnOtroReproductor(nodo.getAttribute("data-gmm-externo"));
     });
 
     /* --- botón buscar y filtros --- */

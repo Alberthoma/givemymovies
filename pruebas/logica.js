@@ -234,6 +234,31 @@ const pEnlaceServidor = (async function () {
   GMM.servidor.guardar("", "");
 })();
 
+/* ---------------------------------------------------------------- */
+m.titulo("GMM Server: abrir el original en otro reproductor (V GMM 0039)");
+
+/* Encadenada DESPUÉS de pEnlaceServidor a propósito, nunca en paralelo con Promise.all: las
+   dos comparten estado global mutable (global.fetch, la configuración de GMM.servidor), y
+   correr a la vez las mezcla —cada await cede el control y deja que la otra pise el
+   fetch/config a medio usar. */
+async function pruebaEnlaceOriginalServidor() {
+  GMM.servidor.guardar("http://127.0.0.1:7399", "clave-prueba-original");
+
+  global.fetch = () => respuestaFalsaServidor(200,
+    { ruta: "/_gmm/medio/tokenOriginal", expiraEn: "2026-01-01T00:00:00.000Z", tipo: "original" });
+  const url = await GMM.servidor.enlaceOriginal("id1");
+  m.afirmar("arma la URL completa a partir de la dirección guardada, sin pasar por 'preparando'",
+    url === "http://127.0.0.1:7399/_gmm/medio/tokenOriginal");
+
+  global.fetch = () => respuestaFalsaServidor(404, { error: "Película no disponible" });
+  let errorNoEncontrado = null;
+  try { await GMM.servidor.enlaceOriginal("id1"); } catch (error) { errorNoEncontrado = error.message; }
+  m.afirmar("404 se traduce a NO_ENCONTRADO", errorNoEncontrado === "NO_ENCONTRADO");
+
+  global.fetch = fetchOriginalServidor;
+  GMM.servidor.guardar("", "");
+}
+
 m.titulo("Interpretación del enlace de la copia (GMM.util.enlaceCopia)");
 const eDrive = GMM.util.enlaceCopia("https://drive.google.com/file/d/1AbC-dEfGhIJ/view?usp=sharing");
 m.afirmar("un enlace de Drive saca el id y arma ver + descargar directa",
@@ -668,7 +693,7 @@ GMM.util.enLotes(trabajo, 5, (n) => {
   m.afirmar("respeta el tope de 5 simultáneas", pico <= 5, "pico " + pico);
   m.afirmar("devuelve los 13 resultados en orden",
     res.join(",") === trabajo.map((n) => n * 2).join(","));
-  return pEnlaceServidor;
+  return pEnlaceServidor.then(pruebaEnlaceOriginalServidor);
 }).then(() => {
   process.exit(m.resumir() ? 1 : 0);
 });
