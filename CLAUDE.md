@@ -2,8 +2,8 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0039`
-**Próxima versión:** `V GMM 0040`
+**Versión activa:** `V GMM 0040`
+**Próxima versión:** `V GMM 0041`
 **Última actualización:** 2026-08-08
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies-g/> · GitHub Pages desde `main`, raíz.
@@ -818,6 +818,32 @@ portapapeles no está disponible — `interfaz.js` no tiene todavía un bloque d
 tengo» (ni lo tenía antes de esta versión), así que no se sumaron comprobaciones ahí para no
 mezclar un cambio puntual con la cobertura más amplia que le falta a esa vista entera.
 
+**La V GMM 0040 se encontró y se cerró en vivo, con el usuario mirando su propia consola del
+navegador.** Tras publicar la 0039, el botón nuevo seguía fallando con "No pude conectar con GMM
+Server" de forma intermitente. El diagnóstico pasó por varias pistas falsas antes de dar con la
+real: el permiso nuevo de Chrome "Local Network Access" (que exige autorización explícita para
+que una página HTTPS hable con `127.0.0.1`) parecía la causa, pero **la pestaña Network del
+navegador reveló el verdadero problema**: 1045 peticiones en 5,3 minutos, muchas más de las que
+el sondeo de "Preparando vídeo…" (una cada 4 s) podía explicar. Causa raíz: al cerrar el
+reproductor de una película y abrir el de otra, `abrirReproductorServidor` **no cancelaba el
+sondeo de la anterior** — solo comprobaba si la capa del modal seguía visible, y abrir una
+película nueva no la oculta, solo cambia su contenido. El usuario había probado varias películas
+seguidas mientras diagnosticábamos el botón, así que se acumularon varios sondeos sueltos
+machacando el servidor local a la vez, lo bastante como para que peticiones nuevas (como la del
+botón) se quedaran sin respuesta. Arreglo: un contador `tokenReproductor` que cambia en cada
+apertura del reproductor; cada sondeo comprueba que sigue siendo el suyo antes de continuar o de
+programar el siguiente `setTimeout`, así que abrir una película nueva invalida de raíz cualquier
+sondeo anterior. Sin comprobación nueva en `pruebas/`: `abrirReproductorServidor` no es una
+función exportada ni pura (depende de `setTimeout`, del DOM y de temporizadores reales), mismo
+motivo por el que esa vista entera sigue sin cobertura en `interfaz.js` (documentado ya en la
+0039). Suites: `logica.js` **190/190**, `interfaz.js` **127/127**, `pwa.js` **20/20** (caché
+`gmm-app-v35`). De camino, un cierre de sesión inesperado (el PC del usuario se apagó solo a
+mitad del diagnóstico) confirmó que el arreglo ya estaba a salvo en `index.html` sin comitear
+—nunca se perdió nada—, y una prueba de PWA en rojo por un archivo `iconos/icono-512.png`
+ausente (cambio suelto del usuario, de antes de esta sesión, sustituyéndolo por un `.ico`) se
+resolvió preguntando primero, sin tocar nada por cuenta propia: el usuario confirmó que ya había
+repuesto el `.png`.
+
 > **Correr `interfaz.js`/`pwa.js` en remoto, sin npm** (aprendido en la 0024): aunque
 > `npm install playwright-core` esté bloqueado por la política de red, el entorno suele traer un
 > **`playwright` global** (que incluye `playwright-core`) y **Chromium** ya descargado en
@@ -971,6 +997,7 @@ Comprobación manual rápida, si no quieres ejecutar nada:
 | **Una regla CSS "de más" puede romper el patrón "destapar, pulsar, no forzar"** (0038) | Al ocultar `#btnBiblioteca` con una regla nueva dentro del media query del móvil (redundante: la global `.oculto` con `!important` ya lo cubría en todos los anchos), el test de la trampa 0030 —que le quita `.oculto` a mano antes de pulsarlo— dejó de encontrarlo, porque mi regla nueva no tenía `!important` pero tampoco dependía de `.oculto`, así que seguía aplicando aunque el test la quitase. Antes de añadir un ocultado "por si acaso", comprueba si ya hay uno cubriéndolo. |
 | **FFmpeg elige el contenedor por la extensión del archivo de destino, no por su contenido** (0039) | El nombre temporal de la transcodificación era `<id>.mp4.parcial-<pid>`: para FFmpeg, la "extensión" de eso es `.parcial-1234`, no reconocible, y fallaba con *"use a standard extension for the filename or specify the format manually"* el 100% de las veces (remux y transcodificar por igual). Las pruebas no lo detectaron porque inyectan un ejecutor falso que no reproduce ese sniffing real. Cualquier nombre temporal que le pases a FFmpeg como destino de salida debe seguir terminando en una extensión real (`<id>.parcial-<pid>.mp4`, no `<id>.mp4.parcial-<pid>`). |
 | **Dos pruebas asíncronas que comparten estado global no se pueden lanzar con `Promise.all`** (0039) | Dos bloques de prueba para `GMM.servidor` (uno para `enlace()`, otro nuevo para `enlaceOriginal()`) reasignan `global.fetch` y la configuración guardada (`GMM.servidor.guardar`) — estado mutable compartido, no aislado por bloque. Como son funciones `async` definidas como IIFE, las dos EMPIEZAN a ejecutarse a la vez en cuanto se definen, sin importar cómo se las espere después: cada `await` cede el control y deja que la otra pise el `fetch`/config a medio usar. Un test empezó a fallar sin que su lógica cambiara. Arreglo: encadenarlas en serie (`pEnlaceServidor.then(pruebaEnlaceOriginalServidor)`), nunca `Promise.all`, cuando comparten un mock global. |
+| **Un modal reutilizado sigue "abierto" al cambiar de contenido, y un bucle de sondeo no lo sabe** (0040) | `abrirReproductorServidor` sondeaba cada 4 s si la conversión había terminado, y solo paraba si la capa `#capaReproductor` estaba oculta. Pero cerrar la película A y abrir la película B **no oculta la capa** —la reutiliza con contenido nuevo—, así que el sondeo de A seguía vivo, viendo la capa "abierta" y seguía preguntando por A cada 4 s indefinidamente, sin relación con lo que había en pantalla. Con varias películas probadas seguidas (visto en la pestaña Network del usuario: 1045 peticiones en 5 minutos), se acumulan varios sondeos sueltos a la vez, suficiente para saturar el servidor local y hacer fallar peticiones nuevas sin relación aparente. La guarda correcta no es "¿sigue visible el contenedor?", es "¿sigo siendo yo quien lo abrió?": un contador (`tokenReproductor`) que cambia en cada apertura, comprobado en cada paso del sondeo. Cualquier bucle de fondo (`setTimeout` recursivo) sobre un contenedor compartido y reutilizable necesita este mismo patrón, no solo comprobar visibilidad. |
 
 ---
 
@@ -1055,6 +1082,7 @@ en `HISTORIAL.md`.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| V GMM 0040 | 2026-08-08 | Arreglado un bug real del reproductor de «Te la tengo»: al cerrar la película abierta y abrir otra, el sondeo de fondo de la primera (que revisa cada 4 s si la conversión terminó) no se cancelaba, y se iban acumulando sondeos sueltos hasta machacar el servidor (más de 1000 peticiones en 5 minutos, visto en vivo con el usuario). Nuevo `tokenReproductor`: cada apertura del reproductor invalida cualquier sondeo anterior. `sw.js` 34→35. |
 | V GMM 0039 | 2026-08-08 | GMM Server: arreglado un bug que hacía fallar el 100% de las conversiones de FFmpeg (el nombre temporal no terminaba en `.mp4`, y FFmpeg elige el contenedor por la extensión). Nuevo botón «Abrir en otro reproductor» en el visor de «Te la tengo»: da un enlace directo al archivo original (sin conversión) para VLC, el reproductor del móvil o una TV — nueva ruta `tipo=original` en `/api/medios/:id` y `GMM.servidor.enlaceOriginal`. `sw.js` 33→34. |
 | V GMM 0038 | 2026-08-07 | GMM Server: conversión con FFmpeg, acceso remoto real por HTTPS (Tailscale Serve, reemplaza el plan de `host: 0.0.0.0`), empaquetado en dos `.exe` (`GMM-Server.exe` + `GMM-Instalar.exe`, ps2exe), auto-configuración sin consola, dos bugs de producción arreglados (variable local en un `Timer`, eventos asíncronos que no disparaban al compilar) y tres guías nuevas para el usuario final. PWA: la barra superior se reorganiza en 2 filas en el móvil (solo CSS) y se desactiva el zoom por pellizco/doble toque. `sw.js` 32→33. |
 | V GMM 0037 | 2026-08-06 | Solo documentación: se añade a `CLAUDE.md` §11 el pendiente «Acceso remoto a GMM Server» (Tailscale), que existía en `PENDIENTES.md` §3 pero nunca se había resumido en el índice — una auditoría del usuario sobre qué faltaba de la función GMM Server lo sacó a la luz. |

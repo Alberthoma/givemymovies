@@ -1211,7 +1211,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   <footer class="pie">
     <span>givemymovies · datos de disponibilidad vía TMDB / JustWatch</span>
     <span>Tus listas se guardan en este navegador — inicia sesión para llevarlas a otros</span>
-    <span id="version-app">V GMM 0040</span>
+    <span id="version-app">V GMM 0039</span>
   </footer>
 </div>
 
@@ -4976,25 +4976,17 @@ GMM.app = (function () {
 
   /* Si el vídeo necesita FFmpeg (ver src/transcodificar.js en gmm-server), la primera
      petición devuelve "preparando" en vez de un enlace: se reintenta cada pocos segundos hasta
-     que esté listo, con un tope para no reintentar para siempre si algo se atasca. */
+     que esté listo, con un tope para no reintentar para siempre si algo se atasca. El propio
+     estado de la capa (abierta/cerrada) hace de guarda: si el usuario la cierra a media espera,
+     el siguiente intento no toca un modal que ya no está a la vista. */
   /* La nota con "abrir en otro reproductor" vive FUERA de #estadoReproductor a propósito:
      ese enlace no depende de la conversión (sirve el archivo tal cual, con GMM.servidor.
      enlaceOriginal) y tiene que seguir ahí sin importar cuántas veces se repinte el estado
      de la espera. */
-  /* Comprobar solo si la capa está oculta NO basta como guarda: si se cierra el reproductor
-     de una película y se abre el de otra, la capa sigue "abierta" (solo cambia de contenido),
-     así que la revisión vieja seguía viva y machacando el servidor con peticiones de sobra sin
-     que nadie la parara —encontrado en vivo con el usuario, viendo más de 1000 peticiones en la
-     pestaña Red del navegador tras probar varias películas seguidas—. `tokenReproductor` es un
-     contador que cambia en cada apertura; cada revisión comprueba que sigue siendo LA SUYA antes
-     de seguir, así que abrir una película nueva invalida de raíz cualquier revisión anterior. */
-  var tokenReproductor = 0;
   function abrirReproductorServidor(item) {
     if (!item) return;
     var LIMITE_INTENTOS = 90;
     var RETARDO_MS = 4000;
-    tokenReproductor += 1;
-    var miToken = tokenReproductor;
     $("tituloReproductor").textContent = item.tituloDetectado || item.nombreArchivo || "Reproducir";
     $("cuerpoReproductor").innerHTML =
       '<div id="estadoReproductor"><div class="estado"><div class="estado-txt">Preparando reproducción segura…</div></div></div>' +
@@ -5004,12 +4996,10 @@ GMM.app = (function () {
     $("capaReproductor").classList.remove("oculto");
 
     function intentar(numero) {
-      if (miToken !== tokenReproductor) return;
       if ($("capaReproductor").classList.contains("oculto")) return;
       var contenedor = $("estadoReproductor");
       if (!contenedor) return;
       GMM.servidor.enlace(item.id, false).then(function (enlace) {
-        if (miToken !== tokenReproductor) return;
         var contenedor = $("estadoReproductor");
         if (!contenedor) return;
         if (enlace.preparando) {
@@ -5029,7 +5019,6 @@ GMM.app = (function () {
             'Tu navegador no puede reproducir este formato. Usa Descargar para guardar el archivo.' +
           '</video></div>';
       }).catch(function (error) {
-        if (miToken !== tokenReproductor) return;
         var contenedor = $("estadoReproductor");
         if (!contenedor) return;
         contenedor.innerHTML = '<div class="estado"><div class="estado-tit">No se pudo abrir el vídeo</div><p class="estado-txt">' +
