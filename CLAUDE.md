@@ -2,9 +2,9 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0041`
-**Próxima versión:** `V GMM 0042`
-**Última actualización:** 2026-08-08
+**Versión activa:** `V GMM 0042`
+**Próxima versión:** `V GMM 0043`
+**Última actualización:** 2026-08-11
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies-g/> · GitHub Pages desde `main`, raíz.
 
@@ -250,6 +250,19 @@ enlace exacto (`login.tailscale.com/admin/dns`) — ese paso web, con cuenta pro
 que no se puede automatizar. **Aviso también documentado en la propia app:** dos VPN a la vez en
 el mismo dispositivo (por ejemplo NordVPN y Tailscale) es un conflicto conocido — Tailscale puede
 seguir mostrando «Connected» en verde mientras el tráfico real entre dispositivos deja de pasar.
+
+**Compartir el PC con la cuenta de otra persona (desde V GMM 0042).** Todo lo anterior cubre el
+acceso remoto del propio dueño, desde sus propios dispositivos. Para dar acceso a alguien más
+—otra cuenta de Tailscale, otro Google— sin meterlo en la tailnet personal, Tailscale tiene su
+propio flujo de invitación (*Share machine*, por correo), con la trampa de que hay que aceptar
+la invitación **dos veces** (antes y después de iniciar sesión en la cuenta invitada) y cerrar la
+sesión anterior del móvil antes de conectar el nuevo dispositivo. Documentado paso a paso, con
+capturas reales numeradas, en `guias/tailscale-compartir-gmm/` — un carrusel HTML autónomo
+(`index.html`, sin dependencias, no vinculado desde la PWA) más el PDF equivalente
+(`Guia-visual-compartir-GMM-por-Tailscale.pdf`) para entregar a la persona invitada.
+`build_guide.py` (necesita Python + Pillow + reportlab, herramienta de desarrollo, no se
+distribuye) regenera el PDF a partir de las mismas capturas. No toca `index.html` ni ningún
+código de la app: es documentación de operación, aparte de GMM Server.
 
 **Desde V GMM 0036, `gmm-server/GMM-Server.vbs` abre una app de escritorio propia** —
 `GMM-Server-Panel.ps1`, PowerShell + Windows Forms, sin dependencias— para manejar el servidor
@@ -1021,6 +1034,7 @@ Comprobación manual rápida, si no quieres ejecutar nada:
 | `firestore.rules` | Copia de referencia de las reglas de seguridad de Firestore (desde V GMM 0031). **No se aplica solo:** hay que publicarlo a mano en la consola de Firebase. Ver §4 «La cuenta…» |
 | `pruebas/` | Herramienta de verificación, opcional y con dependencias propias |
 | `gmm-server/` | Servidor multimedia propio 0.2.0: catálogo privado, enlaces temporales de vídeo, descarga, conversión con FFmpeg y HTTPS por Tailscale Serve. Sus secretos y catálogo viven en `gmm-server/PRIVADO/`. `gmm-server/build/Compilar.ps1` genera los `.exe` de distribución (herramienta de desarrollo, no se distribuye; necesita el módulo `ps2exe`) |
+| `guias/` | Guías de operación aparte de la app (desde V GMM 0042). `tailscale-compartir-gmm/`: carrusel HTML autónomo + PDF, paso a paso para compartir el PC de GMM Server con la cuenta de Tailscale de otra persona. No se enlaza desde la PWA ni toca `index.html` |
 | `GMM-Server-para-instalar/` | Los dos únicos archivos que necesita un usuario final: `GMM-Server.exe` y `GMM-Instalar.exe`, ya compilados. A propósito no lleva nada más —ni guías, ni código suelto—; sus `.exe` **no se versionan** (mismo motivo que `build/salida/`), se copian ahí a mano tras compilar |
 | `.gitignore` | Excluye `node_modules`, capturas, **`PRIVADO/`** y los `.exe` compilados de GMM Server (se generan en cada PC de desarrollo, no se versionan binarios) |
 | `PRIVADO/` | **Solo local, jamás versionado.** Credenciales y clave de TMDB |
@@ -1089,6 +1103,7 @@ en `HISTORIAL.md`.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| V GMM 0042 | 2026-08-11 | Nueva guía visual, aparte de la app, para compartir el PC de GMM Server con la cuenta de Tailscale de otra persona (`guias/tailscale-compartir-gmm/`, carrusel HTML + PDF). Sin cambios de código; se sube la versión del pie y `VERSION` de `sw.js` por convención de cierre. |
 | V GMM 0041 | 2026-08-08 | El aviso de "enlace copiado" del botón «Abrir en otro reproductor» pasa de 3,2 s a **12 s** y muestra los 4 pasos completos para VLC, en vez de una frase corta que no daba tiempo a leer. De paso, arreglado que usaba un tipo de color `"exito"` inexistente en el CSS (los válidos son `ok`/`error`/`info`) y nunca se veía en verde. `GMM.ui.aviso` gana un tercer parámetro opcional, `duracionMs`. `sw.js` 35→36. |
 | V GMM 0040 | 2026-08-08 | Arreglado un bug real del reproductor de «Te la tengo»: al cerrar la película abierta y abrir otra, el sondeo de fondo de la primera (que revisa cada 4 s si la conversión terminó) no se cancelaba, y se iban acumulando sondeos sueltos hasta machacar el servidor (más de 1000 peticiones en 5 minutos, visto en vivo con el usuario). Nuevo `tokenReproductor`: cada apertura del reproductor invalida cualquier sondeo anterior. `sw.js` 34→35. |
 | V GMM 0039 | 2026-08-08 | GMM Server: arreglado un bug que hacía fallar el 100% de las conversiones de FFmpeg (el nombre temporal no terminaba en `.mp4`, y FFmpeg elige el contenedor por la extensión). Nuevo botón «Abrir en otro reproductor» en el visor de «Te la tengo»: da un enlace directo al archivo original (sin conversión) para VLC, el reproductor del móvil o una TV — nueva ruta `tipo=original` en `/api/medios/:id` y `GMM.servidor.enlaceOriginal`. `sw.js` 33→34. |

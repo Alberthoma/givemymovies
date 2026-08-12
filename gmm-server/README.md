@@ -222,6 +222,12 @@ a mano en la web de Tailscale — eso no se puede automatizar).
 es un conflicto conocido: Tailscale puede seguir mostrando "Connected" con todo en verde, pero el
 tráfico real entre dispositivos deja de pasar. Desconecta la otra VPN mientras uses esto.
 
+**¿Quieres que otra persona (con su propia cuenta) también pueda usar tu servidor?** Esto de
+arriba es para tus propios dispositivos. Para invitar a alguien más sin meterlo en tu tailnet,
+Tailscale tiene su propio flujo de invitación por correo (*Share machine*). Guía visual paso a
+paso, con capturas reales: [`guias/tailscale-compartir-gmm/index.html`](../guias/tailscale-compartir-gmm/index.html)
+(o el PDF en la misma carpeta, para entregárselo a la persona invitada).
+
 <details>
 <summary>Alternativa antigua: <code>host: 0.0.0.0</code> sin HTTPS (histórico, ya no recomendado)</summary>
 
