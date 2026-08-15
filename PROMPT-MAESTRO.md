@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.47 · Aplicación V GMM 0045 · 15 de agosto de 2026**
+**Documento v1.48 · Aplicación V GMM 0046 · 15 de agosto de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies-g/>
 
 ---
@@ -247,22 +247,36 @@ la paleta —fondo, tarjetas, sellos de confianza— no cambia (§6).
 - **Cierra las sugerencias también al perder el foco**, con ~160 ms de margen para que un clic
   sobre una sugerencia llegue a registrarse.
 
-**Las sugerencias aparecen EN LA PÁGINA, como una fila de carátulas grandes que se desplaza en
-horizontal — nunca en un cuadro desplegable flotando sobre el contenido** (V GMM 0045; hasta
-entonces era una lista compacta con una miniatura pequeña a un lado de cada fila, y el usuario
-pidió explícitamente que se pareciera a un buscador de referencia que mostraba carátula + título
-apareciendo en pantalla al teclear). Implementación:
+**Las sugerencias aparecen EN LA PÁGINA, como una cuadrícula a pantalla completa que oculta los
+carruseles mientras está activa — nunca en un cuadro desplegable flotando sobre el contenido, ni
+confinadas a una fila estrecha dentro de la barra fija** (V GMM 0046; la 0045 ya las sacó del
+cuadro desplegable pero las dejó como una fila horizontal dentro de `.chrome-fijo`, con los
+carruseles todavía visibles justo debajo compitiendo por sitio — el usuario pidió expresamente
+que los carruseles desaparecieran mientras se busca, y que las carátulas salieran «a tamaño
+completo, en buena calidad, y en toda la pantalla si fuese necesario», con una app de gestión de
+biblioteca ajena como referencia visual: una cuadrícula de varias columnas y filas). Implementación:
 
-- El contenedor de sugerencias es hermano de la barra de búsqueda, no su hijo: cuélgalo del mismo
-  envoltorio fijo (`.chrome-fijo`, §5.1.1b) para que, al aparecer, el propio "chrome" fijo crezca
-  y las sugerencias sigan alcanzables sin importar el punto de scroll — igual que la barra de
-  búsqueda misma.
-- Cada sugerencia es una **tarjeta vertical**: carátula grande (proporción de póster, p. ej.
-  132×190) arriba, **título y año** (o «Actor / Actriz» en modo persona) debajo. Sin miniatura
-  pequeña ni fila horizontal de texto al lado.
-- La fila entera se desplaza en horizontal (`overflow-x: auto`), no en vertical: al navegar con
-  `↓`/`↑`, la sugerencia marcada debe entrar en vista desplazando la fila **en horizontal**
-  (`scrollIntoView` con `inline`, no solo `block`).
+- El contenedor de sugerencias vive en el **flujo normal de la página**, hermano de la sección de
+  carruseles (§5.1.4b más abajo) — no dentro de la barra fija, ni de ningún envoltorio `sticky`:
+  al ocultarse los carruseles mientras hay sugerencias, no compite por espacio con nada, así que
+  no necesita quedarse pegada arriba.
+- Es una **cuadrícula que envuelve**, no una fila que se desplaza en horizontal: **la misma
+  rejilla que usan los resultados de Descubrir/Trama** (columnas `repeat(auto-fill,
+  minmax(158px, 1fr))`), para que las sugerencias tengan el mismo tamaño y calidad que cualquier
+  otra cuadrícula de la app, no una regla aparte inventada para la ocasión.
+- Cada sugerencia es una **tarjeta vertical**: carátula grande arriba (proporción de póster
+  fluida, `aspect-ratio: 2/3`, no un tamaño fijo en píxeles — así crece con el ancho de columna
+  real), **título y año** (o «Actor / Actriz» en modo persona) debajo.
+- **La imagen se pide a TMDB en una resolución acorde al tamaño real de la tarjeta** (p. ej.
+  `w342`, no una miniatura pensada para 40 o 92 px): con carátulas de 150-300 px de ancho real,
+  una miniatura pequeña estirada se ve pixelada — «buena calidad» no se cumple solo con el layout.
+- **Mientras haya alguna sugerencia que mostrar, oculta los carruseles, el título del buscador y
+  lo que hubiera en el área de resultados** (la bienvenida, o una ficha si se escribe encima de un
+  resultado ya abierto) — la cuadrícula de sugerencias debe ser lo único a la vista, sin
+  distracciones. **Al cerrarse, no intentes recordar "cómo estaba la pantalla antes"**: reutiliza
+  la misma función que ya decide qué mostrar según el estado de la vista actual (inicio o
+  resultados) — es el mismo problema que ya está resuelto en otro sitio, no hace falta un segundo
+  mecanismo para lo mismo.
 - El cierre por "clic fuera" debe reconocer un clic dentro de las sugerencias como **no-fuera**
   (no cerrarlas), aunque ya no vivan dentro del mismo contenedor que el campo de texto.
 
@@ -643,12 +657,13 @@ Borde claro      #2f4356      Verde ✓  #6ff0c4   Azul ✓ #8fc9ff    Naranja �
   compras»** (§5.2, 2c) vive ahí también pero **oculto**: sigue funcionando —«Mi copia» en cada
   ficha no cambia—, solo sin entrada visible en la barra. **Desde V GMM 0038, el interruptor
   muestra «Películas» antes que «Series»**, y **en el móvil (≤620px) esa barra pasa a una rejilla
-  de 3 filas** (2 hasta la 0043; entre la 0044 y la 0045 la barra de búsqueda tuvo una fila
-  propia, pero el usuario pidió que compartiera línea con el interruptor): arriba, **la barra de
-  búsqueda, pegada al margen izquierdo** (columnas `1fr auto auto`, así se estira ella y no el
-  interruptor/⚙), compartiendo fila con el interruptor centrado y ⚙; en medio, **volver, a lo
-  ancho** (solo en resultados — se saca a su propia fila para hacerle sitio a la barra de
-  búsqueda en la de arriba); abajo, Mis listas / Te la tengo / Instalar. Solo CSS
+  de 4 filas** (2 hasta la 0043; 3 entre la 0044 y la 0046, con la barra de búsqueda ora en su
+  fila propia, ora compartida con el interruptor — el usuario probó ambas y terminó pidiendo la
+  primera, con más ancho): arriba, compacta, **Mis listas / interruptor centrado / ⚙**; debajo,
+  **la barra de búsqueda, sola en su fila, a lo ancho** (spanning las tres columnas — el usuario
+  pidió expresamente más anchura: compartir fila con el interruptor la dejaba «muy cortada», así
+  que Mis listas y la barra de búsqueda intercambian sitio respecto a como quedaron en la 0045);
+  luego, **volver, a lo ancho** (solo en resultados); al fondo, Te la tengo / Instalar. Solo CSS
   (`display: contents` en escritorio, `display: grid` en el móvil sobre el mismo HTML): ningún
   botón se duplica ni cambia de id.
 - **Degradados que mezclan los tres colores** en: marca, botón *Buscar*, pestaña activa y
@@ -1045,7 +1060,8 @@ Todos deben pasar:
 | A71 | Panel de filtros con ocho campos, sin huecos (V GMM 0044) | «Buscar por» + género/nota/desde/hasta + idioma/plataforma/país llenan la rejilla de dos columnas en 4 filas exactas; ningún campo queda estirado a fila completa por no tener pareja |
 | A72 | Header sin recortes (V GMM 0045) | `.cabecera` tiene `position: relative` propio; sus bandas de perforación (`::before`/`::after`) quedan dentro de su propia caja, sin cortar los botones de la barra bajo el header, en escritorio ni en 375 px |
 | A73 | Sugerencias como fila de carátulas en la página (V GMM 0045) | Al escribir, `#sugerencias` aparece dentro de `.chrome-fijo` (no en un cuadro `position: absolute`), con tarjetas verticales (carátula grande + título/año debajo) en una fila que se desplaza en horizontal; sigue a la vista tras hacer scroll, igual que la barra de búsqueda |
-| A74 | Barra de búsqueda móvil junto al interruptor (V GMM 0045) | A ≤620 px, `#barraBusqueda` comparte fila con el interruptor y ⚙ (pegada al margen izquierdo, el interruptor y ⚙ compactos a su derecha); `.barra-volver` (← y Ordenar) ocupa su propia fila a lo ancho cuando hay resultados |
+| A74 | Barra de búsqueda móvil a lo ancho, en su propia fila (V GMM 0046; compartía fila con el interruptor en la 0045) | A ≤620 px, `#barraBusqueda` ocupa una fila entera, sola; `#btnListas` sube a la fila compacta junto al interruptor y ⚙; `.barra-volver` (← y Ordenar) sigue en su propia fila a lo ancho cuando hay resultados |
+| A75 | Sugerencias como cuadrícula a pantalla completa, sin carruseles (V GMM 0046) | Al escribir con resultados, `#descubrimiento`, `#buscador` y `#resultados` quedan ocultos y `#sugerencias` se ve como una rejilla que envuelve (`grid-template-columns: repeat(auto-fill, minmax(158px, 1fr))`, igual que `.rejilla`), con carátulas a `aspect-ratio: 2/3` pidiendo `w342` a TMDB; al vaciar el campo o cerrar, los tres vuelven según `estado.vista` |
 
 ### Al tocar el catálogo demo, verifica cada imagen
 
@@ -1165,6 +1181,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.48 | V GMM 0046 | 15-08-2026 | **Va más lejos con dos de las tres correcciones de la 0045, con una segunda imagen de referencia** (una app de gestión de biblioteca ajena, cuadrícula de 4 columnas). (1) **Sugerencias como cuadrícula a pantalla completa**: la 0045 las sacó del cuadro desplegable pero las dejó como fila horizontal dentro de `.chrome-fijo`, con los carruseles aún visibles debajo. El usuario pidió que los carruseles desaparecieran mientras se busca y que las carátulas fueran «a tamaño completo, en buena calidad, y en toda la pantalla si fuese necesario». `#sugerencias` se muda fuera de `.chrome-fijo`, al flujo normal de la página; `.sugerencias` pasa de `flex`+`overflow-x` a `display: grid` con la misma rejilla que `.rejilla` (`minmax(158px, 1fr)`); las carátulas pasan de tamaño fijo a `aspect-ratio: 2/3`, y su imagen sube de `w92` a `w342` en TMDB (con tarjetas grandes, la miniatura antigua se habría visto pixelada). Mientras hay sugerencias, `pintarSugerencias()` oculta `#descubrimiento`/`#buscador`/`#resultados`; al cerrarse, `cerrarSugerencias()` no recuerda nada aparte — solo llama a `fijarPantalla()`, la misma función que ya decide qué mostrar según `estado.vista`. (2) **Móvil: la barra de búsqueda recupera su fila propia**, a lo ancho — compartirla con el interruptor (como quedó en la 0045) la dejaba «muy cortada»; Mis listas y la barra de búsqueda intercambian sitio. La rejilla móvil pasa de 3 a 4 filas. Criterio A74 reescrito; A75 nuevo. `sw.js` 40→41. `logica.js` 190/190 (sin cambio), `interfaz.js` 129/129 (sin comprobaciones nuevas —CSS/estructura—, reutiliza `pruebas/capturas/13-sugerencias.png`), `pwa.js` 20/20 (`gmm-app-v41`). Respaldo de la 0045 reconstruido a posteriori desde su commit de git, mismo motivo que la 0044→0045. |
 | 1.47 | V GMM 0045 | 15-08-2026 | **Corrige tres problemas de la 0044, reportados por el usuario con capturas, en el mismo turno en que se cerró aquella versión.** (1) **Header y barra cortados**: `.cabecera` se quedó sin `position` propio al mudar el `sticky` a `.chrome-fijo` en la 0044, así que sus pseudo-elementos `position: absolute` (las bandas de perforación) se anclaron al envoltorio entero en vez de a la propia caja del header, cortando visualmente los botones de la barra bajo el header en escritorio y en móvil por igual. Arreglo de una línea: `position: relative` de vuelta en `.cabecera`. Nueva trampa en `CLAUDE.md` §9. (2) **Sugerencias como fila de carátulas en la página, no cuadro desplegable**: el usuario pidió explícitamente que se parecieran a la imagen de referencia (carátula + título apareciendo en pantalla), no a la lista compacta de la 0044. `#sugerencias` se muda de dentro de `#campoTexto` a hermano de `.barra-superior` dentro de `.chrome-fijo` (sigue alcanzable sin importar el scroll); cada tarjeta pasa de fila horizontal con miniatura 40×58 a tarjeta vertical de 132×190 con el título debajo, en fila con `overflow-x: auto`. Mismos ids y misma lógica (`pintarSugerencias()`, teclado, clic) — solo cambia el marcado y la CSS. Dos ajustes forzados por la mudanza: el cierre por "clic fuera" ahora reconoce también `#sugerencias` como "dentro"; `scrollIntoView` de la navegación por teclado suma `inline: "nearest"`. (3) **Móvil: la barra de búsqueda comparte fila con el interruptor y ⚙**, pegada al margen izquierdo (columnas `1fr auto auto`), en vez de su propia fila como en la 0044; `.barra-volver` se muda a su propia fila para hacerle sitio. De camino, arreglada una trampa de especificidad CSS no reportada pero real: `.barra-busqueda .campo-entrada` (dos clases) le ganaba a la regla móvil que sube la fuente a 16px contra el zoom automático de iOS Safari; se repitió con el mismo peso dentro del media query. Criterios A72–A74 nuevos. `sw.js` 39→40. `logica.js` 190/190 (sin cambio), `interfaz.js` 129/129 (sin comprobaciones nuevas —las tres correcciones son CSS/estructura—, pero se sumó una captura nueva, `pruebas/capturas/13-sugerencias.png`), `pwa.js` 20/20 (`gmm-app-v40`). Respaldo de la 0044 reconstruido a posteriori desde su propio commit de git, porque esta versión empezó a editarse sin pasar primero por `respaldos/` — corregido antes de cerrar. |
 | 1.46 | V GMM 0044 | 15-08-2026 | **Sustituye el botón «Buscar una en concreto» por una barra de búsqueda fija con autocompletado en vivo, y convierte el modal-formulario en un panel único de filtros.** Petición del usuario, con una imagen de referencia. Entrado en modo plan por tocar arquitectura documentada extensamente (§5.1, §7); se preguntó con `AskUserQuestion` qué pasaba con las búsquedas por actor/trama, y el usuario eligió que se movieran al panel de filtros reutilizando el mismo campo de la barra (sin duplicar el autocompletado). A mitad de revisión del plan, el usuario añadió un segundo requisito: insignia verde en las sugerencias que coincidan con el catálogo de GMM Server. (1) **`#entrada`/`#sugerencias`/`#btnLimpiar` se mudan** (no se duplican) desde `#panelBuscar`, en el modal, a `#barraBusqueda`, nueva en `.barra-izq` junto al interruptor peli/serie; `#panelBuscar` se queda solo con el desplegable «Buscar por». (2) **Header + barra bajo el header, sticky juntos** en un envoltorio nuevo, `.chrome-fijo` (antes solo `.cabecera` lo era). (3) **El panel de filtros ya no alterna por método**: `#panelBuscar`/`#descubrir`/`#filtros` se ven siempre juntos; se retiran `.metodos`, `#btnCambiarMetodo` y `elegirMetodo()`. Con «Buscar por» reducido a un campo, el total de campos de media fila pasa a ser par (8): se retira la regla que estiraba «País» a fila completa, ya innecesaria. (4) **`buscar()` decide sin que ningún botón fije el método antes**: actor/trama con texto → esa búsqueda; título con género elegido → `hacerDescubrir()` (el género manda); si no, busca el título. `estado.metodo` se conserva como etiqueta interna, puesta por `buscar()`/`hacerDescubrir()`, para que `relanzarSiProcede()` siga funcionando sin tocarla. (5) **Consecuencia real, verificada**: como el icono de filtro vive fuera de `#buscador` (que sí se oculta en resultados), ahora es alcanzable también mirando una ficha, y cambiar idioma la refina al instante sin volver al inicio — antes era imposible porque el botón que abría el modal estaba oculto ahí. (6) **Insignia «Te la tengo»**: el catálogo de GMM Server se precarga en segundo plano al arrancar (antes solo al entrar en esa vista), indexado por id de TMDB o título normalizado + año; las sugerencias que coincidan con una entrada disponible muestran una flecha verde. Solo para película con «Buscar por: Título» — el catálogo no guarda series. (7) **Móvil**: la barra de búsqueda gana su propia fila, arriba de las otras dos (2→3 filas). (8) **`pruebas/interfaz.js` reescrito** en los puntos que dependían del modal por botón: `aBuscar()`/`abrirMetodo()`/`cerrarFormulario()` → `abrirFiltros()`/`cerrarFiltros()`; las búsquedas de texto libre pasan de clicar `#btnBuscar` (ahora dentro de un panel que hay que cerrar para escribir) a `Enter` sobre `#entrada`. `pruebas/pwa.js` también dependía de `#metodos`, adaptado a `#btnFiltros`. Criterios A28/A41/A45/A48 reescritos; A66–A71 nuevos. `sw.js` 38→39. `logica.js` 190/190 (sin cambio: nada de lo nuevo es función exportada ni pura), `interfaz.js` 127→129 (2 quitadas por obsoletas —medir los dos botones, restaurar método—, 4 nuevas: sticky tras scroll, insignia «Te la tengo» con `GMM.servidor` stubeado en pestaña aparte, y cambiar idioma sin salir de la ficha), `pwa.js` 20/20 (`gmm-app-v39`). Verificado visualmente contra `pruebas/capturas/00-inicio.png`, `08-modal-buscar.png` y `05-movil.png`. Sin trampa nueva en `CLAUDE.md` §9: el plan se validó primero con el usuario y las pruebas pasaron a la primera pasada tras la reescritura. |
 | 1.45 | V GMM 0043 | 14-08-2026 | **Arreglo real de GMM Server: `GMM-Server.exe` se caía al abrirlo con "Excepción al llamar a 'Add'…".** Diagnosticado leyendo directamente el `PRIVADO\configuracion.json` real del usuario: tenía `"carpetas": [null]` en vez de una lista vacía o de carpetas de verdad. Causa raíz en `GMM-Server-Panel.ps1`: el manejador de «Quitar carpeta» envolvía con `@()` solo el origen de la tubería, no el `Where-Object` completo, así que quitar la ÚLTIMA carpeta dejaba `$script:config.carpetas` en `$null` a secas; `Guardar-Config` volvía a envolver ese `$null` con `@($config.carpetas)` para guardarlo — y **`@($null)` en PowerShell da un array de 1 elemento que contiene `null`, no un array vacío** (la trampa clásica del operador `@()`). El JSON quedaba corrupto, y al reabrir el panel, `Refrescar-ListaCarpetas` iteraba esa carpeta fantasma y llamaba `.SubItems.Add($carpeta.ruta)` con `$carpeta = $null`, lanzando `NullReferenceException` dentro de WinForms. Arreglo en tres sitios: el `@()` de «Quitar carpeta» ahora envuelve la tubería entera; `Guardar-Config` y `Cargar-Config` filtran explícitamente cualquier `$null` de `carpetas` (esto último autocura un archivo ya corrompido de una versión anterior, sin editar el JSON a mano). Verificado de punta a punta: config del usuario reparada a mano para desbloquearlo, sintaxis comprobada con `PSParser`, los dos `.exe` recompilados con `Compilar.ps1` y copiados a `GMM-Server-para-instalar/` (regla fija desde la 1.41–1.42), y el `.exe` real relanzado, confirmando que abre sin el aviso. Sin cambios de código de la PWA: footer y `sw.js` 37→38 suben igual, por convención de cierre. `logica.js` 190/190 (sanity), `pwa.js` 20/20 (`gmm-app-v38`); `interfaz.js` no aplica. `GMM-Server-Panel.ps1` no tiene cobertura automatizada (script de Windows Forms, no JS): la verificación fue el arranque real del `.exe`. |

@@ -278,34 +278,37 @@ a:hover { text-decoration: underline; }
 .campo-limpiar:hover { background: #1a2632; color: #e8f0f8; }
 
 /* --- autocompletado --- */
-/* Desde V GMM 0044 aparece EN LA PÁGINA, como una fila de carátulas grandes
-   que se puede desplazar en horizontal — no un cuadro desplegable flotando
-   sobre el contenido. Vive dentro de .chrome-fijo, justo bajo la barra de
-   búsqueda: al aparecer, el propio "chrome" fijo crece para hacerle sitio, así
-   que sigue a la vista sin importar el punto de scroll (la barra de búsqueda
-   es alcanzable en cualquier pantalla desde la 0044; sus sugerencias tienen
-   que serlo también). */
+/* Desde V GMM 0046 aparece EN LA PÁGINA, como una cuadrícula de carátulas a
+   tamaño completo, calcada de la misma rejilla que usan los resultados de
+   Descubrir/Trama (.rejilla, minmax(158px, 1fr)) — no un cuadro desplegable
+   flotando sobre el contenido, ni una fila estrecha dentro de la barra fija.
+   Vive en el flujo normal de la página, justo donde iban los carruseles:
+   mientras hay sugerencias, pintarSugerencias() oculta #descubrimiento,
+   #buscador y #resultados para que la cuadrícula tenga toda la pantalla, y
+   cerrarSugerencias() los devuelve con fijarPantalla(). */
 .sugerencias {
-  display: flex; gap: 12px; overflow-x: auto; overflow-y: hidden;
-  padding: 6px 2px 14px;
+  display: grid; gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+  padding: 4px 0 16px;
 }
 .sugerencia {
-  display: flex; flex-direction: column; align-items: stretch; gap: 8px;
-  flex: 0 0 132px; width: 132px;
-  padding: 0; text-align: left; border-radius: 12px;
-  transition: transform 0.15s;
+  display: flex; flex-direction: column; align-items: stretch; gap: 9px;
+  padding: 0; text-align: left;
 }
-.sugerencia:hover, .sugerencia.marcada { transform: translateY(-4px); }
 .sugerencia-caratula-envoltorio {
-  position: relative; width: 132px; height: 190px; flex: 0 0 auto;
-  border-radius: 10px; overflow: hidden; background: #22303e;
+  position: relative; width: 100%; aspect-ratio: 2 / 3;
+  border-radius: 14px; overflow: hidden;
+  border: 1px solid #22303e; background: linear-gradient(150deg, #1a2632, #131c26);
+  transition: border-color 0.18s, transform 0.18s, box-shadow 0.18s;
 }
-.sugerencia-img {
-  width: 132px; height: 190px; display: block;
-  object-fit: cover; background: #22303e;
+.sugerencia:hover .sugerencia-caratula-envoltorio,
+.sugerencia.marcada .sugerencia-caratula-envoltorio {
+  border-color: #2ee6a8; transform: translateY(-4px);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.5);
 }
+.sugerencia-img { width: 100%; height: 100%; display: block; object-fit: cover; }
 .sugerencia-caratula {
-  width: 132px; height: 190px;
+  width: 100%; height: 100%;
   display: grid; place-items: center; font-size: 34px; font-weight: 800;
   background: linear-gradient(140deg, #22303e, #1a2632); color: #5e768c;
 }
@@ -315,18 +318,18 @@ a:hover { text-decoration: underline; }
    ningún sitio. Solo sale cuando GMM.app la empareja con el catálogo del
    servidor (ver buscarEnServidor en el bloque JS 9). */
 .sugerencia-servidor {
-  position: absolute; left: 6px; bottom: 6px; z-index: 1;
-  width: 24px; height: 24px; border-radius: 50%;
+  position: absolute; left: 8px; bottom: 8px; z-index: 1;
+  width: 26px; height: 26px; border-radius: 50%;
   display: grid; place-items: center;
-  background: rgba(6, 19, 12, 0.85); color: #2ee6a8; font-size: 13px; line-height: 1;
+  background: rgba(6, 19, 12, 0.85); color: #2ee6a8; font-size: 14px; line-height: 1;
   box-shadow: 0 0 0 1px rgba(46, 230, 168, 0.4);
 }
 .sugerencia-txt { min-width: 0; }
 .sugerencia-tit {
-  font-size: 13.5px; font-weight: 600; line-height: 1.25;
+  font-size: 13.5px; font-weight: 600; line-height: 1.35;
   display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.sugerencia-meta { font-size: 12px; color: #8ba0b6; margin-top: 2px; }
+.sugerencia-meta { font-size: 12.5px; color: #8ba0b6; margin-top: 2px; }
 
 /* Los filtros y los controles de Descubrir ya no llevan rejilla propia: la
    pone .forma, que los reparte a todos por igual dentro del modal. */
@@ -1021,22 +1024,26 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
 @media (max-width: 620px) {
   .app { padding: 0 14px 60px; }
   .buscador { padding: 4px 0 6px; }
-  /* La barra superior pasa a una rejilla de 3 filas: arriba, la barra de
-     búsqueda (desde V GMM 0044) comparte fila con el interruptor y ⚙ —
-     pegada al margen izquierdo, con el interruptor y ⚙ compactos a su
-     derecha—; en medio, volver (solo en resultados), a lo ancho; abajo, Mis
-     listas / Te la tengo / instalar. .barra-superior, .barra-listas,
-     .barra-izq y .barra-der se "aplanan" (display: contents) para que los
-     botones sean hijos directos de la rejilla y se repartan sin duplicarlos
-     ni tocar su JS — mismo botón, mismo id, solo cambia dónde cae
-     visualmente. */
+  /* La barra superior pasa a una rejilla de 4 filas (desde V GMM 0046; antes
+     de esta versión la barra de búsqueda compartía la fila de arriba con el
+     interruptor y ⚙, y quedaba muy corta de ancho). Arriba, compacta: Mis
+     listas / interruptor / ⚙ — el hueco que dejó la barra de búsqueda al
+     bajar. Debajo, la barra de búsqueda **a lo ancho, sola en su fila**, para
+     que tenga todo el sitio posible (era justo la queja: en la fila de
+     arriba quedaba muy cortada). Luego, volver (solo en resultados), también
+     a lo ancho. Al fondo, Te la tengo / instalar. .barra-superior,
+     .barra-listas, .barra-izq y .barra-der se "aplanan" (display: contents)
+     para que los botones sean hijos directos de la rejilla y se repartan sin
+     duplicarlos ni tocar su JS — mismo botón, mismo id, solo cambia dónde
+     cae visualmente. */
   .barra-superior {
     display: grid;
     grid-template-columns: 1fr auto auto;
     grid-template-areas:
-      "buscar  switch   ajustes"
+      "listas  switch   ajustes"
+      "buscar  buscar   buscar"
       "volver  volver   volver"
-      "listas  tetengo  instalar";
+      "tetengo tetengo  instalar";
     align-items: center;
     gap: 8px;
     margin: 2px 0 10px;
@@ -1219,13 +1226,17 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
     </div>
   </div>
   </div><!-- /.barra-superior -->
-
-  <!-- Sugerencias de la barra de búsqueda: fila de carátulas grandes, EN LA
-       PÁGINA (no un cuadro desplegable) — vive dentro de .chrome-fijo para
-       seguir alcanzable sin importar el punto de scroll, igual que la barra
-       de búsqueda que la llena. -->
-  <div class="sugerencias oculto" id="sugerencias"></div>
   </div><!-- /.chrome-fijo -->
+
+  <!-- Sugerencias de la barra de búsqueda: cuadrícula de carátulas grandes,
+       EN LA PÁGINA (no un cuadro desplegable, ni dentro de la barra fija:
+       desde V GMM 0046 vive en el flujo normal, como los carruseles y el
+       buscador, para poder crecer a pantalla completa si hacen falta varias
+       filas). Mientras hay sugerencias, pintarSugerencias() oculta
+       #descubrimiento, #buscador y #resultados —los carruseles no deben
+       competir por espacio ni distraer— y cerrarSugerencias() los devuelve
+       llamando a fijarPantalla(). -->
+  <section class="sugerencias oculto" id="sugerencias" aria-label="Sugerencias de búsqueda"></section>
 
   <!-- ═════════════ DESCUBRIMIENTO (carruseles) ═════════════ -->
   <!-- Vive solo en el inicio (fijarPantalla lo oculta con resultados). Desde
@@ -1257,7 +1268,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   <footer class="pie">
     <span>givemymovies · datos de disponibilidad vía TMDB / JustWatch</span>
     <span>Tus listas se guardan en este navegador — inicia sesión para llevarlas a otros</span>
-    <span id="version-app">V GMM 0045</span>
+    <span id="version-app">V GMM 0046</span>
   </footer>
 </div>
 
@@ -4410,21 +4421,36 @@ GMM.app = (function () {
   /* Autocompletado                                                   */
   /* ---------------------------------------------------------------- */
 
+  /* Mientras hay sugerencias en pantalla (V GMM 0046), los carruseles, el
+     título del buscador y lo que hubiera en #resultados (la bienvenida, o
+     una ficha si se escribe sobre un resultado) se ocultan para que la
+     cuadrícula de carátulas tenga toda la pantalla, sin competir con nada.
+     Al cerrarse, fijarPantalla() decide qué debe volver a verse según
+     estado.vista (inicio o resultados) — no hay que recordarlo aparte. */
   function cerrarSugerencias() {
     if (pedirSugerencias && pedirSugerencias.cancelar) pedirSugerencias.cancelar();
     $("sugerencias").classList.add("oculto");
     $("sugerencias").innerHTML = "";
     estado.marcada = -1;
+    $("resultados").classList.remove("oculto");
+    fijarPantalla();
   }
 
   function pintarSugerencias(items) {
     var caja = $("sugerencias");
     if (!items.length) { cerrarSugerencias(); return; }
 
+    $("descubrimiento").classList.add("oculto");
+    $("buscador").classList.add("oculto");
+    $("resultados").classList.add("oculto");
+
     caja.innerHTML = items.slice(0, 7).map(function (item, indice) {
       var titulo = item.title || item.name || "";
       var ruta = item.poster_path || item.profile_path || null;
-      var url = GMM.config.poster(ruta, "w92");
+      /* w342, no w92: las tarjetas ahora son tan grandes como las de
+         cualquier otra cuadrícula de la app (.rejilla), y w92 se vería
+         pixelado al estirarlo. Mismo tamaño que usa GMM.ui.tarjeta. */
+      var url = GMM.config.poster(ruta, "w342");
       var meta = estado.busquedaPor === "actor"
         ? "Actor / Actriz"
         : (GMM.util.ano(item.release_date || item.first_air_date) ||
@@ -5830,7 +5856,7 @@ GMM.app = (function () {
         Array.prototype.forEach.call(opciones, function (o, i) {
           o.classList.toggle("marcada", i === estado.marcada);
         });
-        opciones[estado.marcada].scrollIntoView({ block: "nearest", inline: "nearest" });
+        opciones[estado.marcada].scrollIntoView({ block: "nearest" });
         return;
       }
 
