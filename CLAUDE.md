@@ -2,8 +2,8 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0046`
-**Próxima versión:** `V GMM 0047`
+**Versión activa:** `V GMM 0047`
+**Próxima versión:** `V GMM 0048`
 **Última actualización:** 2026-08-15
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies-g/> · GitHub Pages desde `main`, raíz.
@@ -485,14 +485,64 @@ que mostraba una cuadrícula de varias filas, sin los carruseles compitiendo por
   Es el mismo patrón que ya usa el resto de la app: un solo sitio (`fijarPantalla`) que sabe qué
   pantalla toca, en vez de que cada función lleve la cuenta por su lado.
 
-Nada de la lógica base cambió: sigue siendo `#entrada`/`#sugerencias` (mismos ids), el mismo
-`pintarSugerencias()` (con las líneas nuevas de arriba), la misma navegación por teclado
+Sigue siendo `#entrada`/`#sugerencias` (mismos ids), la misma navegación por teclado
 (↓/↑/Enter/Escape) y el mismo clic para elegir una. El manejador de "clic fuera cierra las
 sugerencias" comprueba `.closest("#sugerencias")` además de `.closest(".campo")` (desde la 0045,
 sigue haciendo falta: `#sugerencias` no está dentro de `.campo`). `scrollIntoView` al navegar con
 el teclado vuelve a `{ block: "nearest" }` a secas (la 0045 le había sumado `inline: "nearest"`
 para la fila horizontal; ya no hace falta con una rejilla que envuelve, no se desplaza en
 horizontal).
+
+**Desde V GMM 0047, en modo título cada sugerencia es la MISMA tarjeta que cualquier otra
+cuadrícula de la app.** Hasta entonces `pintarSugerencias()` construía su propio marcado a mano
+—carátula, título, año, y como mucho una insignia decorativa— con menos capacidades que el resto
+de la app: sin nota de TMDB, sin poder marcarla favorita o pendiente. El usuario lo señaló
+directamente: «no estás mostrando la puntuación y la opción para agregarla a mis listas».
+
+- **`pintarSugerencias()` llama a `GMM.ui.tarjeta(item, null, extraCaratula)`** para el modo
+  título (el modo actor se queda con la tarjeta sencilla de siempre: una persona no se puede
+  marcar favorita ni pendiente, esas listas son de películas y series). `item` ya llega
+  normalizado por `GMM.tmdb.buscarTitulos` (`.tipo`, `.vote_average`…), así que `tarjeta()` lo
+  entiende sin adaptarlo.
+- **`GMM.ui.tarjeta()` gana un tercer parámetro, `extraCaratula`** (antes solo tenía
+  `extraHtml`, que se añade al pie, bajo el título/año). `extraCaratula` se inyecta dentro de un
+  nuevo envoltorio, `.tarjeta-caratula-envoltorio` (solo `position: relative`, no cambia nada
+  visualmente), como **hermano** de `.tarjeta-img`, nunca dentro de él — un `<button>`
+  (`.tarjeta-img`) no puede contener otro `<button>`, y los iconos de reproducir/descargar de más
+  abajo sí lo son. Retrocompatible: las llamadas con dos argumentos (todas las demás cuadrículas
+  de la app) siguen igual.
+- **Iconos de reproducir/descargar sobre la propia carátula** (`.icono-poster.reproducir`
+  esquina inferior izquierda, verde; `.icono-poster.descargar` inferior derecha, azul) cuando
+  `buscarEnServidor(item)` encuentra una coincidencia disponible en GMM Server — sustituyen a la
+  insignia solo-decorativa de la 0044/0045/0046. Llevan los mismos `data-gmm-reproducir`/
+  `data-gmm-descargar` de siempre, así que la delegación de clic ya existente los reconoce sin
+  cambios; lo nuevo es que `indexarCatalogoServidor()` (la carga en segundo plano al arrancar)
+  **también rellena `estado.servidorPorId`**, no solo `estado.servidorIndice` — antes esa tabla
+  solo la llenaba `pintarServidor()`, al entrar en «Te la tengo», así que pulsar un icono desde
+  una sugerencia sin haber visitado esa vista antes no habría encontrado el ítem y no habría
+  hecho nada.
+- **`#sugerencias` delega `[data-lista]`, `[data-gmm-reproducir]` y `[data-gmm-descargar]` antes
+  que "elegir esta sugerencia"**: si no, marcar una favorita desde la cuadrícula navegaría por
+  error a la ficha. El clic que SÍ abre la ficha en modo título es `[data-abrir]` (el botón
+  `.tarjeta-img`, con el id y el tipo en sus propios `data-*`), no la tarjeta entera — clicar el
+  título o la nota no navega, igual que en cualquier otra cuadrícula de la app.
+- **Enter ya NO salta a la primera coincidencia cuando la cuadrícula está a la vista** (pedido
+  explícito del usuario: «debería mantenerse así todas las opciones y que me permita elegir cuál
+  es la que quiero»). El manejador de teclado de `#entrada` solo llama a `buscar()` cuando **no**
+  hay ninguna tarjeta visible (modo trama, o una búsqueda sin resultados); con la cuadrícula
+  presente y nada marcado con las flechas, Enter no hace nada — para eso están las flechas
+  (marcan una) o el clic directo. `opciones` pasa a `querySelectorAll(".sugerencia, .tarjeta")`,
+  porque el modo título ya no produce `.sugerencia`.
+
+**La vista «Te la tengo» recibe el mismo tratamiento** (mismo pedido del usuario, aplicado
+también ahí «para que sea consistente»): `tarjetaServidor()` deja de llamar a
+`GMM.ui.tarjeta(ficha, acciones)` con dos botones de texto («▶ Ver» / «⬇ Descargar») debajo de la
+carátula, y pasa a `GMM.ui.tarjeta(ficha, estadoServidorHtml(item), iconosServidorHtml(item))` —
+los mismos iconos de esquina que las sugerencias, generados por las mismas dos funciones
+(`iconosServidorHtml`/`estadoServidorHtml`, en `GMM.app`, reutilizadas por las dos vistas). Si el
+archivo todavía se está copiando o no está disponible, no hay iconos que mostrar: en su lugar,
+`estadoServidorHtml()` pone una línea de texto pequeña bajo el título («Terminando de copiar» /
+«No disponible»), donde antes iba un botón deshabilitado.
 
 **El panel de filtros ya no alterna dos métodos: los enseña todos juntos.** Dentro siguen los
 mismos nodos —`#panelBuscar` (ahora solo el desplegable «Buscar por: Título/Actor/Trama», sin
@@ -1059,6 +1109,29 @@ misma captura `13-sugerencias.png` para dejar constancia del aspecto final). `pw
 commit de git, mismo motivo que la 0044→0045: el trabajo de esta versión empezó directamente sobre
 ella sin pasar primero por `respaldos/`.
 
+**La V GMM 0046 se publicó (`push`) y el usuario la probó en vivo, en la app instalada como
+programa de escritorio** — la primera vez que el ciclo «cambiar → publicar → probar en la app
+real» se cierra del todo en esta serie de versiones. De esa prueba real salió la V GMM 0047:
+**(1) las sugerencias de título ganan nota de TMDB y favorita/pendiente**, reutilizando
+`GMM.ui.tarjeta()` en vez de un marcado propio con menos funciones — nuevo tercer parámetro,
+`extraCaratula`, para superponer contenido sobre la carátula sin anidar un `<button>` dentro de
+otro. **(2) Iconos de reproducir (verde, izquierda) y descargar (azul, derecha) sobre la propia
+carátula**, tanto en las sugerencias como en la vista «Te la tengo» —que pierde sus dos botones
+de texto, «▶ Ver»/«⬇ Descargar», bajo la tarjeta—, generados por las mismas dos funciones
+compartidas (`iconosServidorHtml`/`estadoServidorHtml`). Se corrigió de camino que
+`estado.servidorPorId` solo lo rellenaba `pintarServidor()`, al entrar en esa vista: sin ese
+arreglo, pulsar un icono desde una sugerencia sin haber visitado «Te la tengo» antes no habría
+encontrado el ítem. **(3) Enter ya no salta a la primera coincidencia con la cuadrícula a la
+vista** — pedido explícito y textual del usuario («debería mantenerse así todas las opciones y
+que me permita elegir cuál es la que quiero»); solo sigue buscando por Enter cuando no hay
+ninguna tarjeta que mostrar (modo trama, o sin resultados). `logica.js` **190/190** (sin cambio:
+nada de lo nuevo es función exportada ni pura). `interfaz.js` **129→132** (3 nuevas: nota y
+favorita/pendiente en la sugerencia, que Enter con la cuadrícula a la vista NO navegue, y los
+iconos de reproducir/descargar —antes se comprobaba solo una insignia decorativa—; `buscarTitulo()`
+pasa de pulsar Enter a clicar la primera tarjeta, porque Enter ya no navega con la cuadrícula
+presente). `pwa.js` **20/20** (`gmm-app-v42`). `sw.js` 41→42. Respaldo de la 0046 —esta vez sí,
+**publicada de verdad**— reconstruido desde su commit antes de tocar nada.
+
 > **Correr `interfaz.js`/`pwa.js` en remoto, sin npm** (aprendido en la 0024): aunque
 > `npm install playwright-core` esté bloqueado por la política de red, el entorno suele traer un
 > **`playwright` global** (que incluye `playwright-core`) y **Chromium** ya descargado en
@@ -1307,6 +1380,7 @@ en `HISTORIAL.md`.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| V GMM 0047 | 2026-08-15 | Primer ciclo publicar→probar en la app real de escritorio: las sugerencias de título ganan nota y favorita/pendiente (reutilizan `GMM.ui.tarjeta`, con un `extraCaratula` nuevo); iconos de reproducir/descargar sobre la carátula, en las sugerencias y en «Te la tengo» (que pierde sus botones de texto); Enter ya no salta a la primera coincidencia con la cuadrícula a la vista — solo se elige con clic o flechas. `sw.js` 41→42. |
 | V GMM 0046 | 2026-08-15 | Va más lejos con dos correcciones de la 0045: las sugerencias dejan de ser una fila horizontal dentro de la barra fija y pasan a una cuadrícula a pantalla completa (misma rejilla que `.rejilla`, `w342` en vez de `w92`), ocultando los carruseles mientras están a la vista; y en el móvil, la barra de búsqueda recupera su fila propia a lo ancho, intercambiando sitio con Mis listas (que sube a la fila compacta junto al interruptor y ⚙). `sw.js` 40→41. |
 | V GMM 0045 | 2026-08-15 | Corrige tres cosas de la 0044, reportadas por el usuario con capturas: (1) header y barra bajo el header cortados en escritorio y móvil (a `.cabecera` le faltaba `position: relative` tras mover el `sticky` a `.chrome-fijo`, y sus pseudo-elementos de perforación se anclaban al envoltorio entero); (2) las sugerencias pasan de un cuadro desplegable pequeño a una fila de carátulas grandes en la propia página (`#sugerencias` se muda fuera de `#campoTexto`, cada tarjeta pasa de 40×58 a 132×190); (3) en el móvil, la barra de búsqueda comparte fila con el interruptor y ⚙ en vez de tener fila propia, pegada al margen izquierdo. `sw.js` 39→40. |
 | V GMM 0044 | 2026-08-15 | Sustituye el botón «Buscar una en concreto» por una barra de búsqueda fija con autocompletado en vivo, junto al interruptor Películas/Series; el icono de filtro a su lado abre el antiguo modal-formulario, ahora un panel único con idioma/plataforma/país/género/año/calificación y el modo actor/trama. Header y barra quedan fijos al hacer scroll. Nueva insignia verde «la tienes en Te la tengo» en las sugerencias que coinciden con el catálogo de GMM Server. `sw.js` 38→39. |

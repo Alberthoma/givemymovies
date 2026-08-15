@@ -95,12 +95,15 @@ puedes reordenarla sin volver atrás, con el botón **Ordenar** que hay junto a 
 
 Arriba hay un **interruptor Película / Serie** (naranja / azul) que decide qué estás
 buscando. A su izquierda, una **barra de búsqueda fija**, siempre a la vista: escribe un
-título y las sugerencias (carátula grande + título) aparecen **en la propia pantalla**, en
-cuadrícula, con los carruseles quitados de en medio mientras tanto para que tengan todo el
-sitio; elige una y va directa a su ficha, sin abrir nada de por medio. Si una sugerencia
-coincide con una película que ya tienes en tu **GMM Server** («Te la tengo»), su carátula
-lleva una **flecha verde** en la esquina — ya la puedes ver, sin buscarla en ningún sitio.
-La barra se queda fija arriba al hacer scroll, igual que la cabecera.
+título y las sugerencias aparecen **en la propia pantalla**, en cuadrícula, con los carruseles
+quitados de en medio mientras tanto para que tengan todo el sitio. Cada tarjeta es la misma
+de siempre —carátula grande, nota de TMDB, favorita/pendiente— y elegirla va directa a su
+ficha, sin abrir nada de por medio. **Las opciones se quedan ahí hasta que tú eliges una**:
+pulsar Enter sin marcar ninguna con las flechas no salta a la primera por su cuenta. Si una
+sugerencia coincide con una película que ya tienes en tu **GMM Server** («Te la tengo»), su
+carátula lleva dos iconos: **▶ reproducir** (izquierda) y **⬇ descargar** (derecha) — ya la
+puedes ver o bajarla, sin abrir la ficha ni ir a esa vista. La barra se queda fija arriba al
+hacer scroll, igual que la cabecera.
 
 A la derecha de la barra, un **icono de filtro** abre una ventana con todo lo demás: idioma,
 plataforma, país, género, intervalo de años, calificación, y el modo *actor/director* o

@@ -102,13 +102,16 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
     await pagina.click("#capaFormulario .modal-cerrar");
     await pagina.waitForTimeout(250);
   }
-  /* Sin botón «Buscar» a mano (vive en el panel de filtros, cerrado): se
-     envía con Enter, el mismo camino que usa un usuario real cuando escribe
-     y no elige ninguna sugerencia. */
+  /* Sin botón «Buscar» a mano (vive en el panel de filtros, cerrado). Desde
+     V GMM 0047, con la cuadrícula de sugerencias a la vista, Enter ya NO
+     salta a la primera coincidencia (a propósito: el usuario pidió que las
+     opciones se queden ahí para elegir con el ratón) — así que se elige la
+     primera tarjeta, el mismo camino que usaría alguien real. */
   async function buscarTitulo(txt) {
     await cerrarFiltros();
     await pagina.fill("#entrada", txt);
-    await pagina.press("#entrada", "Enter");
+    await pagina.waitForSelector("#sugerencias .tarjeta-img", { timeout: 5000 });
+    await pagina.click("#sugerencias .tarjeta-img >> nth=0");
     await pagina.waitForTimeout(400);
   }
 
@@ -177,14 +180,32 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   m.titulo("Autocompletado");
   await pagina.fill("#entrada", "inter");
   await pagina.waitForTimeout(700);
-  m.afirmar("sugiere al escribir", (await pagina.locator(".sugerencia").count()) >= 1);
+  m.afirmar("sugiere al escribir", (await pagina.locator("#sugerencias .tarjeta").count()) >= 1);
   m.afirmar("la sugerencia es Interestelar",
-    (await pagina.locator(".sugerencia-tit").first().textContent()).includes("Interestelar"));
+    (await pagina.locator("#sugerencias .tarjeta-tit").first().textContent()).includes("Interestelar"));
+  /* V GMM 0047: en modo título, la sugerencia es la MISMA tarjeta que
+     cualquier otra cuadrícula — con nota y favorita/pendiente —, no una
+     tarjeta aparte con menos funciones. */
+  m.afirmar("la sugerencia lleva la nota de TMDB",
+    (await pagina.locator("#sugerencias .tarjeta-nota").count()) >= 1);
+  m.afirmar("la sugerencia tiene botones de favorita y pendiente",
+    (await pagina.locator("#sugerencias .marca-boton.fav").count()) >= 1 &&
+    (await pagina.locator("#sugerencias .marca-boton.pen").count()) >= 1);
   await pagina.screenshot({ path: path.join(CAPTURAS, "13-sugerencias.png"), fullPage: true });
+
+  /* Pedido explícito del usuario (V GMM 0047): con la cuadrícula a la vista,
+     Enter YA NO salta a la primera coincidencia — las opciones se quedan
+     ahí para elegir con el ratón. Antes de esta versión, esto habría
+     navegado directo a la ficha de Interestelar. */
+  await pagina.press("#entrada", "Enter");
+  await pagina.waitForTimeout(300);
+  m.afirmar("Enter con la cuadrícula a la vista NO navega: las sugerencias se quedan",
+    (await pagina.locator("#sugerencias .tarjeta").count()) >= 1 &&
+    (await pagina.locator(".ficha-titulo").count()) === 0);
 
   /* ---------------------------------------------------------------- */
   m.titulo("Buscar Interestelar en español");
-  await pagina.click(".sugerencia >> nth=0");
+  await pagina.click("#sugerencias .tarjeta-img >> nth=0");
   await pagina.waitForSelector(".ficha-titulo", { timeout: 5000 });
 
   m.afirmar("título correcto", (await pagina.textContent(".ficha-titulo")).trim() === "Interestelar");
@@ -601,13 +622,11 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   await pagina.click('#tipoSwitch [data-tipo="movie"]');
   await abrirFiltros();
   await pagina.selectOption("#selBusquedaPor", "titulo");
-  await cerrarFiltros();
-  await pagina.fill("#entrada", "Coco");
-  await pagina.press("#entrada", "Enter");
+  await buscarTitulo("Coco");
   await pagina.waitForSelector(".ficha-titulo", { timeout: 5000 });
   await pagina.waitForTimeout(900);
-  m.afirmar("el desplegable no reaparece tras buscar",
-    (await pagina.locator(".sugerencia").count()) === 0);
+  m.afirmar("las sugerencias no reaparecen tras buscar",
+    (await pagina.locator("#sugerencias .tarjeta, #sugerencias .sugerencia").count()) === 0);
   m.afirmar("en resultados aparece la flecha de volver",
     !(await pagina.locator("#barraVolver").getAttribute("class")).includes("oculto"));
   const desborde = await pagina.evaluate(() =>
@@ -785,7 +804,7 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
      GMM.app.iniciar() (mismo patrón que el stub de los carruseles, más
      arriba): así el arranque real hace su carga en segundo plano del
      catálogo contra el stub, y construye el índice de verdad. */
-  m.titulo('Insignia "Te la tengo" en las sugerencias (V GMM 0044)');
+  m.titulo('Insignia "Te la tengo" en las sugerencias (V GMM 0044; iconos accionables desde la 0047)');
   const paginaServidor = await contexto.newPage();
   await paginaServidor.addInitScript(() => {
     window.__GMM_FORZAR_DEMO = true;
@@ -805,14 +824,15 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
 
   await paginaServidor.fill("#entrada", "inter");
   await paginaServidor.waitForTimeout(700);
-  m.afirmar("la sugerencia que coincide con el catálogo muestra la flecha verde",
-    (await paginaServidor.locator(".sugerencia-servidor").count()) === 1);
+  m.afirmar("la sugerencia que coincide con el catálogo muestra reproducir y descargar",
+    (await paginaServidor.locator("#sugerencias .icono-poster.reproducir").count()) === 1 &&
+    (await paginaServidor.locator("#sugerencias .icono-poster.descargar").count()) === 1);
 
   await paginaServidor.fill("#entrada", "matrix");
   await paginaServidor.waitForTimeout(700);
-  m.afirmar("una que no está en el catálogo no la muestra",
-    (await paginaServidor.locator(".sugerencia").count()) >= 1 &&
-    (await paginaServidor.locator(".sugerencia-servidor").count()) === 0);
+  m.afirmar("una que no está en el catálogo no muestra ningún icono",
+    (await paginaServidor.locator("#sugerencias .tarjeta").count()) >= 1 &&
+    (await paginaServidor.locator("#sugerencias .icono-poster").count()) === 0);
   await paginaServidor.close();
 
   /* ---------------------------------------------------------------- */
