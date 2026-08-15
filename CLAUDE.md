@@ -2,9 +2,9 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0042`
-**Próxima versión:** `V GMM 0043`
-**Última actualización:** 2026-08-11
+**Versión activa:** `V GMM 0043`
+**Próxima versión:** `V GMM 0044`
+**Última actualización:** 2026-08-14
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies-g/> · GitHub Pages desde `main`, raíz.
 
@@ -863,6 +863,21 @@ ausente (cambio suelto del usuario, de antes de esta sesión, sustituyéndolo po
 resolvió preguntando primero, sin tocar nada por cuenta propia: el usuario confirmó que ya había
 repuesto el `.png`.
 
+**La V GMM 0043 se encontró y se cerró en local, arrancando el `.exe` real del usuario.** El
+usuario reportó que `GMM-Server.exe` no abría: un `MessageBox` con "Excepción al llamar a 'Add'
+con los argumentos '1'". El diagnóstico partió de leer directamente su
+`%LOCALAPPDATA%\GMM-Server\motor\PRIVADO\configuracion.json`, que tenía `"carpetas": [null]` en
+vez de una lista vacía o de carpetas reales — la trampa nueva de §9 (`@($null)` no es `@()`).
+Se reparó ese archivo a mano para desbloquear al usuario, se corrigió la causa raíz en
+`GMM-Server-Panel.ps1` (`Cargar-Config`, `Guardar-Config`, «Quitar carpeta»), se comprobó la
+sintaxis con `PSParser`, se recompilaron los dos `.exe` con `gmm-server/build/Compilar.ps1` y se
+copiaron a `GMM-Server-para-instalar/` (regla de la 0039–0040, ver §9) — y se relanzó el `.exe`
+real de verdad, confirmando que abre sin el aviso. Sin cambio de código de la PWA: el footer y
+`VERSION` de `sw.js` (37→38) se suben igual, por convención de cierre. `logica.js` **190/190**,
+`pwa.js` **20/20** (caché `gmm-app-v38`). `interfaz.js` no aplica: no se tocó CSS ni el DOM de
+`index.html`. `GMM-Server-Panel.ps1` no tiene cobertura en `pruebas/` ni en el `npm.cmd test` de
+`gmm-server` (es un script de Windows Forms, no JS) — la verificación fue el arranque real.
+
 > **Correr `interfaz.js`/`pwa.js` en remoto, sin npm** (aprendido en la 0024): aunque
 > `npm install playwright-core` esté bloqueado por la política de red, el entorno suele traer un
 > **`playwright` global** (que incluye `playwright-core`) y **Chromium** ya descargado en
@@ -1018,6 +1033,7 @@ Comprobación manual rápida, si no quieres ejecutar nada:
 | **Dos pruebas asíncronas que comparten estado global no se pueden lanzar con `Promise.all`** (0039) | Dos bloques de prueba para `GMM.servidor` (uno para `enlace()`, otro nuevo para `enlaceOriginal()`) reasignan `global.fetch` y la configuración guardada (`GMM.servidor.guardar`) — estado mutable compartido, no aislado por bloque. Como son funciones `async` definidas como IIFE, las dos EMPIEZAN a ejecutarse a la vez en cuanto se definen, sin importar cómo se las espere después: cada `await` cede el control y deja que la otra pise el `fetch`/config a medio usar. Un test empezó a fallar sin que su lógica cambiara. Arreglo: encadenarlas en serie (`pEnlaceServidor.then(pruebaEnlaceOriginalServidor)`), nunca `Promise.all`, cuando comparten un mock global. |
 | **Un modal reutilizado sigue "abierto" al cambiar de contenido, y un bucle de sondeo no lo sabe** (0040) | `abrirReproductorServidor` sondeaba cada 4 s si la conversión había terminado, y solo paraba si la capa `#capaReproductor` estaba oculta. Pero cerrar la película A y abrir la película B **no oculta la capa** —la reutiliza con contenido nuevo—, así que el sondeo de A seguía vivo, viendo la capa "abierta" y seguía preguntando por A cada 4 s indefinidamente, sin relación con lo que había en pantalla. Con varias películas probadas seguidas (visto en la pestaña Network del usuario: 1045 peticiones en 5 minutos), se acumulan varios sondeos sueltos a la vez, suficiente para saturar el servidor local y hacer fallar peticiones nuevas sin relación aparente. La guarda correcta no es "¿sigue visible el contenedor?", es "¿sigo siendo yo quien lo abrió?": un contador (`tokenReproductor`) que cambia en cada apertura, comprobado en cada paso del sondeo. Cualquier bucle de fondo (`setTimeout` recursivo) sobre un contenedor compartido y reutilizable necesita este mismo patrón, no solo comprobar visibilidad. |
 | **Recompilar los `.exe` de GMM Server no es opcional tras tocar `gmm-server/src/`, y el protocolo de cierre de versión NO lo hace por su cuenta** (0039–0040) | Se arregló `tipo=original` en `src/api.js`, pero el `.exe` de `GMM-Server-para-instalar/` solo se había recompilado **antes** de ese cambio (con el arreglo de FFmpeg anterior, no con este). El usuario seguía abriendo el mismo `.exe` de siempre, que en cada arranque re-extrae SU PROPIA copia incrustada, vieja, sobre `%LOCALAPPDATA%\GMM-Server\motor\src\` (ver §4: ps2exe re-extrae en cada arranque, no solo la primera vez) — así que el botón nuevo parecía "no funcionar" pese a que el código fuente, los tests y hasta el commit publicado en GitHub estaban bien. Costó varias horas de diagnóstico en vivo con el usuario (se investigaron permisos nuevos de Chrome, un bucle de peticiones sueltas real que también hacía falta arreglar) antes de comparar `diff` entre el código fuente y el `motor/src` instalado y ver la diferencia exacta. **Parchear archivos a mano dentro de `%LOCALAPPDATA%\GMM-Server\motor\src\` es un arreglo temporal, no uno real** — se borra solo la próxima vez que se abra el `.exe`. La regla: **cualquier cambio a `gmm-server/src/*.js` exige, sin excepción, volver a `gmm-server/build/Compilar.ps1` y copiar los `.exe` nuevos a `GMM-Server-para-instalar/`** antes de dar el cambio por probado o cerrado — el skill `givemymovies-commit` no lo hace por su cuenta, porque no toca nada de `gmm-server/`. |
+| **`@($null)` no es `@()`: quitar el último elemento de una lista puede corromper el JSON que la guarda** (0043, `gmm-server`) | En `GMM-Server-Panel.ps1`, quitar la última carpeta hacía `$script:config.carpetas = @($script:config.carpetas) | Where-Object {...}`: el `@()` solo envolvía el ORIGEN, no toda la tubería, así que si `Where-Object` no dejaba nada, la asignación completa quedaba en `$null` a secas (no en un array vacío). `Guardar-Config` volvía a envolver ese `$null` con `@($config.carpetas)` para guardarlo — y `@($null)` en PowerShell da un **array de 1 elemento que contiene `null`**, no un array vacío (la trampa clásica: envolver una variable ya nula con `@()` no es lo mismo que envolver una tubería que no produjo salida). El JSON quedaba con `"carpetas": [null]`, y al reabrir el panel, `Refrescar-ListaCarpetas` iteraba esa carpeta fantasma y llamaba a `$item.SubItems.Add($carpeta.ruta)` con `$carpeta` a `$null` — `.Add()` con un argumento nulo lanzaba `NullReferenceException` dentro de WinForms, y el panel se caía al arrancar con "Excepción al llamar a 'Add' con los argumentos '1'". Se encontró leyendo directamente el `configuracion.json` corrompido del usuario. Arreglo en tres sitios: el `@()` de la tubería de «Quitar carpeta» ahora envuelve el `Where-Object` entero, y tanto `Cargar-Config` como `Guardar-Config` filtran explícitamente cualquier `$null` de `carpetas` antes de usarla (esto último también autocura un archivo ya corrompido, sin que el usuario tenga que editarlo a mano). Cualquier asignación PowerShell de la forma `$x = @($x) | Where-Object {...}` tiene este mismo riesgo si el filtro puede vaciar la lista entera. |
 
 ---
 
@@ -1103,6 +1119,7 @@ en `HISTORIAL.md`.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| V GMM 0043 | 2026-08-14 | Arreglado un bug real de GMM Server: quitar la última carpeta de la lista corrompía `PRIVADO\configuracion.json` con `"carpetas": [null]` (la trampa de PowerShell `@($null)`), y el panel se caía al arrancar con "Excepción al llamar a 'Add'...". Corregido en `GMM-Server-Panel.ps1` (`Cargar-Config`, `Guardar-Config`, el manejador de «Quitar carpeta») y recompilados los `.exe` de `GMM-Server-para-instalar/`. |
 | V GMM 0042 | 2026-08-11 | Nueva guía visual, aparte de la app, para compartir el PC de GMM Server con la cuenta de Tailscale de otra persona (`guias/tailscale-compartir-gmm/`, carrusel HTML + PDF). Sin cambios de código; se sube la versión del pie y `VERSION` de `sw.js` por convención de cierre. |
 | V GMM 0041 | 2026-08-08 | El aviso de "enlace copiado" del botón «Abrir en otro reproductor» pasa de 3,2 s a **12 s** y muestra los 4 pasos completos para VLC, en vez de una frase corta que no daba tiempo a leer. De paso, arreglado que usaba un tipo de color `"exito"` inexistente en el CSS (los válidos son `ok`/`error`/`info`) y nunca se veía en verde. `GMM.ui.aviso` gana un tercer parámetro opcional, `duracionMs`. `sw.js` 35→36. |
 | V GMM 0040 | 2026-08-08 | Arreglado un bug real del reproductor de «Te la tengo»: al cerrar la película abierta y abrir otra, el sondeo de fondo de la primera (que revisa cada 4 s si la conversión terminó) no se cancelaba, y se iban acumulando sondeos sueltos hasta machacar el servidor (más de 1000 peticiones en 5 minutos, visto en vivo con el usuario). Nuevo `tokenReproductor`: cada apertura del reproductor invalida cualquier sondeo anterior. `sw.js` 34→35. |

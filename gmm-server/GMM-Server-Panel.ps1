@@ -120,17 +120,18 @@ function Cargar-Config {
     if (-not (Test-Path $rutaConfig)) { return $null }
     $texto = [System.IO.File]::ReadAllText($rutaConfig, [System.Text.Encoding]::UTF8)
     $config = $texto | ConvertFrom-Json
-    if ($null -eq $config.carpetas) {
-        $config | Add-Member -MemberType NoteProperty -Name carpetas -Value @() -Force
-    } else {
-        $config.carpetas = @($config.carpetas)
-    }
+    # @($null) da un array de 1 elemento QUE CONTIENE null, no un array
+    # vacio -es la trampa de PowerShell que corrompio "carpetas": [null] en
+    # produccion (ver CLAUDE.md, trampas ya pisadas). Se filtran los null de
+    # forma explicita, tanto para el caso normal como para autocurar un
+    # archivo ya corrompido por esa trampa en una version anterior.
+    $config | Add-Member -MemberType NoteProperty -Name carpetas -Value @($config.carpetas | Where-Object { $null -ne $_ }) -Force
     return $config
 }
 
 function Guardar-Config($config) {
     $copia = $config | Select-Object *
-    $copia.carpetas = @($config.carpetas)
+    $copia.carpetas = @($config.carpetas | Where-Object { $null -ne $_ })
     $json = $copia | ConvertTo-Json -Depth 10
     $codificacion = New-Object System.Text.UTF8Encoding($false)
     [System.IO.File]::WriteAllText($rutaConfig, $json, $codificacion)
@@ -619,7 +620,13 @@ $botonQuitarCarpeta.Add_Click({
         "GMM Server", "YesNo", "Question")
     if ($confirmar -ne "Yes") { return }
 
-    $script:config.carpetas = @($script:config.carpetas) | Where-Object { $_.nombre -ne $seleccionada }
+    # El @() tiene que envolver TODA la tuberia, Where-Object incluido: si lo
+    # envuelve solo a $script:config.carpetas y Where-Object filtra todo (se
+    # quita la ultima carpeta), la asignacion queda en $null a secas, y
+    # Guardar-Config convertia eso en "carpetas": [null] -el bug que rompio
+    # el arranque del panel. Con el @() fuera, quitar la ultima carpeta deja
+    # un array vacio de verdad.
+    $script:config.carpetas = @($script:config.carpetas | Where-Object { $_.nombre -ne $seleccionada })
     Guardar-Config $script:config
     Refrescar-ListaCarpetas
     Escribir-Registro "Carpeta quitada: $seleccionada. Reinicia el servidor para aplicarlo."
