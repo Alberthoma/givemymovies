@@ -87,6 +87,7 @@ a:hover { text-decoration: underline; }
    el envoltorio. Los agujeros se dibujan con un SVG en línea repetido, igual
    que la flecha del desplegable, para no depender de imágenes externas. */
 .cabecera {
+  position: relative;
   display: flex; align-items: center; justify-content: space-between;
   gap: 14px; flex-wrap: nowrap;
   margin: 14px 0 6px;
@@ -277,29 +278,35 @@ a:hover { text-decoration: underline; }
 .campo-limpiar:hover { background: #1a2632; color: #e8f0f8; }
 
 /* --- autocompletado --- */
-/* Desde V GMM 0044 el campo vive en la barra fija, fuera de cualquier modal
-   que haga scroll, así que puede flotar sobre la página sin recortarse. */
+/* Desde V GMM 0044 aparece EN LA PÁGINA, como una fila de carátulas grandes
+   que se puede desplazar en horizontal — no un cuadro desplegable flotando
+   sobre el contenido. Vive dentro de .chrome-fijo, justo bajo la barra de
+   búsqueda: al aparecer, el propio "chrome" fijo crece para hacerle sitio, así
+   que sigue a la vista sin importar el punto de scroll (la barra de búsqueda
+   es alcanzable en cualquier pantalla desde la 0044; sus sugerencias tienen
+   que serlo también). */
 .sugerencias {
-  position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 55;
-  background: #131c26; border: 1px solid #2f4356; border-radius: 14px;
-  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.55);
-  overflow: hidden; max-height: 380px; overflow-y: auto;
+  display: flex; gap: 12px; overflow-x: auto; overflow-y: hidden;
+  padding: 6px 2px 14px;
 }
 .sugerencia {
-  display: flex; align-items: center; gap: 12px; width: 100%;
-  padding: 10px 14px; text-align: left;
-  border-bottom: 1px solid #1a2632;
+  display: flex; flex-direction: column; align-items: stretch; gap: 8px;
+  flex: 0 0 132px; width: 132px;
+  padding: 0; text-align: left; border-radius: 12px;
+  transition: transform 0.15s;
 }
-.sugerencia:last-child { border-bottom: 0; }
-.sugerencia:hover, .sugerencia.marcada { background: #1a2632; }
-.sugerencia-caratula-envoltorio { position: relative; flex: 0 0 40px; }
+.sugerencia:hover, .sugerencia.marcada { transform: translateY(-4px); }
+.sugerencia-caratula-envoltorio {
+  position: relative; width: 132px; height: 190px; flex: 0 0 auto;
+  border-radius: 10px; overflow: hidden; background: #22303e;
+}
 .sugerencia-img {
-  width: 40px; height: 58px; flex: 0 0 40px; border-radius: 6px;
+  width: 132px; height: 190px; display: block;
   object-fit: cover; background: #22303e;
 }
 .sugerencia-caratula {
-  width: 40px; height: 58px; flex: 0 0 40px; border-radius: 6px;
-  display: grid; place-items: center; font-size: 17px; font-weight: 800;
+  width: 132px; height: 190px;
+  display: grid; place-items: center; font-size: 34px; font-weight: 800;
   background: linear-gradient(140deg, #22303e, #1a2632); color: #5e768c;
 }
 /* Insignia "la tienes en Te la tengo" (desde V GMM 0044): flecha verde en la
@@ -308,15 +315,18 @@ a:hover { text-decoration: underline; }
    ningún sitio. Solo sale cuando GMM.app la empareja con el catálogo del
    servidor (ver buscarEnServidor en el bloque JS 9). */
 .sugerencia-servidor {
-  position: absolute; left: 2px; bottom: 2px; z-index: 1;
-  width: 16px; height: 16px; border-radius: 50%;
+  position: absolute; left: 6px; bottom: 6px; z-index: 1;
+  width: 24px; height: 24px; border-radius: 50%;
   display: grid; place-items: center;
-  background: rgba(6, 19, 12, 0.85); color: #2ee6a8; font-size: 9px; line-height: 1;
+  background: rgba(6, 19, 12, 0.85); color: #2ee6a8; font-size: 13px; line-height: 1;
   box-shadow: 0 0 0 1px rgba(46, 230, 168, 0.4);
 }
 .sugerencia-txt { min-width: 0; }
-.sugerencia-tit { font-size: 14.5px; font-weight: 600; }
-.sugerencia-meta { font-size: 12.5px; color: #8ba0b6; }
+.sugerencia-tit {
+  font-size: 13.5px; font-weight: 600; line-height: 1.25;
+  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.sugerencia-meta { font-size: 12px; color: #8ba0b6; margin-top: 2px; }
 
 /* Los filtros y los controles de Descubrir ya no llevan rejilla propia: la
    pone .forma, que los reparte a todos por igual dentro del modal. */
@@ -1011,20 +1021,21 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
 @media (max-width: 620px) {
   .app { padding: 0 14px 60px; }
   .buscador { padding: 4px 0 6px; }
-  /* La barra superior pasa a una rejilla de 3 filas: arriba del todo, la
-     barra de búsqueda a lo ancho (desde V GMM 0044 — no cabe repartida entre
-     botones); debajo, volver (solo en resultados) / interruptor centrado /
-     ajustes; abajo, Mis listas / Te la tengo / instalar. .barra-superior,
-     .barra-listas, .barra-izq y .barra-der se "aplanan" (display: contents)
-     para que los botones sean hijos directos de la rejilla y se repartan sin
-     duplicarlos ni tocar su JS — mismo botón, mismo id, solo cambia dónde cae
+  /* La barra superior pasa a una rejilla de 3 filas: arriba, la barra de
+     búsqueda (desde V GMM 0044) comparte fila con el interruptor y ⚙ —
+     pegada al margen izquierdo, con el interruptor y ⚙ compactos a su
+     derecha—; en medio, volver (solo en resultados), a lo ancho; abajo, Mis
+     listas / Te la tengo / instalar. .barra-superior, .barra-listas,
+     .barra-izq y .barra-der se "aplanan" (display: contents) para que los
+     botones sean hijos directos de la rejilla y se repartan sin duplicarlos
+     ni tocar su JS — mismo botón, mismo id, solo cambia dónde cae
      visualmente. */
   .barra-superior {
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: 1fr auto auto;
     grid-template-areas:
-      "buscar  buscar   buscar"
-      "volver  switch   ajustes"
+      "buscar  switch   ajustes"
+      "volver  volver   volver"
       "listas  tetengo  instalar";
     align-items: center;
     gap: 8px;
@@ -1051,6 +1062,12 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   .forma { grid-template-columns: 1fr; gap: 12px; }
   .cabecera { padding: 15px; }
   .campo-entrada { font-size: 16px; padding: 12px 0; }
+  /* .barra-busqueda .campo-entrada pesa más que .campo-entrada a secas (dos
+     clases contra una) y iba a ganarle a la regla de arriba aunque esta esté
+     después en el móvil: con 14,5px el campo cae por debajo del umbral que
+     hace que iOS Safari haga zoom solo al enfocarlo. Se repite aquí con el
+     mismo peso para no perder el 16px en la barra fija. */
+  .barra-busqueda .campo-entrada { font-size: 16px; padding: 10px 0; }
   /* Dos columnas fijas en el móvil. */
   .rejilla { grid-template-columns: repeat(2, 1fr); gap: 12px; }
   /* Carruseles: tarjetas algo más estrechas, título más contenido y menos aire
@@ -1139,11 +1156,13 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
       <!-- Barra de búsqueda fija (desde V GMM 0044), a la izquierda del
            interruptor peli/serie: sustituye al botón «Buscar una en
            concreto». #campoTexto es el mismo nodo de siempre (#entrada,
-           #sugerencias, #btnLimpiar), mudado aquí desde el modal — no hay
-           dos campos de texto, uno solo que ahora vive en la barra. El icono
-           de filtro abre el mismo modal, reconvertido en panel de filtros
-           (idioma, plataforma, país, género, año, calificación, y el modo
-           actor/trama). -->
+           #btnLimpiar), mudado aquí desde el modal — no hay dos campos de
+           texto, uno solo que ahora vive en la barra. El icono de filtro
+           abre el mismo modal, reconvertido en panel de filtros (idioma,
+           plataforma, país, género, año, calificación, y el modo actor/
+           trama). #sugerencias YA NO vive aquí dentro (ver más abajo, tras
+           cerrar .barra-superior): las carátulas grandes necesitan su propia
+           fila a lo ancho, no caben en esta barra estrecha. -->
       <div class="barra-busqueda" id="barraBusqueda">
         <div class="campo" id="campoTexto">
           <div class="campo-caja">
@@ -1153,7 +1172,6 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
                    aria-label="Buscar una película o serie">
             <button class="campo-limpiar oculto" id="btnLimpiar" title="Limpiar">&#10005;</button>
           </div>
-          <div class="sugerencias oculto" id="sugerencias"></div>
         </div>
         <button class="boton-cabecera boton-filtro" id="btnFiltros" title="Idioma, plataforma, país, género, año, calificación…" aria-label="Filtros de búsqueda">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true">
@@ -1201,6 +1219,12 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
     </div>
   </div>
   </div><!-- /.barra-superior -->
+
+  <!-- Sugerencias de la barra de búsqueda: fila de carátulas grandes, EN LA
+       PÁGINA (no un cuadro desplegable) — vive dentro de .chrome-fijo para
+       seguir alcanzable sin importar el punto de scroll, igual que la barra
+       de búsqueda que la llena. -->
+  <div class="sugerencias oculto" id="sugerencias"></div>
   </div><!-- /.chrome-fijo -->
 
   <!-- ═════════════ DESCUBRIMIENTO (carruseles) ═════════════ -->
@@ -1233,7 +1257,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   <footer class="pie">
     <span>givemymovies · datos de disponibilidad vía TMDB / JustWatch</span>
     <span>Tus listas se guardan en este navegador — inicia sesión para llevarlas a otros</span>
-    <span id="version-app">V GMM 0044</span>
+    <span id="version-app">V GMM 0045</span>
   </footer>
 </div>
 
@@ -5806,7 +5830,7 @@ GMM.app = (function () {
         Array.prototype.forEach.call(opciones, function (o, i) {
           o.classList.toggle("marcada", i === estado.marcada);
         });
-        opciones[estado.marcada].scrollIntoView({ block: "nearest" });
+        opciones[estado.marcada].scrollIntoView({ block: "nearest", inline: "nearest" });
         return;
       }
 
@@ -5853,7 +5877,10 @@ GMM.app = (function () {
     });
 
     document.addEventListener("click", function (e) {
-      if (!e.target.closest(".campo")) cerrarSugerencias();
+      /* Desde V GMM 0044, #sugerencias ya no vive dentro de .campo (es una
+         fila a lo ancho en la página, no un desplegable anclado al campo),
+         así que un clic dentro de ella tampoco debe cerrarla. */
+      if (!e.target.closest(".campo") && !e.target.closest("#sugerencias")) cerrarSugerencias();
     });
 
     /* Al salir del campo cerramos la lista, que si no tapa el botón Buscar.

@@ -2,8 +2,8 @@
 
 > Contexto del proyecto para cualquier sesión futura. Léelo entero antes de tocar código.
 
-**Versión activa:** `V GMM 0044`
-**Próxima versión:** `V GMM 0045`
+**Versión activa:** `V GMM 0045`
+**Próxima versión:** `V GMM 0046`
 **Última actualización:** 2026-08-15
 
 **Publicada en:** <https://alberthoma.github.io/givemymovies-g/> · GitHub Pages desde `main`, raíz.
@@ -419,10 +419,15 @@ del scroll, no solo en el inicio.
 CSS (`.tipo-op[data-tipo="…"].activa`) ni el JS (`closest("[data-tipo]")`, en `reflejar()` y en
 el manejador de clic) dependen de la posición, solo del atributo `data-tipo`.
 
-**La barra bajo el header se reorganiza en el móvil (≤620px) en una rejilla de 2 filas**, a
-petición del usuario, harto de que en su móvil los controles quedaran amontonados: arriba,
-volver (solo en resultados) / interruptor centrado / ⚙; abajo, Mis listas / Te la tengo /
-Instalar. `.barra-listas` y `.barra-volver` —hasta entonces bloques hermanos independientes,
+**La barra bajo el header se reorganiza en el móvil (≤620px) en una rejilla, hoy de 3 filas**
+(2 hasta la V GMM 0044; la barra de búsqueda tenía su propia fila entera entre la 0044 y la 0045,
+hasta que el usuario pidió que compartiera línea con el interruptor), a petición del usuario,
+harto de que en su móvil los controles quedaran amontonados: arriba, **la barra de búsqueda,
+pegada al margen izquierdo, junto al interruptor y ⚙** (desde V GMM 0045: antes, en la 0044, esta
+fila era solo volver/interruptor/⚙ y la barra de búsqueda iba en una fila propia encima); en
+medio, **volver** (solo en resultados, a lo ancho, en su propia fila — se sacó de la fila del
+interruptor al hacerle sitio a la barra de búsqueda); abajo, Mis listas / Te la tengo / Instalar.
+`.barra-listas` y `.barra-volver` —hasta entonces bloques hermanos independientes,
 el segundo con su propio `.oculto` según haya resultados— se envuelven en un nuevo contenedor
 puramente estructural, `.barra-superior`, que en escritorio es `display: contents` (no existe a
 efectos visuales: sus dos hijas siguen fluyendo exactamente igual que antes) y solo en el móvil
@@ -440,13 +445,30 @@ propósito: sigue oculto por la regla global `.oculto` (con `!important`), y **d
 
 **Hasta la V GMM 0043, para escribir un título había que abrir un modal** (pulsando «Buscar una
 en concreto», uno de dos botones grandes en el inicio). **Desde la 0044, el campo de texto
-—`#entrada`/`#sugerencias`/`#btnLimpiar`, el mismo nodo de siempre, solo reubicado— vive en la
-barra fija bajo el header** (`#barraBusqueda`, dentro de `.barra-izq`, a la izquierda del
-interruptor peli/serie), **siempre a la vista**, también sobre los resultados. Sustituye al botón
-«Buscar una en concreto»: escribir ahí y elegir una sugerencia **abre la ficha directamente, sin
-pasar por ningún modal**. A su derecha, un icono de filtro (`#btnFiltros`, tres sliders en SVG en
-línea) abre `#capaFormulario` — el mismo modal de siempre, con el mismo id, pero reconvertido en
-**panel de filtros**: sustituye también al botón «Descubrir por género».
+—`#entrada`/`#btnLimpiar`, el mismo nodo de siempre, solo reubicado— vive en la barra fija bajo
+el header** (`#barraBusqueda`, dentro de `.barra-izq`, a la izquierda del interruptor peli/serie),
+**siempre a la vista**, también sobre los resultados. Sustituye al botón «Buscar una en
+concreto»: escribir ahí y elegir una sugerencia **abre la ficha directamente, sin pasar por ningún
+modal**. A su derecha, un icono de filtro (`#btnFiltros`, tres sliders en SVG en línea) abre
+`#capaFormulario` — el mismo modal de siempre, con el mismo id, pero reconvertido en **panel de
+filtros**: sustituye también al botón «Descubrir por género».
+
+**Las sugerencias aparecen en la página, no en un cuadro desplegable (desde V GMM 0045; la 0044
+las mostraba en una lista pequeña flotando sobre el contenido).** `#sugerencias` **ya no vive
+dentro de `#campoTexto`**: es un hermano suyo, colgado directamente de `.chrome-fijo`, justo
+después de cerrar `.barra-superior` — así, al aparecer, el propio "chrome" fijo crece para
+hacerle sitio y las sugerencias siguen alcanzables sin importar el punto de scroll (la barra de
+búsqueda ya lo es desde la 0044; sus sugerencias tenían que serlo también). Cada `.sugerencia` es
+ahora una **carátula grande** (132×190, la misma proporción de póster que el resto de la app) con
+el título debajo, en una **fila que se desplaza en horizontal** (`overflow-x: auto`), calcada del
+ejemplo visual que pidió el usuario — no una lista compacta de filas con una miniatura a un lado.
+Nada de la lógica cambió: sigue siendo `#entrada`/`#sugerencias` (mismos ids), el mismo
+`pintarSugerencias()`, la misma navegación por teclado (↓/↑/Enter/Escape) y el mismo clic para
+elegir una — solo el marcado que genera y su CSS. Dos ajustes que exigió el cambio de sitio:
+el manejador de "clic fuera cierra las sugerencias" tiene que comprobar también
+`.closest("#sugerencias")`, no solo `.closest(".campo")` (que ya no la contiene); y
+`scrollIntoView` al navegar con el teclado pasa a `{ block: "nearest", inline: "nearest" }`, para
+desplazar la fila en horizontal, no solo en vertical.
 
 **El panel de filtros ya no alterna dos métodos: los enseña todos juntos.** Dentro siguen los
 mismos nodos —`#panelBuscar` (ahora solo el desplegable «Buscar por: Título/Actor/Trama», sin
@@ -961,6 +983,34 @@ vive dentro de un panel que hay que cerrar para poder escribir). Verificado adem
 contra `pruebas/capturas/00-inicio.png`, `08-modal-buscar.png` y `05-movil.png` (la barra de
 búsqueda ocupa su propia fila en la rejilla móvil, sobre volver/interruptor/ajustes).
 
+**La V GMM 0045 se encontró y se cerró en el mismo turno que la 0044, a partir de una captura
+real del usuario nada más publicar los cambios en local.** Tres correcciones: (1) **el bug de
+`.cabecera` sin `position: relative`**, documentado como trampa nueva en §9 — el header y la
+barra bajo el header se veían cortados, en escritorio y en móvil, porque las bandas de
+perforación del header (`::before`/`::after`, `position: absolute`) se habían quedado ancladas a
+`.chrome-fijo` entero en vez de a `.cabecera` sola. Arreglo de una línea. (2) **Las sugerencias
+pasan de un cuadro desplegable a una fila de carátulas grandes en la propia página** — el usuario
+pidió explícitamente que se pareciera a la imagen de referencia del principio de la sesión (un
+buscador ajeno con carátula + título apareciendo en pantalla), no al cuadro compacto que salió en
+la 0044. `#sugerencias` se muda de dentro de `#campoTexto` a hermano directo de `.barra-superior`
+dentro de `.chrome-fijo` (para seguir alcanzable sin importar el scroll, igual que la barra de
+búsqueda), y cada `.sugerencia` pasa de fila de lista (miniatura 40×58 + texto al lado) a tarjeta
+vertical (carátula 132×190 + texto debajo), en una fila con `overflow-x: auto`. Mismos ids,
+mismo `pintarSugerencias()`, mismo teclado — solo cambia el marcado y el sitio. Dos ajustes que
+exigió la mudanza: el cierre por "clic fuera" ahora comprueba también `.closest("#sugerencias")`,
+y `scrollIntoView` de la navegación por teclado suma `inline: "nearest"` para desplazar en
+horizontal. (3) **En el móvil, la barra de búsqueda pasa a compartir fila con el interruptor y
+⚙** (pegada al margen izquierdo), en vez de tener su fila propia como en la 0044; `.barra-volver`
+(el botón ← y «Ordenar») se muda a su propia fila para hacerle sitio. De camino, arreglada una
+trampa de especificidad CSS descubierta al revisar esta zona: `.barra-busqueda .campo-entrada`
+(dos clases) le ganaba en peso a la regla del móvil que sube la fuente a 16px para que iOS Safari
+no haga zoom solo al enfocar el campo — sin la corrección, el campo de la barra fija se habría
+quedado en 14,5px en el móvil, aunque el resto de campos de texto de la app sí tuvieran el
+arreglo. Sin cambios en la lógica pura: `logica.js` **190/190**. `interfaz.js` **129/129** (mismo
+número: sin comprobaciones nuevas, pero se añadió una captura nueva,
+`pruebas/capturas/13-sugerencias.png`, para dejar constancia visual del cambio más grande de los
+tres). `pwa.js` **20/20** (caché `gmm-app-v40`). `sw.js` 39→40.
+
 > **Correr `interfaz.js`/`pwa.js` en remoto, sin npm** (aprendido en la 0024): aunque
 > `npm install playwright-core` esté bloqueado por la política de red, el entorno suele traer un
 > **`playwright` global** (que incluye `playwright-core`) y **Chromium** ya descargado en
@@ -1123,6 +1173,7 @@ Comprobación manual rápida, si no quieres ejecutar nada:
 | **Un modal reutilizado sigue "abierto" al cambiar de contenido, y un bucle de sondeo no lo sabe** (0040) | `abrirReproductorServidor` sondeaba cada 4 s si la conversión había terminado, y solo paraba si la capa `#capaReproductor` estaba oculta. Pero cerrar la película A y abrir la película B **no oculta la capa** —la reutiliza con contenido nuevo—, así que el sondeo de A seguía vivo, viendo la capa "abierta" y seguía preguntando por A cada 4 s indefinidamente, sin relación con lo que había en pantalla. Con varias películas probadas seguidas (visto en la pestaña Network del usuario: 1045 peticiones en 5 minutos), se acumulan varios sondeos sueltos a la vez, suficiente para saturar el servidor local y hacer fallar peticiones nuevas sin relación aparente. La guarda correcta no es "¿sigue visible el contenedor?", es "¿sigo siendo yo quien lo abrió?": un contador (`tokenReproductor`) que cambia en cada apertura, comprobado en cada paso del sondeo. Cualquier bucle de fondo (`setTimeout` recursivo) sobre un contenedor compartido y reutilizable necesita este mismo patrón, no solo comprobar visibilidad. |
 | **Recompilar los `.exe` de GMM Server no es opcional tras tocar `gmm-server/src/`, y el protocolo de cierre de versión NO lo hace por su cuenta** (0039–0040) | Se arregló `tipo=original` en `src/api.js`, pero el `.exe` de `GMM-Server-para-instalar/` solo se había recompilado **antes** de ese cambio (con el arreglo de FFmpeg anterior, no con este). El usuario seguía abriendo el mismo `.exe` de siempre, que en cada arranque re-extrae SU PROPIA copia incrustada, vieja, sobre `%LOCALAPPDATA%\GMM-Server\motor\src\` (ver §4: ps2exe re-extrae en cada arranque, no solo la primera vez) — así que el botón nuevo parecía "no funcionar" pese a que el código fuente, los tests y hasta el commit publicado en GitHub estaban bien. Costó varias horas de diagnóstico en vivo con el usuario (se investigaron permisos nuevos de Chrome, un bucle de peticiones sueltas real que también hacía falta arreglar) antes de comparar `diff` entre el código fuente y el `motor/src` instalado y ver la diferencia exacta. **Parchear archivos a mano dentro de `%LOCALAPPDATA%\GMM-Server\motor\src\` es un arreglo temporal, no uno real** — se borra solo la próxima vez que se abra el `.exe`. La regla: **cualquier cambio a `gmm-server/src/*.js` exige, sin excepción, volver a `gmm-server/build/Compilar.ps1` y copiar los `.exe` nuevos a `GMM-Server-para-instalar/`** antes de dar el cambio por probado o cerrado — el skill `givemymovies-commit` no lo hace por su cuenta, porque no toca nada de `gmm-server/`. |
 | **`@($null)` no es `@()`: quitar el último elemento de una lista puede corromper el JSON que la guarda** (0043, `gmm-server`) | En `GMM-Server-Panel.ps1`, quitar la última carpeta hacía `$script:config.carpetas = @($script:config.carpetas) | Where-Object {...}`: el `@()` solo envolvía el ORIGEN, no toda la tubería, así que si `Where-Object` no dejaba nada, la asignación completa quedaba en `$null` a secas (no en un array vacío). `Guardar-Config` volvía a envolver ese `$null` con `@($config.carpetas)` para guardarlo — y `@($null)` en PowerShell da un **array de 1 elemento que contiene `null`**, no un array vacío (la trampa clásica: envolver una variable ya nula con `@()` no es lo mismo que envolver una tubería que no produjo salida). El JSON quedaba con `"carpetas": [null]`, y al reabrir el panel, `Refrescar-ListaCarpetas` iteraba esa carpeta fantasma y llamaba a `$item.SubItems.Add($carpeta.ruta)` con `$carpeta` a `$null` — `.Add()` con un argumento nulo lanzaba `NullReferenceException` dentro de WinForms, y el panel se caía al arrancar con "Excepción al llamar a 'Add' con los argumentos '1'". Se encontró leyendo directamente el `configuracion.json` corrompido del usuario. Arreglo en tres sitios: el `@()` de la tubería de «Quitar carpeta» ahora envuelve el `Where-Object` entero, y tanto `Cargar-Config` como `Guardar-Config` filtran explícitamente cualquier `$null` de `carpetas` antes de usarla (esto último también autocura un archivo ya corrompido, sin que el usuario tenga que editarlo a mano). Cualquier asignación PowerShell de la forma `$x = @($x) | Where-Object {...}` tiene este mismo riesgo si el filtro puede vaciar la lista entera. |
+| **Mover `position: sticky` a un envoltorio nuevo deja huérfanos los pseudo-elementos `position: absolute` del hijo** (0045) | Al envolver `.cabecera` en `.chrome-fijo` (V GMM 0044, para que la barra de búsqueda también quedara fija), se le quitó `position: sticky` a `.cabecera` — ya no hacía falta, la heredaba del envoltorio. Pero `.cabecera::before`/`::after` (las bandas de perforación del rollo de película) son `position: absolute`, y necesitan un ancestro **posicionado** para anclarse a él. `position: sticky` cuenta como posicionado, así que mientras vivió en `.cabecera` las bandas se anclaban a su caja, pequeña. Al pasar el `sticky` a `.chrome-fijo` sin dejarle a `.cabecera` ningún `position` propio, sus pseudo-elementos **saltaron a anclarse al ancestro posicionado más cercano**, que pasó a ser `.chrome-fijo` — mucho más alto, porque también contiene `.barra-listas` y `.barra-volver`. La banda inferior (`::after`, `bottom: 0`) apareció entonces al fondo de TODO `.chrome-fijo`, cortando visualmente los botones «Mis listas»/«Te la tengo» en vez de quedarse al pie del propio header. El usuario lo reportó como «el header es muy pequeño y el contenido queda cortado», en escritorio y en móvil por igual — mismo síntoma, misma causa en los dos. Arreglo de una línea: `position: relative` de vuelta en `.cabecera`, para que vuelva a ser el ancestro posicionado de sus propios pseudo-elementos, sin depender de si además es o no `sticky`. **Lección:** mover `position: sticky/relative/absolute` de un elemento a un envoltorio nuevo no es neutro si ese elemento tiene hijos `position: absolute` — hay que devolverle algún `position` propio (`relative` basta) o sus hijos absolutos se recolocan solos, silenciosamente, sin ningún error en consola. |
 
 ---
 
@@ -1208,6 +1259,7 @@ en `HISTORIAL.md`.
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| V GMM 0045 | 2026-08-15 | Corrige tres cosas de la 0044, reportadas por el usuario con capturas: (1) header y barra bajo el header cortados en escritorio y móvil (a `.cabecera` le faltaba `position: relative` tras mover el `sticky` a `.chrome-fijo`, y sus pseudo-elementos de perforación se anclaban al envoltorio entero); (2) las sugerencias pasan de un cuadro desplegable pequeño a una fila de carátulas grandes en la propia página (`#sugerencias` se muda fuera de `#campoTexto`, cada tarjeta pasa de 40×58 a 132×190); (3) en el móvil, la barra de búsqueda comparte fila con el interruptor y ⚙ en vez de tener fila propia, pegada al margen izquierdo. `sw.js` 39→40. |
 | V GMM 0044 | 2026-08-15 | Sustituye el botón «Buscar una en concreto» por una barra de búsqueda fija con autocompletado en vivo, junto al interruptor Películas/Series; el icono de filtro a su lado abre el antiguo modal-formulario, ahora un panel único con idioma/plataforma/país/género/año/calificación y el modo actor/trama. Header y barra quedan fijos al hacer scroll. Nueva insignia verde «la tienes en Te la tengo» en las sugerencias que coinciden con el catálogo de GMM Server. `sw.js` 38→39. |
 | V GMM 0043 | 2026-08-14 | Arreglado un bug real de GMM Server: quitar la última carpeta de la lista corrompía `PRIVADO\configuracion.json` con `"carpetas": [null]` (la trampa de PowerShell `@($null)`), y el panel se caía al arrancar con "Excepción al llamar a 'Add'...". Corregido en `GMM-Server-Panel.ps1` (`Cargar-Config`, `Guardar-Config`, el manejador de «Quitar carpeta») y recompilados los `.exe` de `GMM-Server-para-instalar/`. |
 | V GMM 0042 | 2026-08-11 | Nueva guía visual, aparte de la app, para compartir el PC de GMM Server con la cuenta de Tailscale de otra persona (`guias/tailscale-compartir-gmm/`, carrusel HTML + PDF). Sin cambios de código; se sube la versión del pie y `VERSION` de `sw.js` por convención de cierre. |

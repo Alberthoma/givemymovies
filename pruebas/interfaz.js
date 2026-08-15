@@ -180,6 +180,7 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   m.afirmar("sugiere al escribir", (await pagina.locator(".sugerencia").count()) >= 1);
   m.afirmar("la sugerencia es Interestelar",
     (await pagina.locator(".sugerencia-tit").first().textContent()).includes("Interestelar"));
+  await pagina.screenshot({ path: path.join(CAPTURAS, "13-sugerencias.png"), fullPage: true });
 
   /* ---------------------------------------------------------------- */
   m.titulo("Buscar Interestelar en español");
