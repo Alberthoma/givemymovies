@@ -1286,7 +1286,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   <footer class="pie">
     <span>givemymovies · datos de disponibilidad vía TMDB / JustWatch</span>
     <span>Tus listas se guardan en este navegador — inicia sesión para llevarlas a otros</span>
-    <span id="version-app">V GMM 0047</span>
+    <span id="version-app">V GMM 0048</span>
   </footer>
 </div>
 
@@ -5991,16 +5991,26 @@ GMM.app = (function () {
 
     document.addEventListener("click", function (e) {
       /* Desde V GMM 0044, #sugerencias ya no vive dentro de .campo (es una
-         fila a lo ancho en la página, no un desplegable anclado al campo),
-         así que un clic dentro de ella tampoco debe cerrarla. */
+         cuadrícula a pantalla completa en la página, no un desplegable
+         anclado al campo), así que un clic dentro de ella tampoco debe
+         cerrarla. Este es el ÚNICO sitio que cierra por "clic fuera": ya
+         no hay un cierre por perder el foco (ver más abajo el porqué de
+         que se quitara en la V GMM 0048). */
       if (!e.target.closest(".campo") && !e.target.closest("#sugerencias")) cerrarSugerencias();
     });
 
-    /* Al salir del campo cerramos la lista, que si no tapa el botón Buscar.
-       El retardo da tiempo a que se registre el clic sobre una sugerencia. */
-    $("entrada").addEventListener("blur", function () {
-      setTimeout(cerrarSugerencias, 160);
-    });
+    /* Hasta V GMM 0047, salir del campo (blur) cerraba las sugerencias 160 ms
+       después, sin mirar adónde había ido el clic — tenía sentido cuando
+       eran un cuadro desplegable pequeño, anclado al campo, que si no tapaba
+       el botón Buscar. Desde que son una cuadrícula a pantalla completa con
+       sus propios controles (favorita, reproducir, descargar, otras
+       carátulas), CUALQUIER clic dentro de ella —no solo elegir un
+       resultado— le quita el foco a #entrada y disparaba este cierre por su
+       cuenta, delante del clic que se estaba intentando dar: pulsar
+       reproducir, por ejemplo, cerraba la cuadrícula entera en vez de abrir
+       el reproductor. Se quita: el cierre por "clic fuera", de arriba, ya
+       cubre el caso real (irse a otra parte de la página), y ese sí sabe
+       distinguir un clic dentro de la cuadrícula de uno fuera. */
 
     /* --- reproductor de GMM Server: el modal vive fuera de #resultados, así que necesita
        su propio delegado para el botón "abrir en otro reproductor" --- */

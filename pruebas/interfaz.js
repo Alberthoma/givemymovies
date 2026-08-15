@@ -203,6 +203,29 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
     (await pagina.locator("#sugerencias .tarjeta").count()) >= 1 &&
     (await pagina.locator(".ficha-titulo").count()) === 0);
 
+  /* Bug real reportado por el usuario probando la app publicada (V GMM 0048):
+     "cuando toco el botón para reproducir se sale de la búsqueda, incluso si
+     toco otra parte de la pantalla". Causa: #entrada tenía un cierre por
+     "perder el foco" (blur) heredado de cuando las sugerencias eran un
+     cuadro desplegable pequeño — con la cuadrícula a pantalla completa,
+     CUALQUIER clic dentro de ella (favorita, reproducir…) le quita el foco
+     al campo y disparaba ese cierre por su cuenta, delante del clic que se
+     estaba dando. Se quitó el cierre por blur; el cierre por "clic fuera"
+     (que sí distingue dentro/fuera de #sugerencias) sigue intacto. */
+  await pagina.click("#sugerencias .marca-boton.fav >> nth=0");
+  await pagina.waitForTimeout(250);
+  m.afirmar("marcar favorita desde una sugerencia NO cierra la cuadrícula",
+    (await pagina.locator("#sugerencias .tarjeta").count()) >= 1 &&
+    (await pagina.locator("#sugerencias .marca-boton.fav.puesto").count()) === 1);
+  m.afirmar("y sí que la marca (el contador sube)",
+    (await pagina.textContent("#contadorListas")).trim() === "1");
+  /* Se deja como estaba, que la sección "Listas" más abajo cuenta desde 0. */
+  await pagina.click("#sugerencias .marca-boton.fav >> nth=0");
+  await pagina.waitForTimeout(250);
+  m.afirmar("y quitarla tampoco cierra la cuadrícula",
+    (await pagina.locator("#sugerencias .tarjeta").count()) >= 1 &&
+    (await pagina.textContent("#contadorListas")).trim() === "0");
+
   /* ---------------------------------------------------------------- */
   m.titulo("Buscar Interestelar en español");
   await pagina.click("#sugerencias .tarjeta-img >> nth=0");
