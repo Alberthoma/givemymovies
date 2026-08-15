@@ -85,50 +85,30 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   await pagina.goto(PAGINA);
   await pagina.waitForTimeout(600);
 
-  /* Desde V GMM 0009 los resultados ocultan el formulario y aparece una flecha
-     ← para volver. Estos ayudantes reflejan ese flujo: los filtros se eligen
-     en la pantalla de búsqueda, no sobre el resultado. */
-  /* Vuelve a la pantalla de búsqueda. Desde V GMM 0022 los controles viven en un
-     modal, así que "estar en la búsqueda" incluye tenerlo abierto: se reabre en
-     el método que estuviera activo, porque es donde están los campos. */
-  async function aBuscar() {
-    if (await pagina.locator("#barraVolver:not(.oculto)").count() > 0) {
-      await pagina.click("#btnVolver");
-      await pagina.waitForTimeout(200);
-    }
+  /* Desde V GMM 0044 el campo de búsqueda (#entrada/#sugerencias) vive en la
+     barra fija bajo el header, no dentro de ningún modal: siempre a la vista,
+     también sobre los resultados. El icono de filtro (#btnFiltros) abre
+     #capaFormulario, ahora un panel de filtros (idioma/plataforma/país/
+     género/año/calificación y el modo actor/trama) — y como es un modal de
+     verdad, con su velo por encima de todo, #entrada queda inalcanzable
+     mientras está abierto: hay que cerrarlo antes de escribir. */
+  async function abrirFiltros() {
     if (await pagina.locator("#capaFormulario:not(.oculto)").count() > 0) return;
-    const activo = pagina.locator("#metodos .metodo.activa");
-    if (await activo.count() === 0) return;   // al arrancar no hay método elegido
-    await activo.click();
+    await pagina.click("#btnFiltros");
     await pagina.waitForTimeout(250);
   }
-  /* Desde V GMM 0021 la app arranca SIN método, y desde la 0022 pulsar uno abre
-     su formulario en el modal. El clic vacía la entrada y repinta la bienvenida,
-     así que solo se pulsa cuando el panel del método no está ya a la vista. */
-  async function abrirMetodo(cual) {
-    const panel = cual === "descubrir" ? "#descubrir" : "#panelBuscar";
-    if (await pagina.locator(panel).isVisible()) return;
-    /* Con el modal abierto, los dos botones del inicio quedan detrás del velo:
-       de método a método se pasa por el enlace del propio modal. */
-    if (await pagina.locator("#capaFormulario:not(.oculto)").count() > 0) {
-      await pagina.click("#btnCambiarMetodo");
-    } else {
-      await pagina.click('#metodos [data-metodo="' + cual + '"]');
-    }
-    await pagina.waitForTimeout(250);
-  }
-  /* El interruptor peli/serie vive en la barra, detrás del velo del modal: para
-     pulsarlo hay que cerrarlo primero. */
-  async function cerrarFormulario() {
+  async function cerrarFiltros() {
     if (await pagina.locator("#capaFormulario:not(.oculto)").count() === 0) return;
     await pagina.click("#capaFormulario .modal-cerrar");
     await pagina.waitForTimeout(250);
   }
+  /* Sin botón «Buscar» a mano (vive en el panel de filtros, cerrado): se
+     envía con Enter, el mismo camino que usa un usuario real cuando escribe
+     y no elige ninguna sugerencia. */
   async function buscarTitulo(txt) {
-    await aBuscar();
-    await abrirMetodo("buscar");
+    await cerrarFiltros();
     await pagina.fill("#entrada", txt);
-    await pagina.click("#btnBuscar");
+    await pagina.press("#entrada", "Enter");
     await pagina.waitForTimeout(400);
   }
 
@@ -155,40 +135,43 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   /* El inicio es lo primero que se ve: conviene tener su foto a mano. */
   await pagina.waitForTimeout(1200);   // que baje el carrusel
   await pagina.screenshot({ path: path.join(CAPTURAS, "00-inicio.png"), fullPage: true });
-  /* Los dos métodos han de medir EXACTAMENTE lo mismo: era parte del desorden. */
-  const anchosMetodo = await pagina.evaluate(() =>
-    Array.from(document.querySelectorAll("#metodos .metodo"))
-      .map((b) => Math.round(b.getBoundingClientRect().width)));
-  m.afirmar("los dos botones de método miden lo mismo",
-    new Set(anchosMetodo).size === 1, anchosMetodo.join(" / "));
+  m.afirmar("la barra de búsqueda fija y su icono de filtro están a la vista (V GMM 0044)",
+    (await pagina.locator("#barraBusqueda").isVisible()) && (await pagina.locator("#btnFiltros").isVisible()));
 
   /* ---------------------------------------------------------------- */
-  m.titulo("El formulario vive en un modal (V GMM 0022)");
-  m.afirmar("ningún método viene activo", (await pagina.locator("#metodos .metodo.activa").count()) === 0);
-  m.afirmar("el modal del formulario nace cerrado",
+  m.titulo("Barra de búsqueda fija al hacer scroll (V GMM 0044)");
+  await pagina.evaluate(() => window.scrollTo(0, 600));
+  await pagina.waitForTimeout(200);
+  const posBarra = await pagina.evaluate(() => document.getElementById("barraBusqueda").getBoundingClientRect().top);
+  m.afirmar("sigue arriba, junto al header, tras hacer scroll", posBarra >= 0 && posBarra < 140, "top: " + posBarra);
+  await pagina.evaluate(() => window.scrollTo(0, 0));
+  await pagina.waitForTimeout(150);
+
+  /* ---------------------------------------------------------------- */
+  m.titulo("El panel de filtros (V GMM 0044)");
+  m.afirmar("el panel nace cerrado",
     (await pagina.getAttribute("#capaFormulario", "class")).includes("oculto"));
-  m.afirmar("los controles de buscar nacen ocultos", !(await pagina.locator("#panelBuscar").isVisible()));
-  m.afirmar("los de descubrir nacen ocultos", !(await pagina.locator("#descubrir").isVisible()));
+  m.afirmar("el modo actor/trama nace oculto", !(await pagina.locator("#panelBuscar").isVisible()));
+  m.afirmar("descubrir por género nace oculto", !(await pagina.locator("#descubrir").isVisible()));
   m.afirmar("los filtros comunes nacen ocultos", !(await pagina.locator("#filtros").isVisible()));
   m.afirmar("el desplegable de orden no está en el inicio",
     !(await pagina.locator("#ordenMenu").isVisible()));
 
-  await abrirMetodo("buscar");
-  m.afirmar("pulsar «Buscar una en concreto» abre el modal con sus controles",
+  await abrirFiltros();
+  m.afirmar("el icono de filtro abre el panel con todo junto",
     !(await pagina.getAttribute("#capaFormulario", "class")).includes("oculto") &&
     (await pagina.locator("#panelBuscar").isVisible()) &&
+    (await pagina.locator("#descubrir").isVisible()) &&
     (await pagina.locator("#filtros").isVisible()));
-  m.afirmar("el título del modal nombra el tipo que se busca",
+  m.afirmar("el título del panel nombra el tipo que se busca",
     (await pagina.textContent("#tituloFormulario")).includes("película"));
   m.afirmar("el pie lleva el botón Buscar centrado",
     (await pagina.locator("#capaFormulario .modal-pie.centrado #btnBuscar").count()) === 1);
   await pagina.screenshot({ path: path.join(CAPTURAS, "08-modal-buscar.png"), fullPage: true });
 
-  /* La X cierra, y volver a pulsar el método lo reabre. */
-  await cerrarFormulario();
-  m.afirmar("la X cierra el modal",
+  await cerrarFiltros();
+  m.afirmar("la X cierra el panel",
     (await pagina.getAttribute("#capaFormulario", "class")).includes("oculto"));
-  await abrirMetodo("buscar");
 
   /* ---------------------------------------------------------------- */
   m.titulo("Autocompletado");
@@ -230,14 +213,35 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   m.afirmar("vuelve a 6", (await pagina.locator(".pais").count()) === 6);
 
   /* ---------------------------------------------------------------- */
-  m.titulo("Filtrar por plataforma (se elige antes de buscar)");
-  await aBuscar();
+  /* Desde V GMM 0044 el icono de filtro vive fuera de #buscador, así que
+     sigue alcanzable sobre un resultado: cambiar idioma ahora refina la
+     ficha QUE YA ESTÁ EN PANTALLA, sin volver antes al inicio (los
+     manejadores de #selIdioma ya llamaban a repintarVista(); lo nuevo es que
+     el panel se puede abrir desde aquí). Antes de esta versión no había
+     forma de llegar al filtro sin pulsar ← primero. */
+  m.titulo("Cambiar idioma sin salir de la ficha (V GMM 0044)");
+  await abrirFiltros();
+  await pagina.selectOption("#selIdioma", "ja");
+  await cerrarFiltros();
+  await pagina.waitForTimeout(300);
+  m.afirmar("la MISMA ficha se refina a Japón sin volver al inicio ni repetir la búsqueda",
+    (await pagina.textContent(".ficha-titulo")).trim() === "Interestelar" &&
+    (await pagina.locator(".pais").count()) === 1 &&
+    (await pagina.textContent(".pais-nombre")).includes("Japón"));
+  await abrirFiltros();
+  await pagina.selectOption("#selIdioma", "es");
+  await cerrarFiltros();
+  await pagina.waitForTimeout(300);
+
+  /* ---------------------------------------------------------------- */
+  m.titulo("Filtrar por plataforma (se elige en el panel de filtros)");
+  await abrirFiltros();
   await pagina.selectOption("#selPlataforma", "Netflix");
   await buscarTitulo("Interestelar");
   await pagina.waitForSelector(".ficha-titulo", { timeout: 5000 });
   m.afirmar("con Netflix se reduce a 3 países", (await pagina.locator(".pais").count()) === 3);
   m.afirmar("la frase refleja el filtro", (await pagina.textContent(".resumen-txt")).includes("Netflix"));
-  await aBuscar();
+  await abrirFiltros();
   await pagina.selectOption("#selPlataforma", "");
 
   /* ---------------------------------------------------------------- */
@@ -249,15 +253,16 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   m.afirmar("y es Japón", (await pagina.textContent(".pais-nombre")).includes("Japón"));
 
   m.titulo("Idioma árabe: ningún mercado lo sirve");
-  await aBuscar();
+  await abrirFiltros();
   await pagina.selectOption("#selIdioma", "ar");
   await buscarTitulo("Interestelar");
   m.afirmar("avisa de que no hay nada en ese idioma",
     (await pagina.textContent("#resultados")).includes("ninguno cuyo catálogo se sirva en árabe"));
   m.afirmar("ofrece la salida de emergencia", (await pagina.locator("#btnMostrarTodos").count()) === 1);
   await pagina.screenshot({ path: path.join(CAPTURAS, "02-sin-idioma.png"), fullPage: true });
-  await aBuscar();
+  await abrirFiltros();
   await pagina.selectOption("#selIdioma", "es");
+  await cerrarFiltros();
 
   /* ---------------------------------------------------------------- */
   m.titulo("Listas");
@@ -298,22 +303,20 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   await pagina.waitForTimeout(600);
   m.afirmar("el contador sobrevive", (await pagina.textContent("#contadorListas")).trim() === "2");
   m.afirmar("el idioma elegido sobrevive", (await pagina.inputValue("#selIdioma")) === "es");
-  /* Desde la 0020 el método NO se restaura de prefs, y desde la 0021 se
-     arranca sin ninguno: al recargar los controles vuelven a estar plegados. */
-  m.afirmar("el método no se restaura: vuelve plegado",
-    (await pagina.locator("#metodos .metodo.activa").count()) === 0 &&
-    !(await pagina.locator("#panelBuscar").isVisible()));
+  m.afirmar("el panel de filtros vuelve cerrado tras recargar",
+    (await pagina.getAttribute("#capaFormulario", "class")).includes("oculto"));
 
   /* ---------------------------------------------------------------- */
   m.titulo("Modo actor");
-  await abrirMetodo("buscar");
+  await abrirFiltros();
   await pagina.selectOption("#selBusquedaPor", "actor");
+  await cerrarFiltros();
   await pagina.fill("#entrada", "Penélope");
   await pagina.waitForTimeout(700);
   await pagina.keyboard.press("Escape");
   await pagina.waitForTimeout(150);
   m.afirmar("Escape cierra las sugerencias", (await pagina.locator(".sugerencia").count()) === 0);
-  await pagina.click("#btnBuscar");
+  await pagina.press("#entrada", "Enter");
   await pagina.waitForSelector(".persona-nombre", { timeout: 5000 });
   m.afirmar("ficha de la actriz", (await pagina.textContent(".persona-nombre")).includes("Penélope"));
   m.afirmar("hay filmografía", (await pagina.locator("#rejillaFilmografia .tarjeta").count()) >= 1);
@@ -337,20 +340,21 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
 
   /* ---------------------------------------------------------------- */
   m.titulo("Modo trama");
-  await aBuscar();
+  await abrirFiltros();
   await pagina.selectOption("#selBusquedaPor", "trama");
+  await cerrarFiltros();
   await pagina.fill("#entrada", "viajes en el tiempo");
-  await pagina.click("#btnBuscar");
+  await pagina.press("#entrada", "Enter");
   await pagina.waitForTimeout(800);
   m.afirmar("devuelve una cuadrícula", (await pagina.locator(".rejilla .tarjeta").count()) === 2);
 
   /* ---------------------------------------------------------------- */
   m.titulo("Interruptor Película / Serie");
-  await aBuscar();
+  await abrirFiltros();
   await pagina.selectOption("#selBusquedaPor", "titulo");
-  /* El interruptor vive en la barra, detrás del velo del modal: hay que
+  /* El interruptor vive en la barra, detrás del velo del panel: hay que
      cerrarlo para llegar a él. Es deliberado que siga ahí y no dentro. */
-  await cerrarFormulario();
+  await cerrarFiltros();
   await pagina.click('#tipoSwitch [data-tipo="tv"]');
   await pagina.waitForTimeout(250);
   m.afirmar("el buscador marca tipo serie",
@@ -360,22 +364,21 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   m.afirmar("el ejemplo del campo cambia a series",
     (await pagina.getAttribute("#entrada", "placeholder")).includes("Breaking Bad"));
 
-  await aBuscar();
-  m.afirmar("el título del modal pasa a decir «serie»",
+  await abrirFiltros();
+  m.afirmar("el título del panel pasa a decir «serie»",
     (await pagina.textContent("#tituloFormulario")).includes("serie"));
+  await cerrarFiltros();
   await pagina.fill("#entrada", "casa");
-  await pagina.click("#btnBuscar");
+  await pagina.press("#entrada", "Enter");
   await pagina.waitForSelector(".ficha-titulo", { timeout: 5000 });
   m.afirmar("encuentra la serie por título",
     (await pagina.textContent(".ficha-titulo")).includes("La casa de papel"));
 
-  await aBuscar();
-  await abrirMetodo("descubrir");
-  m.afirmar("Descubrir oculta el campo de texto",
-    !(await pagina.locator("#panelBuscar").isVisible()));
-  m.afirmar("el enlace del modal cambia de método sin cerrarlo",
-    !(await pagina.getAttribute("#capaFormulario", "class")).includes("oculto") &&
-    (await pagina.locator("#descubrir").isVisible()));
+  await abrirFiltros();
+  m.afirmar("buscar-por, descubrir y filtros comunes se ven todos juntos",
+    (await pagina.locator("#panelBuscar").isVisible()) &&
+    (await pagina.locator("#descubrir").isVisible()) &&
+    (await pagina.locator("#filtros").isVisible()));
   await pagina.screenshot({ path: path.join(CAPTURAS, "09-modal-descubrir.png"), fullPage: true });
   m.afirmar("el desplegable de género ofrece las cuatro colecciones (V GMM 0024)",
     (await pagina.locator('#selGenero optgroup[label="Colecciones"] option').count()) === 4);
@@ -389,7 +392,7 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
 
   /* ---------------------------------------------------------------- */
   m.titulo("Orden e intervalo de años en Descubrir");
-  await aBuscar();
+  await abrirFiltros();
   m.afirmar("el intervalo tiene dos extremos",
     (await pagina.locator("#selAnoDesde").count()) === 1 &&
     (await pagina.locator("#selAnoHasta").count()) === 1);
@@ -438,7 +441,7 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
     /^\d{4} · página/.test(infoAnio2) && Number(infoAnio2.slice(0, 4)) < Number(infoAnio.slice(0, 4)),
     infoAnio + " → " + infoAnio2);
 
-  await aBuscar();
+  await abrirFiltros();
   await pagina.selectOption("#selAnoDesde", "2021");
   await pagina.waitForTimeout(500);
   await pagina.selectOption("#selAnoHasta", "2015");
@@ -454,7 +457,7 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
     (await pagina.textContent(".seccion-tit")).includes("de 2015 a 2021"));
 
   /* Se dejan los interruptores como estaban, que lo que sigue no los espera. */
-  await aBuscar();
+  await abrirFiltros();
   await pagina.click("#ordenReciente");
   await pagina.click("#ordenNota");
   await pagina.selectOption("#selAnoDesde", "");
@@ -467,7 +470,7 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   m.titulo("Paginador de Descubrir");
   /* En demo hay una sola página, así que inyectamos una respuesta con varias
      para comprobar los controles y el paso de página, sin depender de red. */
-  await aBuscar();
+  await abrirFiltros();
   await pagina.evaluate(() => {
     const base = GMM.demo.SERIES, items = [];
     for (let i = 0; i < 20; i++) items.push(Object.assign({}, base[i % base.length], { id: 900000 + i }));
@@ -485,7 +488,7 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   /* Cinco carruseles a la vez, uno por categoría. El modal que elegía cuál se
      veía ya no existe: con los cinco delante no elegía nada. */
   m.titulo("Cinco carruseles, uno por categoría (V GMM 0023)");
-  await cerrarFormulario();
+  await cerrarFiltros();
   if (await pagina.locator("#barraVolver:not(.oculto)").count() > 0) {
     await pagina.click("#btnVolver");
     await pagina.waitForTimeout(900);
@@ -589,14 +592,17 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   /* ---------------------------------------------------------------- */
   m.titulo("Móvil, 375 px");
   await pagina.setViewportSize({ width: 375, height: 780 });
-  await aBuscar();
-  await cerrarFormulario();
+  if (await pagina.locator("#barraVolver:not(.oculto)").count() > 0) {
+    await pagina.click("#btnVolver");
+    await pagina.waitForTimeout(200);
+  }
+  await cerrarFiltros();
   await pagina.click('#tipoSwitch [data-tipo="movie"]');
-  await aBuscar();
-  await abrirMetodo("buscar");
+  await abrirFiltros();
   await pagina.selectOption("#selBusquedaPor", "titulo");
+  await cerrarFiltros();
   await pagina.fill("#entrada", "Coco");
-  await pagina.click("#btnBuscar");
+  await pagina.press("#entrada", "Enter");
   await pagina.waitForSelector(".ficha-titulo", { timeout: 5000 });
   await pagina.waitForTimeout(900);
   m.afirmar("el desplegable no reaparece tras buscar",
@@ -608,10 +614,9 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
   m.afirmar("sin desbordamiento horizontal", desborde <= 0, "sobran " + desborde + " px");
   await pagina.screenshot({ path: path.join(CAPTURAS, "05-movil.png"), fullPage: true });
 
-  /* El modal-formulario es lo que más se estrecha: hay que verlo también aquí,
+  /* El panel de filtros es lo que más se estrecha: hay que verlo también aquí,
      con sus campos en una sola columna y sin comerse la pantalla entera. */
-  await aBuscar();
-  await abrirMetodo("descubrir");
+  await abrirFiltros();
   await pagina.waitForTimeout(300);
   const desbordeDescubrir = await pagina.evaluate(() =>
     document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -771,6 +776,43 @@ const CAPTURAS = path.join(RAIZ, "pruebas", "capturas");
     cuenta.textoBoton === "prueba", JSON.stringify(cuenta));
   m.afirmar("con sesión, el modal abre directo en «perfil» con el correo",
     cuenta.vistaPerfil === true && cuenta.correo === "prueba@ejemplo.com", JSON.stringify(cuenta));
+
+  /* ---------------------------------------------------------------- */
+  /* Insignia "Te la tengo" en las sugerencias (V GMM 0044). GMM.servidor no
+     se puede probar contra un servidor real en CI, así que se stubea
+     conectado()/catalogo() en una pestaña aparte, ANTES de que arranque
+     GMM.app.iniciar() (mismo patrón que el stub de los carruseles, más
+     arriba): así el arranque real hace su carga en segundo plano del
+     catálogo contra el stub, y construye el índice de verdad. */
+  m.titulo('Insignia "Te la tengo" en las sugerencias (V GMM 0044)');
+  const paginaServidor = await contexto.newPage();
+  await paginaServidor.addInitScript(() => {
+    window.__GMM_FORZAR_DEMO = true;
+    document.addEventListener("DOMContentLoaded", () => {
+      GMM.servidor.conectado = () => true;
+      GMM.servidor.catalogo = () => Promise.resolve({
+        peliculas: [{
+          id: "srv1", tituloDetectado: "Interestelar", anioDetectado: 2014,
+          disponible: true, estadoArchivo: "disponible"
+        }],
+        resumen: { total: 1, disponibles: 1, copiandose: 0 }
+      });
+    });
+  });
+  await paginaServidor.goto(PAGINA);
+  await paginaServidor.waitForTimeout(900);   // catálogo cargado en segundo plano
+
+  await paginaServidor.fill("#entrada", "inter");
+  await paginaServidor.waitForTimeout(700);
+  m.afirmar("la sugerencia que coincide con el catálogo muestra la flecha verde",
+    (await paginaServidor.locator(".sugerencia-servidor").count()) === 1);
+
+  await paginaServidor.fill("#entrada", "matrix");
+  await paginaServidor.waitForTimeout(700);
+  m.afirmar("una que no está en el catálogo no la muestra",
+    (await paginaServidor.locator(".sugerencia").count()) >= 1 &&
+    (await paginaServidor.locator(".sugerencia-servidor").count()) === 0);
+  await paginaServidor.close();
 
   /* ---------------------------------------------------------------- */
   m.titulo("Errores acumulados en toda la sesión");

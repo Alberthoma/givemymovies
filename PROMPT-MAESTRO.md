@@ -1,6 +1,6 @@
 # PROMPT MAESTRO — givemymovies
 
-**Documento v1.45 · Aplicación V GMM 0043 · 14 de agosto de 2026**
+**Documento v1.46 · Aplicación V GMM 0044 · 15 de agosto de 2026**
 **Publicada en:** <https://alberthoma.github.io/givemymovies-g/>
 
 ---
@@ -157,69 +157,82 @@ Para cada país con oferta, con `idiomaBuscado` e `idiomaOriginal` de la pelícu
 
 ### 5.1 Buscador
 
-**5.1.1 Un interruptor y dos formas de buscar.** Arriba, un **interruptor global
-Película / Serie** decide el tipo de todo lo que se busca. Debajo, un selector de **método**
-con dos opciones:
+**5.1.1 Un interruptor y una barra de búsqueda fija (V GMM 0044; hasta la 0043, dos botones que
+abrían un modal).** Arriba, un **interruptor global Película / Serie** decide el tipo de todo lo
+que se busca. A su izquierda, en la misma barra bajo el header, una **barra de búsqueda fija**
+con autocompletado en vivo: escribir un título muestra sugerencias (carátula + título) según se
+teclea, y elegir una **abre la ficha directamente, sin pasar por ningún modal**. A la derecha de
+la barra, un **icono de filtro** (tres sliders horizontales, SVG en línea, no un emoji) abre el
+panel de filtros con todo lo demás.
 
-Los dos métodos son **dos botones centrados y del mismo tamaño exacto**, debajo del título (sin
-caja ni pastilla segmentada que los envuelva). Dales el mismo ancho con una **rejilla de dos
-columnas iguales**, no con flex: sus textos tienen distinto largo y con flex se ven descuadrados.
-El **seleccionado se tiñe con el color sólido del tipo y lleva un halo** de iluminación alrededor.
+- **La barra de búsqueda es el campo de texto de siempre** (`#entrada`/`#sugerencias`/
+  `#btnLimpiar`): un único nodo, vive en `.barra-izq`, justo antes del interruptor peli/serie.
+  Nunca se duplica.
+- **El panel de filtros** (`#capaFormulario`) contiene, todos visibles a la vez, sin alternar por
+  método:
+  - Un desplegable **«Buscar por»**: *Título · Actor/director · Trama/tema*. Título ya se escribe
+    en la barra fija; elegir Actor o Trama solo cambia el marcador de posición de esa misma
+    barra, no abre un segundo campo de texto.
+  - Los controles de **Descubrir por género** (§5.4b).
+  - Los **tres filtros comunes** (idioma, plataforma, país; §5.1.3).
+  - Los **chips de ejemplo** (§5.1.4).
+  - Un botón **Buscar**, al pie, centrado.
 
-- **Buscar una en concreto:** un **desplegable** elige *por título · por actor/actriz · por
-  trama*, con el campo de texto y el autocompletado. Cambiar la forma limpia el campo y los
-  resultados y ajusta el ejemplo del campo y los chips.
-- **Descubrir por género:** oculta el campo de texto; muestra los controles de §5.4b.
+Buscar «dónde la veo» y «descubrir por género» son intenciones distintas, pero con el campo de
+texto fuera del panel ya no hace falta separarlas en dos botones de entrada: **el panel decide
+qué lanzar según lo que haya relleno** — si «Buscar por» es actor/trama y hay texto, busca eso;
+si es «título» y hay un género elegido, el género manda y descubre; si no, busca el título
+escrito. El tipo (peli/serie) sigue siendo un interruptor aparte que manda sobre los dos.
 
-Buscar «dónde la veo» y «descubrir por género» son intenciones distintas y no deben
-mezclarse en una misma fila de pestañas: por eso van en métodos separados, y el tipo
-(peli/serie) es un interruptor aparte que manda sobre los dos.
+**5.1.1b El panel de filtros vive en un modal, siempre.** Pulsar el icono de filtro abre
+`#capaFormulario` con los controles anteriores.
 
-**5.1.1b Los controles viven en un modal (V GMM 0022).** En el inicio **no** se ven campos: solo
-el título y los dos botones. Cada uno abre `#capaFormulario`, un **modal-formulario** con los
-controles de su método más los filtros comunes.
-
-- **Un solo modal para los dos métodos, no dos.** Dentro van los mismos bloques de siempre
-  (`#panelBuscar`, `#descubrir`, `#filtros`, `#chips`) y `reflejar()` decide cuáles se ven.
-  Con dos modales habría que duplicar `#selIdioma`, `#selGenero` y compañía: ids repetidos y dos
-  copias de estado que sincronizar.
+- **Un solo modal, no varios.** Dentro van los mismos bloques de siempre (`#panelBuscar`
+  —reducido al desplegable «Buscar por»—, `#descubrir`, `#filtros`, `#chips`), y ya no hace falta
+  alternar cuáles se ven: se muestran los cuatro juntos. Con varios modales habría que duplicar
+  `#selIdioma`, `#selGenero` y compañía: ids repetidos y dos copias de estado que sincronizar.
 - **El cuerpo es UNA rejilla de dos columnas** y los bloques interiores van a `display: contents`,
   de modo que sus campos entren directos en ella y se repartan **de dos en dos aunque vengan de
-  bloques distintos**. Los grandes ocupan fila entera: el campo de texto, la fila de orden y los
-  chips. Usa `grid-auto-flow: row dense` o quedará un hueco al lado del campo de texto.
-- **Repite el ocultado** para esos bloques (`.forma .panel-buscar.oculto { display: none }`): el
-  selector de `display: contents` es más específico que `.oculto` y, sin ello, un bloque oculto
-  seguiría enseñando sus campos.
-- **El autocompletado no puede flotar dentro del modal.** El cuerpo hace scroll y lo recortaría:
-  ponlo `position: static`, en el flujo, empujando lo que venga debajo.
+  bloques distintos**. Con «Buscar por» reducido a un solo campo, el total de campos de media
+  fila es **ocho, un número par**: llena la rejilla en 4 filas exactas sin huecos, así que no hace
+  falta ninguna regla que estire un campo a fila completa. Usa `grid-auto-flow: row dense` de
+  todos modos, por si se añade un campo impar en el futuro.
+- **El campo de texto NO vive dentro de este modal**: vive en la barra fija, fuera de él, así que
+  flota libremente (`position: absolute`) sin que el scroll del modal lo recorte.
 - **X arriba a la derecha y Buscar centrado al pie.** El botón toma el color del tipo, así que el
   `data-tipo` va también en `#capaFormulario`, no solo en `#buscador`.
 - **En el móvil, una sola columna** y con **margen visible alrededor**: el modal no debe ocupar la
   pantalla entera. El cuerpo hace scroll dentro (patrón de §5.7).
-- **Lo que queda fuera del modal deja de ser pulsable**: la barra con el interruptor peli/serie y
-  los propios botones de método. Por eso el **título del modal nombra el tipo** («Buscar una serie
-  en concreto») y hay un **enlace para pasar al otro método sin cerrar**. El interruptor sigue en
-  su barra: para cambiarlo se cierra el modal.
+- **Con el panel abierto, la barra de búsqueda queda detrás del velo** — no se puede escribir
+  hasta cerrarlo. Por eso el **título del panel nombra el tipo** («Filtros — películas» /
+  «Filtros — series»), no un método: ya no hay dos entre los que elegir.
 - **Escape cierra el modal, salvo si el autocompletado está desplegado**, en cuyo caso cierra solo
-  el desplegable. Resuélvelo con `stopPropagation()` en el manejador del campo: corre antes que el
-  del documento, y sin cortar la propagación se cierra el modal y se pierde lo escrito.
+  el desplegable. Resuélvelo con `stopPropagation()` en el manejador del campo — protección
+  heredada de cuando el campo vivía dentro del modal; con el campo fuera, ya no puede coincidir
+  con el modal abierto, pero es inofensiva y se conserva igual.
 
-**Dos pantallas (desde V GMM 0009).** Hay una pantalla de búsqueda y una de resultados
-(formulario **oculto**, con una flecha **←** para volver): al buscar se ve header + flecha +
-resultado. Los filtros de idioma, plataforma y país se eligen **antes** de buscar; al haber
-resultados no se ven, así que ya no se refinan en vivo (se cambia con ← y buscar otra vez). Lo
-alterna `fijarPantalla()` según `estado.vista`.
+**Header y barra bajo el header, fijos al hacer scroll.** Envuélvelos **juntos** en un
+contenedor `position: sticky; top: 0` (con fondo sólido, para que el contenido no se transparente
+al pasar por debajo) — no cada uno por separado: así quedan siempre a mano, en cualquier punto del
+scroll, sin calcular la altura del header a mano ni arriesgar que se solapen.
+
+**Dos pantallas (desde V GMM 0009).** Hay una pantalla de búsqueda (carruseles + sección
+`#buscador`) y una de resultados (esos dos ocultos, con una flecha ← para volver). **La barra de
+búsqueda fija y su icono de filtro NO forman parte de esa alternancia**: quedan siempre a la
+vista, también sobre un resultado. Consecuencia real: idioma, plataforma y país se pueden cambiar
+mientras se ve un resultado, sin volver antes al inicio — sus manejadores de `change` ya refinan
+en vivo (`repintarVista()`, sobre los datos en memoria, sin nuevas llamadas a la API); lo nuevo es
+que el control para llegar hasta ellos es alcanzable desde cualquier pantalla.
 
 **Excepción: el orden sí se cambia sobre los resultados (V GMM 0022).** Junto a la flecha ←, **en
 su misma fila**, un desplegable con los tres interruptores de orden, visible solo sobre una
-cuadrícula de Descubrir. No contradice lo anterior: reordenar no es refinar en memoria, exige otra
-consulta, y volver al formulario para eso era el paso de más que se quitó. Como los interruptores
-quedan **por duplicado** (formulario y desplegable), `reflejarOrden()` debe casar por
-**`[data-orden]`, no por id**, y un solo manejador sirve a las dos copias.
+cuadrícula de Descubrir. Como los interruptores quedan **por duplicado** (panel de filtros y
+desplegable), `reflejarOrden()` debe casar por **`[data-orden]`, no por id**, y un solo manejador
+sirve a las dos copias.
 
 **El interruptor peli/serie afecta a las cuatro búsquedas** (título, actor, trama y
 descubrir) y **solo tiñe sus propios acentos**: el propio interruptor (Series azul a la
-izquierda, Películas naranja a la derecha), el método activo y el botón *Buscar*. El resto de
+izquierda, Películas naranja a la derecha) y el botón *Buscar* del panel. El resto de
 la paleta —fondo, tarjetas, sellos de confianza— no cambia (§6).
 
 **5.1.2 Campo de texto con autocompletado.**
@@ -233,7 +246,18 @@ la paleta —fondo, tarjetas, sellos de confianza— no cambia (§6).
 - **Al lanzar una búsqueda, cancela la petición retardada pendiente.** Si no, el desplegable
   se reabre encima de los filtros justo después de mostrar el resultado.
 - **Cierra el desplegable también al perder el foco**, con ~160 ms de margen para que un clic
-  sobre una sugerencia llegue a registrarse. Sin esto, la lista tapa el botón *Buscar*.
+  sobre una sugerencia llegue a registrarse. Sin esto, la lista tapa lo que venga debajo.
+
+**5.1.2b Insignia «la tienes en Te la tengo» (V GMM 0044).** Si GMM Server está conectado y se
+busca **por título de película** (no serie, no actor/trama — el catálogo de GMM Server hoy solo
+guarda películas), cada sugerencia que coincida con una entrada disponible del catálogo local
+muestra una **flecha verde** en la esquina inferior izquierda de su carátula. Emparejamiento: por
+id de TMDB si el catálogo ya lo trae; si no, por título normalizado (sin acentos ni mayúsculas) y,
+cuando ambos lo tienen, el mismo año. Solo cuenta si la entrada está realmente disponible para
+reproducir (mismo filtro que decide si la vista «Te la tengo» ofrece «Ver»). **Precarga el
+catálogo en segundo plano al arrancar la app** si hay servidor configurado — antes solo se pedía
+al entrar en esa vista o al probar la conexión en Ajustes —, para que la insignia esté lista desde
+el primer tecleo.
 
 **5.1.3 Tres filtros.**
 
@@ -243,12 +267,13 @@ la paleta —fondo, tarjetas, sellos de confianza— no cambia (§6).
 | País | No | «Todos los países» + países agrupados en 6 regiones, nombres en español |
 | Idioma | Sí | 13 opciones, empezando por «Cualquier idioma». Por defecto **Español** |
 
-Los tres filtros se eligen **en la pantalla de búsqueda, antes de buscar** (desde V GMM 0009
-el resultado oculta el formulario, §5.1.1). El resultado ya llega filtrado por ellos; para
-cambiarlos se vuelve con ← y se busca de nuevo. La lógica de filtrado (`GMM.idioma.filtrar`)
-sigue trabajando sobre los datos ya en memoria, sin nuevas llamadas a la API.
+Los tres filtros se eligen **en el panel de filtros**, alcanzable en cualquier pantalla (§5.1.1b).
+Cambiarlos con un resultado ya en pantalla lo refina al instante; la lógica de filtrado
+(`GMM.idioma.filtrar`) sigue trabajando sobre los datos ya en memoria, sin nuevas llamadas a la
+API.
 
-**5.1.4 Chips de ejemplo** bajo el campo, distintos según la forma de búsqueda. Al pulsarlos, buscan.
+**5.1.4 Chips de ejemplo**, dentro del panel de filtros, distintos según la forma de búsqueda
+elegida en «Buscar por». Al pulsarlos, buscan.
 
 ### 5.2 Resultado: modo película
 
@@ -573,18 +598,21 @@ Borde claro      #2f4356      Verde ✓  #6ff0c4   Azul ✓ #8fc9ff    Naranja �
 - **Al haber resultados el formulario se oculta** y aparece una **flecha ← para volver**;
   quedan a la vista header + flecha + resultado. La cuadrícula de resultados es de **2 columnas
   en móvil** y el paginador lleva **Anterior y Siguiente en una fila**.
-- **El header es bajo y fijo** (`position: sticky; top: 0`, z-index 50 por debajo de modales
-  y avisos): la cabecera queda pegada arriba al hacer scroll, con su fondo sólido tapando lo
-  que pasa por debajo. A la izquierda la marca (icono + texto); a la derecha, **desde
-  V GMM 0030**, el botón de **cuenta** (§5.5b) — antes ahí iba el punto de estado, que bajó a
-  la fila del título del buscador (a su derecha, en `position: absolute` para no descuadrar el
-  centrado). **Mis listas**, el interruptor Película/Serie y **⚙ Ajustes** van, en ese orden,
-  en la barra justo debajo del header, a la izquierda; **Instalar** queda solo a la derecha de
-  esa misma barra. **«Mis compras»** (§5.2, 2c) vive ahí también pero **oculto**: sigue
-  funcionando —«Mi copia» en cada ficha no cambia—, solo sin entrada visible en la barra.
-  **Desde V GMM 0038, el interruptor muestra «Películas» antes que «Series»**, y **en el móvil
-  (≤620px) esa barra pasa a una rejilla de 2 filas**: arriba, volver (solo en resultados) /
-  interruptor centrado / ⚙; abajo, Mis listas / Te la tengo / Instalar. Solo CSS
+- **El header, y desde V GMM 0044 también la barra bajo el header, son fijos juntos**
+  (envueltos en un único `position: sticky; top: 0`, z-index 50 por debajo de modales y avisos,
+  con fondo sólido tapando lo que pasa por debajo): quedan pegados arriba al hacer scroll como
+  una sola pieza, no solo el header. A la izquierda del header, la marca (icono + texto); a la
+  derecha, **desde V GMM 0030**, el botón de **cuenta** (§5.5b) — antes ahí iba el punto de
+  estado, que bajó a la fila del título del buscador (a su derecha, en `position: absolute` para
+  no descuadrar el centrado). En la barra justo debajo, a la izquierda: **Mis listas**, **Te la
+  tengo**, **la barra de búsqueda fija con su icono de filtro** (§5.1.1, desde V GMM 0044,
+  sustituye a los dos botones grandes que había antes ahí), el interruptor Película/Serie y **⚙
+  Ajustes**, en ese orden; **Instalar** queda solo a la derecha de esa misma barra. **«Mis
+  compras»** (§5.2, 2c) vive ahí también pero **oculto**: sigue funcionando —«Mi copia» en cada
+  ficha no cambia—, solo sin entrada visible en la barra. **Desde V GMM 0038, el interruptor
+  muestra «Películas» antes que «Series»**, y **en el móvil (≤620px) esa barra pasa a una rejilla
+  de 3 filas** (2 hasta la 0043): arriba, la barra de búsqueda a lo ancho; en medio, volver (solo
+  en resultados) / interruptor centrado / ⚙; abajo, Mis listas / Te la tengo / Instalar. Solo CSS
   (`display: contents` en escritorio, `display: grid` en el móvil sobre el mismo HTML): ningún
   botón se duplica ni cambia de id.
 - **Degradados que mezclan los tres colores** en: marca, botón *Buscar*, pestaña activa y
@@ -935,7 +963,7 @@ Todos deben pasar:
 | A25 | Interruptor a Series | `#buscador` queda con `data-tipo="tv"`, la opción Series activa, el ejemplo del campo cambia a series y los acentos pasan a azul |
 | A26 | Serie por título (demo) | Con el interruptor en Series y buscar por título, «casa» encuentra *La casa de papel* |
 | A27 | Descubrir con Series | En «Descubrir por género» no hay selector de tipo; el interruptor manda, y Drama devuelve las series de drama |
-| A28 | Método «Descubrir» | Oculta el campo de texto y los chips; «Buscar una en concreto» los devuelve |
+| A28 | Elegir un género con «Buscar por: Título» y pulsar Buscar (desde V GMM 0044) | Lanza `hacerDescubrir()` (el género manda sobre cualquier texto suelto en la barra); con el género en blanco, el mismo botón busca por el texto de la barra |
 | A29 | Paginador (Descubrir/Trama) | Con varias páginas aparece ← Anterior · Página X de N · Siguiente →; *Siguiente* avanza de página y *Anterior* está deshabilitado en la página 1 |
 | A30 | Estado de datos | Es un punto (no texto): naranja en demo, verde con clave; con `title` legible |
 | A31 | Modo resultados | Al haber resultados el formulario se oculta y aparece la flecha ←; pulsarla vuelve a la pantalla de búsqueda |
@@ -948,14 +976,14 @@ Todos deben pasar:
 | A38 | Orden por fecha descendente | Ningún resultado con fecha de estreno **posterior a hoy** |
 | A39 | Orden por nota (datos reales) | La cabeza de la lista de drama son títulos conocidos (*Cadena perpetua*, *El padrino*), no un 9,9 con 143 votos: `vote_count.gte` = 300 al ordenar por nota |
 | A40 | Sin orden elegido | Se comporta exactamente como antes de la 0015: por popularidad |
-| A41 | Modal-formulario | El inicio no muestra campos; cada método abre `#capaFormulario` con los suyos, la X lo cierra y el enlace del pie pasa al otro método **sin** cerrarlo |
-| A42 | Campos de dos en dos | Dentro del modal los campos se reparten en dos columnas del mismo ancho, sin huecos intermedios; el campo de texto, la fila de orden y los chips ocupan fila entera |
-| A43 | Modal en el móvil | A 375 px va a una columna, **deja margen a los lados** y **no ocupa toda la altura**; el cuerpo hace scroll dentro |
+| A41 | Panel de filtros (V GMM 0022; barra de búsqueda desde la 0044) | El inicio no muestra el panel; el icono de filtro abre `#capaFormulario` con «Buscar por»/Descubrir/filtros comunes **todos juntos**, y la X lo cierra |
+| A42 | Campos de dos en dos | Dentro del panel los campos se reparten en dos columnas del mismo ancho, sin huecos intermedios (ocho campos de media fila, un número par); la fila de orden y los chips ocupan fila entera |
+| A43 | Panel en el móvil | A 375 px va a una columna, **deja margen a los lados** y **no ocupa toda la altura**; el cuerpo hace scroll dentro |
 | A44 | Cinco carruseles a la vez (desde V GMM 0023) | Los cinco bloques están a la vista sin elegir ninguno; cada uno tiene su propia pista, sus 20 títulos y la nota de TMDB en cada carátula; **no existe** el botón «Dame sugerencias» ni ningún modal para elegir categoría |
-| A45 | Botones del mismo tamaño | Los dos métodos («Buscar una en concreto» / «Descubrir por género») miden lo mismo entre sí, midiendo el ancho renderizado (no basta con que lo parezca) |
-| A46 | Orden junto a ← | Sobre una cuadrícula de Descubrir, el desplegable comparte fila con la flecha; encender un interruptor ahí lo enciende también en el formulario y reordena sin volver atrás |
+| A45 | Barra de búsqueda e icono de filtro a la vista (V GMM 0044) | Al arrancar, `#barraBusqueda` y `#btnFiltros` están visibles en la barra bajo el header, a la izquierda del interruptor peli/serie |
+| A46 | Orden junto a ← | Sobre una cuadrícula de Descubrir, el desplegable comparte fila con la flecha; encender un interruptor ahí lo enciende también en el panel de filtros y reordena sin volver atrás |
 | A47 | «Ver más» pagina de corrido | Tras elegir *Las 20 de siempre* y pulsar «Ver más», el paginador dice **«Página 1 de N»** —nunca «AAAA · …»— y la cuadrícula trae **20 carátulas** |
-| A48 | Escape dentro del modal | Con el autocompletado desplegado, Escape cierra **solo** el desplegable y conserva lo escrito; sin él, cierra el modal |
+| A48 | Escape con el autocompletado desplegado | Escape cierra **solo** el desplegable de sugerencias y conserva lo escrito, sin cerrar ningún otro modal que estuviera abierto |
 | A49 | Sin sesión iniciada (V GMM 0029) | La app funciona exactamente igual que sin la cuenta: buscar, Descubrir y Mis listas locales, sin ningún bloqueo ni pantalla de entrada |
 | A50 | Modal de cuenta | Abre en «entrar»; los enlaces cambian a «registro» y «recuperar» **sin cerrar el modal**; la X y Escape lo cierran |
 | A51 | Con sesión (simulada en pruebas) | El botón de la barra muestra el correo en vez de «Iniciar sesión»; abrir el modal va directo a «perfil» |
@@ -973,6 +1001,12 @@ Todos deben pasar:
 | A63 | Abrir en otro reproductor (V GMM 0039) | `GET /api/medios/:id?tipo=original` responde 200 con un ticket al archivo **tal cual**, sin invocar el gestor de transcodificación, para cualquier vídeo (compatible o no); en la PWA, el botón correspondiente en el reproductor de «Te la tengo» sigue visible y funcionando durante todo el sondeo de conversión (vive fuera del contenedor que ese sondeo repinta) |
 | A64 | Un sondeo viejo no sobrevive a abrir otra película (V GMM 0040) | Con el reproductor de la película A abierto y su sondeo de conversión en marcha, cerrarlo y abrir el de la película B hace que el siguiente `setTimeout` pendiente de A se autocancele (`miToken !== tokenReproductor`) en vez de seguir preguntando por A o de pisar el contenido de B; no debe acumularse más de un sondeo activo a la vez por sesión de reproductor |
 | A65 | Aviso de "enlace copiado" legible (V GMM 0041) | Al copiar el enlace con «Abrir en otro reproductor», el aviso queda en pantalla **12 segundos** (no los 3,2 s genéricos), con el color `ok` (verde) y el texto de los 4 pasos para VLC; `GMM.ui.aviso` acepta un tercer parámetro `duracionMs` opcional que, sin pasarlo, sigue usando 3200 |
+| A66 | Elegir una sugerencia abre la ficha directamente (V GMM 0044) | Escribir un título en la barra fija y pulsar una sugerencia lleva a la ficha **sin pasar por ningún modal**; ningún `#capaFormulario` se abre en el camino |
+| A67 | Barra de búsqueda fija tras hacer scroll (V GMM 0044) | Con la página desplazada, `#barraBusqueda` sigue dentro de los primeros ~140 px del viewport, junto al header, no en su posición original del documento |
+| A68 | Filtros alcanzables sobre un resultado (V GMM 0044) | Con una ficha en pantalla (sin volver al inicio), el icono de filtro abre el panel; cambiar idioma ahí y cerrar el panel **refina la misma ficha** al instante, sin repetir la búsqueda |
+| A69 | Actor/trama reutilizan la barra fija (V GMM 0044) | Elegir «Actor» o «Trama» en el panel de filtros cambia el marcador de posición de `#entrada` (a «Ej. Matthew McConaughey…» o «Ej. viajes en el tiempo…»); no aparece un segundo campo de texto dentro del panel |
+| A70 | Insignia «Te la tengo» en las sugerencias (V GMM 0044) | Con `GMM.servidor` conectado y una película del catálogo local disponible, su sugerencia (buscando por título) muestra una flecha verde en la esquina inferior izquierda de la carátula; una que no está en el catálogo, o una serie, no la muestra |
+| A71 | Panel de filtros con ocho campos, sin huecos (V GMM 0044) | «Buscar por» + género/nota/desde/hasta + idioma/plataforma/país llenan la rejilla de dos columnas en 4 filas exactas; ningún campo queda estirado a fila completa por no tener pareja |
 
 ### Al tocar el catálogo demo, verifica cada imagen
 
@@ -1092,6 +1126,7 @@ a mano. Lo que sigue es lo que ejecuta, por si hay que hacerlo manualmente:
 
 | Doc | App | Fecha | Cambio |
 |---|---|---|---|
+| 1.46 | V GMM 0044 | 15-08-2026 | **Sustituye el botón «Buscar una en concreto» por una barra de búsqueda fija con autocompletado en vivo, y convierte el modal-formulario en un panel único de filtros.** Petición del usuario, con una imagen de referencia. Entrado en modo plan por tocar arquitectura documentada extensamente (§5.1, §7); se preguntó con `AskUserQuestion` qué pasaba con las búsquedas por actor/trama, y el usuario eligió que se movieran al panel de filtros reutilizando el mismo campo de la barra (sin duplicar el autocompletado). A mitad de revisión del plan, el usuario añadió un segundo requisito: insignia verde en las sugerencias que coincidan con el catálogo de GMM Server. (1) **`#entrada`/`#sugerencias`/`#btnLimpiar` se mudan** (no se duplican) desde `#panelBuscar`, en el modal, a `#barraBusqueda`, nueva en `.barra-izq` junto al interruptor peli/serie; `#panelBuscar` se queda solo con el desplegable «Buscar por». (2) **Header + barra bajo el header, sticky juntos** en un envoltorio nuevo, `.chrome-fijo` (antes solo `.cabecera` lo era). (3) **El panel de filtros ya no alterna por método**: `#panelBuscar`/`#descubrir`/`#filtros` se ven siempre juntos; se retiran `.metodos`, `#btnCambiarMetodo` y `elegirMetodo()`. Con «Buscar por» reducido a un campo, el total de campos de media fila pasa a ser par (8): se retira la regla que estiraba «País» a fila completa, ya innecesaria. (4) **`buscar()` decide sin que ningún botón fije el método antes**: actor/trama con texto → esa búsqueda; título con género elegido → `hacerDescubrir()` (el género manda); si no, busca el título. `estado.metodo` se conserva como etiqueta interna, puesta por `buscar()`/`hacerDescubrir()`, para que `relanzarSiProcede()` siga funcionando sin tocarla. (5) **Consecuencia real, verificada**: como el icono de filtro vive fuera de `#buscador` (que sí se oculta en resultados), ahora es alcanzable también mirando una ficha, y cambiar idioma la refina al instante sin volver al inicio — antes era imposible porque el botón que abría el modal estaba oculto ahí. (6) **Insignia «Te la tengo»**: el catálogo de GMM Server se precarga en segundo plano al arrancar (antes solo al entrar en esa vista), indexado por id de TMDB o título normalizado + año; las sugerencias que coincidan con una entrada disponible muestran una flecha verde. Solo para película con «Buscar por: Título» — el catálogo no guarda series. (7) **Móvil**: la barra de búsqueda gana su propia fila, arriba de las otras dos (2→3 filas). (8) **`pruebas/interfaz.js` reescrito** en los puntos que dependían del modal por botón: `aBuscar()`/`abrirMetodo()`/`cerrarFormulario()` → `abrirFiltros()`/`cerrarFiltros()`; las búsquedas de texto libre pasan de clicar `#btnBuscar` (ahora dentro de un panel que hay que cerrar para escribir) a `Enter` sobre `#entrada`. `pruebas/pwa.js` también dependía de `#metodos`, adaptado a `#btnFiltros`. Criterios A28/A41/A45/A48 reescritos; A66–A71 nuevos. `sw.js` 38→39. `logica.js` 190/190 (sin cambio: nada de lo nuevo es función exportada ni pura), `interfaz.js` 127→129 (2 quitadas por obsoletas —medir los dos botones, restaurar método—, 4 nuevas: sticky tras scroll, insignia «Te la tengo» con `GMM.servidor` stubeado en pestaña aparte, y cambiar idioma sin salir de la ficha), `pwa.js` 20/20 (`gmm-app-v39`). Verificado visualmente contra `pruebas/capturas/00-inicio.png`, `08-modal-buscar.png` y `05-movil.png`. Sin trampa nueva en `CLAUDE.md` §9: el plan se validó primero con el usuario y las pruebas pasaron a la primera pasada tras la reescritura. |
 | 1.45 | V GMM 0043 | 14-08-2026 | **Arreglo real de GMM Server: `GMM-Server.exe` se caía al abrirlo con "Excepción al llamar a 'Add'…".** Diagnosticado leyendo directamente el `PRIVADO\configuracion.json` real del usuario: tenía `"carpetas": [null]` en vez de una lista vacía o de carpetas de verdad. Causa raíz en `GMM-Server-Panel.ps1`: el manejador de «Quitar carpeta» envolvía con `@()` solo el origen de la tubería, no el `Where-Object` completo, así que quitar la ÚLTIMA carpeta dejaba `$script:config.carpetas` en `$null` a secas; `Guardar-Config` volvía a envolver ese `$null` con `@($config.carpetas)` para guardarlo — y **`@($null)` en PowerShell da un array de 1 elemento que contiene `null`, no un array vacío** (la trampa clásica del operador `@()`). El JSON quedaba corrupto, y al reabrir el panel, `Refrescar-ListaCarpetas` iteraba esa carpeta fantasma y llamaba `.SubItems.Add($carpeta.ruta)` con `$carpeta = $null`, lanzando `NullReferenceException` dentro de WinForms. Arreglo en tres sitios: el `@()` de «Quitar carpeta» ahora envuelve la tubería entera; `Guardar-Config` y `Cargar-Config` filtran explícitamente cualquier `$null` de `carpetas` (esto último autocura un archivo ya corrompido de una versión anterior, sin editar el JSON a mano). Verificado de punta a punta: config del usuario reparada a mano para desbloquearlo, sintaxis comprobada con `PSParser`, los dos `.exe` recompilados con `Compilar.ps1` y copiados a `GMM-Server-para-instalar/` (regla fija desde la 1.41–1.42), y el `.exe` real relanzado, confirmando que abre sin el aviso. Sin cambios de código de la PWA: footer y `sw.js` 37→38 suben igual, por convención de cierre. `logica.js` 190/190 (sanity), `pwa.js` 20/20 (`gmm-app-v38`); `interfaz.js` no aplica. `GMM-Server-Panel.ps1` no tiene cobertura automatizada (script de Windows Forms, no JS): la verificación fue el arranque real del `.exe`. |
 | 1.44 | V GMM 0042 | 11-08-2026 | **Solo documentación, sin cambios de código de la app.** Nueva guía de operación, `guias/tailscale-compartir-gmm/` (carrusel HTML autónomo + PDF), para compartir el PC de GMM Server con la cuenta de Tailscale de otra persona — distinto del acceso remoto del propio dueño (§5, ver A59): usa el flujo de invitación de Tailscale (*Share machine*), con dos trampas propias documentadas (aceptar la invitación dos veces; cerrar sesión de la cuenta anterior en el iPhone antes de conectar). No se enlaza desde la PWA ni toca `index.html`. Se sube igualmente la versión del pie y `sw.js` 36→37 por convención de cierre, y se rastrea un `iconos/icono-512.ico` suelto sin uso en el código. `logica.js` 190/190 (sanity), `pwa.js` 20/20 (`gmm-app-v37`); `interfaz.js` no aplica. |
 | 1.43 | V GMM 0041 | 08-08-2026 | **Cierre de sesión: aviso más largo y legible, y dos correcciones operativas críticas documentadas para la próxima sesión.** Código: `GMM.ui.aviso` gana `duracionMs` opcional; el aviso de «enlace copiado» pasa de 3,2 s a 12 s y explica los 4 pasos de VLC completos; de paso se arregla que usaba el tipo `"exito"`, inexistente en CSS (nunca se vio en verde). Criterio A65. Lo importante de esta versión es lo que se corrigió en la documentación, no el código: tras publicar la 0039 y la 0040, el botón «Abrir en otro reproductor» seguía fallando en la web publicada — la causa real, encontrada comparando `diff` entre `gmm-server/src/api.js` y la copia instalada en `%LOCALAPPDATA%\GMM-Server\motor\src\`, era que **el `.exe` distribuido nunca se recompiló después de escribir `tipo=original`** (solo se había recompilado antes, con el arreglo de FFmpeg). Se confirmó que ps2exe re-extrae sus archivos incrustados **en cada arranque del `.exe`, no solo el primero** —una afirmación de `CLAUDE.md`/este documento que estaba mal y ya se corrigió en los dos—, así que parchear archivos a mano dentro de la carpeta instalada nunca es un arreglo permanente. Nueva trampa documentada, regla fija: cualquier cambio a `gmm-server/src/*.js` exige recompilar (`Compilar.ps1`) y copiar los `.exe` a `GMM-Server-para-instalar/`, sin excepción — el protocolo de cierre de versión de la PWA no lo hace por su cuenta. `sw.js` 35→36. `logica.js` 190/190, `interfaz.js` 127/127, `pwa.js` 20/20. |

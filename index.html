@@ -75,12 +75,18 @@ a:hover { text-decoration: underline; }
    BLOQUE CSS 2 — CABECERA                          → futuro css/header.css
    ══════════════════════════════════════════════════════════════════════ */
 
+/* Envoltorio fijo: header + barra bajo el header (con la barra de búsqueda,
+   desde V GMM 0044) se pegan juntos arriba al hacer scroll, como una sola
+   pieza de chrome. Antes solo .cabecera era sticky; ahora lo es este
+   envoltorio, y .cabecera vive dentro sin su propio sticky (lo hereda). El
+   fondo sólido evita que el contenido se transparente al pasar por debajo. */
+.chrome-fijo { position: sticky; top: 0; z-index: 50; background: #0b0f14; }
+
 /* La cabecera es una tira de rollo de película: cuerpo oscuro y dos bandas
    de perforaciones arriba y abajo. Mismo contenido de siempre; solo cambia
    el envoltorio. Los agujeros se dibujan con un SVG en línea repetido, igual
    que la flecha del desplegable, para no depender de imágenes externas. */
 .cabecera {
-  position: sticky; top: 0; z-index: 50;
   display: flex; align-items: center; justify-content: space-between;
   gap: 14px; flex-wrap: nowrap;
   margin: 14px 0 6px;
@@ -143,6 +149,19 @@ a:hover { text-decoration: underline; }
    y un punto más compacto para alinear con los botones. */
 .barra-listas .tipo-switch { margin: 0; }
 .barra-listas .tipo-op { padding: 6px 14px; font-size: 13px; }
+
+/* Barra de búsqueda fija (desde V GMM 0044), a la izquierda del interruptor
+   peli/serie: el campo #campoTexto de siempre (#entrada/#sugerencias), solo
+   reubicado aquí desde el modal-formulario, más el icono de filtro que abre
+   ese mismo modal ya convertido en panel de filtros. Más compacta que dentro
+   del modal, para convivir con los demás botones de la barra. */
+.barra-busqueda { display: flex; align-items: center; gap: 8px; flex: 1 1 240px; min-width: 180px; max-width: 380px; }
+.barra-busqueda .campo { flex: 1 1 auto; min-width: 0; }
+.barra-busqueda .campo-caja { padding: 3px 6px 3px 14px; border-radius: 12px; }
+.barra-busqueda .campo-entrada { padding: 8px 0; font-size: 14.5px; }
+.barra-busqueda .campo-lupa { font-size: 15px; }
+.boton-filtro { padding: 0; width: 38px; height: 38px; flex: 0 0 38px; justify-content: center; border-radius: 11px; }
+.boton-filtro svg { width: 18px; height: 18px; }
 
 /* Flecha de volver a la búsqueda (modo resultados) y, en la misma fila, el
    desplegable de orden. */
@@ -227,22 +246,10 @@ a:hover { text-decoration: underline; }
 /* Hay que repetir el ocultado: el selector de arriba es más específico que
    .oculto y, sin esto, un bloque oculto seguiría enseñando sus campos. */
 .forma .panel-buscar.oculto, .forma .descubrir.oculto, .forma .filtros.oculto { display: none; }
-/* Lo que ocupa fila entera: la nota, el campo de texto, el orden y los chips. */
-.forma-nota, .forma #campoTexto, .forma .orden, .forma .chips { grid-column: 1 / -1; }
-/* En Descubrir los campos son impares y "País" cerraría solo media fila; se
-   estira para que la rejilla no acabe con un hueco a la vista. */
-.forma .descubrir:not(.oculto) ~ .filtros .filtro-pais { grid-column: 1 / -1; }
+/* Lo que ocupa fila entera: la nota, el orden y los chips. (#campoTexto ya no
+   vive aquí desde V GMM 0044: se mudó a la barra de búsqueda fija.) */
+.forma-nota, .forma .orden, .forma .chips { grid-column: 1 / -1; }
 .forma .chips { margin-top: 2px; }
-/* Cambiar de método sin salir del modal: un enlace discreto, no un tercer
-   botón que compita con Buscar. */
-.cambiar-metodo {
-  grid-column: 1 / -1; justify-self: center;
-  padding: 6px 10px; margin-top: 2px;
-  font-size: 13.5px; font-weight: 600; color: #8fc9ff;
-  border-bottom: 1px dashed rgba(74, 168, 255, 0.45);
-  transition: color 0.15s, border-color 0.15s;
-}
-.cambiar-metodo:hover { color: #e8f0f8; border-color: #4aa8ff; }
 
 .campo { position: relative; }
 
@@ -270,12 +277,10 @@ a:hover { text-decoration: underline; }
 .campo-limpiar:hover { background: #1a2632; color: #e8f0f8; }
 
 /* --- autocompletado --- */
-/* Dentro del modal NO puede flotar: el cuerpo hace scroll y lo recortaría.
-   Se muestra en el flujo, justo bajo el campo, empujando lo que venga debajo.
-   Es la única forma que no depende de trucos de posicionamiento. */
-.forma .sugerencias { position: static; margin-top: 8px; max-height: 300px; }
+/* Desde V GMM 0044 el campo vive en la barra fija, fuera de cualquier modal
+   que haga scroll, así que puede flotar sobre la página sin recortarse. */
 .sugerencias {
-  position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 40;
+  position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 55;
   background: #131c26; border: 1px solid #2f4356; border-radius: 14px;
   box-shadow: 0 24px 50px rgba(0, 0, 0, 0.55);
   overflow: hidden; max-height: 380px; overflow-y: auto;
@@ -287,6 +292,7 @@ a:hover { text-decoration: underline; }
 }
 .sugerencia:last-child { border-bottom: 0; }
 .sugerencia:hover, .sugerencia.marcada { background: #1a2632; }
+.sugerencia-caratula-envoltorio { position: relative; flex: 0 0 40px; }
 .sugerencia-img {
   width: 40px; height: 58px; flex: 0 0 40px; border-radius: 6px;
   object-fit: cover; background: #22303e;
@@ -295,6 +301,18 @@ a:hover { text-decoration: underline; }
   width: 40px; height: 58px; flex: 0 0 40px; border-radius: 6px;
   display: grid; place-items: center; font-size: 17px; font-weight: 800;
   background: linear-gradient(140deg, #22303e, #1a2632); color: #5e768c;
+}
+/* Insignia "la tienes en Te la tengo" (desde V GMM 0044): flecha verde en la
+   esquina inferior izquierda de la carátula, misma promesa que el botón "Ver"
+   de la vista Te la tengo — que ya se puede reproducir, sin buscarla en
+   ningún sitio. Solo sale cuando GMM.app la empareja con el catálogo del
+   servidor (ver buscarEnServidor en el bloque JS 9). */
+.sugerencia-servidor {
+  position: absolute; left: 2px; bottom: 2px; z-index: 1;
+  width: 16px; height: 16px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: rgba(6, 19, 12, 0.85); color: #2ee6a8; font-size: 9px; line-height: 1;
+  box-shadow: 0 0 0 1px rgba(46, 230, 168, 0.4);
 }
 .sugerencia-txt { min-width: 0; }
 .sugerencia-tit { font-size: 14.5px; font-weight: 600; }
@@ -349,34 +367,6 @@ a:hover { text-decoration: underline; }
 .tipo-op[data-tipo="movie"].activa {
   background: linear-gradient(135deg, #ff8a3d, #ffb37d);
   color: #241207; box-shadow: 0 6px 18px rgba(255, 138, 61, 0.32);
-}
-
-/* Selector de método: dos botones sueltos debajo del interruptor. Rejilla de
-   dos columnas iguales, no flex: así los dos miden EXACTAMENTE lo mismo aunque
-   sus textos tengan distinto largo, que es lo que hacía que se vieran
-   descuadrados. Cada uno abre su formulario en el modal. */
-.metodos {
-  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;
-  max-width: 470px; margin: 0 auto 18px;
-}
-.metodo {
-  padding: 12px 16px; border-radius: 999px; white-space: nowrap;
-  border: 1px solid #22303e; background: #0e151d;
-  font-size: 14px; font-weight: 600; color: #8ba0b6;
-  transition: color 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
-}
-.metodo:hover { color: #e8f0f8; border-color: #2f4356; }
-.metodo.activa { color: #e8f0f8; }
-/* Seleccionado: color sólido del tipo y halo de iluminación alrededor. */
-#buscador[data-tipo="movie"] .metodo.activa {
-  background: linear-gradient(135deg, #ff8a3d, #ffb37d);
-  border-color: transparent; color: #241207;
-  box-shadow: 0 0 0 3px rgba(255, 138, 61, 0.28), 0 8px 22px rgba(255, 138, 61, 0.45);
-}
-#buscador[data-tipo="tv"] .metodo.activa {
-  background: linear-gradient(135deg, #4aa8ff, #8fc9ff);
-  border-color: transparent; color: #06131c;
-  box-shadow: 0 0 0 3px rgba(74, 168, 255, 0.28), 0 8px 22px rgba(74, 168, 255, 0.45);
 }
 
 .filtro-por { min-width: 0; }
@@ -925,7 +915,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
 .modal.modal-forma { max-width: 620px; }
 .modal-nota { font-size: 13.5px; color: #8ba0b6; margin-bottom: 4px; }
 /* Botón con pinta de enlace, para meter dentro de un párrafo de nota (p.ej. "abrir en
-   otro reproductor"): mismo estilo que .cambiar-metodo pero sin sus propiedades de grid. */
+   otro reproductor"). */
 .enlace-servidor {
   color: #8fc9ff; font: inherit; font-weight: 600;
   border: 0; border-bottom: 1px dashed rgba(74, 168, 255, 0.45);
@@ -1021,16 +1011,19 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
 @media (max-width: 620px) {
   .app { padding: 0 14px 60px; }
   .buscador { padding: 4px 0 6px; }
-  /* La barra superior pasa a una rejilla de 2 filas: arriba, volver (solo
-     en resultados) / interruptor centrado / ajustes; abajo, Mis listas /
-     Te la tengo / instalar. .barra-superior, .barra-listas, .barra-izq y
-     .barra-der se "aplanan" (display: contents) para que los botones sean
-     hijos directos de la rejilla y se repartan sin duplicarlos ni tocar
-     su JS — mismo botón, mismo id, solo cambia dónde cae visualmente. */
+  /* La barra superior pasa a una rejilla de 3 filas: arriba del todo, la
+     barra de búsqueda a lo ancho (desde V GMM 0044 — no cabe repartida entre
+     botones); debajo, volver (solo en resultados) / interruptor centrado /
+     ajustes; abajo, Mis listas / Te la tengo / instalar. .barra-superior,
+     .barra-listas, .barra-izq y .barra-der se "aplanan" (display: contents)
+     para que los botones sean hijos directos de la rejilla y se repartan sin
+     duplicarlos ni tocar su JS — mismo botón, mismo id, solo cambia dónde cae
+     visualmente. */
   .barra-superior {
     display: grid;
     grid-template-columns: auto 1fr auto;
     grid-template-areas:
+      "buscar  buscar   buscar"
       "volver  switch   ajustes"
       "listas  tetengo  instalar";
     align-items: center;
@@ -1038,6 +1031,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
     margin: 2px 0 10px;
   }
   .barra-listas, .barra-izq, .barra-der { display: contents; }
+  #barraBusqueda { grid-area: buscar; max-width: none; min-width: 0; }
   .barra-volver { grid-area: volver; margin: 0; justify-self: start; }
   #btnListas { grid-area: listas; justify-self: start; }
   #btnServidor { grid-area: tetengo; justify-self: start; }
@@ -1052,13 +1046,9 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   /* La frase, a una sola línea: fuente más pequeña y sin partir. */
   .buscador-titulo { font-size: 17px; white-space: nowrap; letter-spacing: -0.3px; }
   .buscador-sub { font-size: 13px; }
-  /* Los dos métodos, en una sola fila también en el móvil. */
-  .metodo { font-size: 12px; padding: 10px 12px; }
-  .metodos { gap: 8px; }
   /* El formulario pasa a una columna: dos campos por fila en un móvil quedan
      demasiado estrechos para leer sus etiquetas. */
   .forma { grid-template-columns: 1fr; gap: 12px; }
-  .forma .descubrir:not(.oculto) ~ .filtros .filtro-pais { grid-column: auto; }
   .cabecera { padding: 15px; }
   .campo-entrada { font-size: 16px; padding: 12px 0; }
   /* Dos columnas fijas en el móvil. */
@@ -1092,6 +1082,11 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
 
 <div class="app">
 
+  <!-- Header + barra bajo el header, pegados juntos arriba al hacer scroll
+       (desde V GMM 0044): antes solo .cabecera era sticky; ahora lo es este
+       envoltorio, para que la barra de búsqueda fija se quede a la vista
+       junto con el header, no debajo de él. -->
+  <div class="chrome-fijo">
   <!-- ═════════════ CABECERA ═════════════ -->
   <header class="cabecera">
     <div class="marca">
@@ -1141,6 +1136,36 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
         <span aria-hidden="true">&#9654;</span> Te la tengo
         <span class="contador-listas vacio" id="contadorServidor">0</span>
       </button>
+      <!-- Barra de búsqueda fija (desde V GMM 0044), a la izquierda del
+           interruptor peli/serie: sustituye al botón «Buscar una en
+           concreto». #campoTexto es el mismo nodo de siempre (#entrada,
+           #sugerencias, #btnLimpiar), mudado aquí desde el modal — no hay
+           dos campos de texto, uno solo que ahora vive en la barra. El icono
+           de filtro abre el mismo modal, reconvertido en panel de filtros
+           (idioma, plataforma, país, género, año, calificación, y el modo
+           actor/trama). -->
+      <div class="barra-busqueda" id="barraBusqueda">
+        <div class="campo" id="campoTexto">
+          <div class="campo-caja">
+            <span class="campo-lupa" aria-hidden="true">&#128269;</span>
+            <input class="campo-entrada" id="entrada" type="text" autocomplete="off"
+                   spellcheck="false" placeholder="Ej. Interestelar, El Padrino, Parásitos…"
+                   aria-label="Buscar una película o serie">
+            <button class="campo-limpiar oculto" id="btnLimpiar" title="Limpiar">&#10005;</button>
+          </div>
+          <div class="sugerencias oculto" id="sugerencias"></div>
+        </div>
+        <button class="boton-cabecera boton-filtro" id="btnFiltros" title="Idioma, plataforma, país, género, año, calificación…" aria-label="Filtros de búsqueda">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true">
+            <line x1="4" y1="6" x2="20" y2="6"></line>
+            <circle cx="9" cy="6" r="2.2" fill="#131c26"></circle>
+            <line x1="4" y1="12" x2="20" y2="12"></line>
+            <circle cx="15" cy="12" r="2.2" fill="#131c26"></circle>
+            <line x1="4" y1="18" x2="20" y2="18"></line>
+            <circle cx="9" cy="18" r="2.2" fill="#131c26"></circle>
+          </svg>
+        </button>
+      </div>
       <!-- Interruptor global: ¿película o serie? Tiñe los acentos. -->
       <div class="tipo-switch" id="tipoSwitch" role="group" aria-label="¿Películas o series?">
         <button class="tipo-op activa" data-tipo="movie">Películas</button>
@@ -1176,6 +1201,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
     </div>
   </div>
   </div><!-- /.barra-superior -->
+  </div><!-- /.chrome-fijo -->
 
   <!-- ═════════════ DESCUBRIMIENTO (carruseles) ═════════════ -->
   <!-- Vive solo en el inicio (fijarPantalla lo oculta con resultados). Desde
@@ -1186,9 +1212,11 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   <section class="descubrimiento oculto" id="descubrimiento" aria-label="Sugerencias"></section>
 
   <!-- ═════════════ BUSCADOR ═════════════ -->
-  <!-- En el inicio solo quedan el título y los dos métodos, del mismo tamaño y
-       centrados. Cada uno abre su formulario en un modal (#capaFormulario): el
-       inicio se ve despejado y los controles, ordenados dentro del modal. -->
+  <!-- Desde V GMM 0044 los dos botones de método ya no están aquí: la barra
+       de búsqueda fija (#barraBusqueda, en la barra bajo el header) y su
+       icono de filtro (que abre #capaFormulario, ahora un panel de filtros)
+       los sustituyen. Esta sección se queda con el título y un texto de
+       ayuda breve. -->
   <section class="buscador" id="buscador" data-tipo="movie">
     <div class="buscador-fila-titulo">
       <h2 class="buscador-titulo">Te digo <em>dónde verla</em>, y en tu idioma</h2>
@@ -1196,13 +1224,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
            en el header; pasa aquí desde V GMM 0030, a petición del usuario. -->
       <span class="punto-modo" id="pastillaModo" title="Modo demo" aria-label="Modo demo"></span>
     </div>
-    <p class="buscador-sub" id="buscadorSub">Elige película o serie, y luego búscala.</p>
-
-    <!-- Dos formas de llegar al mismo resultado: dónde verla. -->
-    <div class="metodos" id="metodos" role="tablist">
-      <button class="metodo" data-metodo="buscar" role="tab">Buscar una en concreto</button>
-      <button class="metodo" data-metodo="descubrir" role="tab">Descubrir por género</button>
-    </div>
+    <p class="buscador-sub" id="buscadorSub">Escribe arriba para buscar, o pulsa el filtro para elegir género, idioma o plataforma.</p>
   </section>
 
   <!-- ═════════════ RESULTADOS ═════════════ -->
@@ -1211,7 +1233,7 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
   <footer class="pie">
     <span>givemymovies · datos de disponibilidad vía TMDB / JustWatch</span>
     <span>Tus listas se guardan en este navegador — inicia sesión para llevarlas a otros</span>
-    <span id="version-app">V GMM 0043</span>
+    <span id="version-app">V GMM 0044</span>
   </footer>
 </div>
 
@@ -1393,25 +1415,32 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
      las cinco categorías se veía en el único carrusel, y ahora se ven las
      cinco a la vez, así que ya no elegía nada. -->
 
-<!-- ═════════════ MODAL: FORMULARIO DE BÚSQUEDA ═════════════ -->
-<!-- Un solo modal para los dos métodos, con el título cambiando según el
-     elegido. Es deliberado que sea uno y no dos: los controles son los mismos
-     nodos de siempre (#selIdioma, #selGenero…), así que no hay ids duplicados
-     ni estado que sincronizar, y reflejar() sigue siendo el único sitio que
-     decide qué se ve. El cuerpo es UNA rejilla de dos columnas: los bloques
-     interiores son "display: contents", de modo que sus campos se reparten de
-     dos en dos aunque vengan de bloques distintos; los grandes (el campo de
-     texto, la fila de orden, los chips) ocupan el ancho completo. -->
+<!-- ═════════════ MODAL: PANEL DE FILTROS ═════════════ -->
+<!-- Hasta V GMM 0043 era el modal-formulario, con dos métodos que se
+     alternaban («Buscar una en concreto» / «Descubrir por género»). Desde la
+     0044 ya no hay dos métodos: el campo de texto (#entrada/#sugerencias) se
+     mudó a la barra fija bajo el header, así que este panel se abre con el
+     icono de filtro y enseña TODO a la vez — el modo de búsqueda (título ya
+     vive arriba; aquí solo se elige actor/trama), género/año/nota/orden, e
+     idioma/plataforma/país. Sigue siendo un solo panel, no varios, por la
+     misma razón de siempre: los controles son los mismos nodos (#selIdioma,
+     #selGenero…), sin duplicar ids ni estado que sincronizar. El cuerpo es
+     UNA rejilla de dos columnas: los bloques interiores son
+     "display: contents", así que sus campos se reparten de dos en dos aunque
+     vengan de bloques distintos; los grandes (la fila de orden, los chips)
+     ocupan el ancho completo. -->
 <div class="capa oculto" id="capaFormulario" data-tipo="movie">
   <div class="modal modal-forma" role="dialog" aria-modal="true" aria-labelledby="tituloFormulario">
     <div class="modal-cab">
-      <h3 class="modal-tit" id="tituloFormulario">Buscar una en concreto</h3>
+      <h3 class="modal-tit" id="tituloFormulario">Filtros</h3>
       <button class="modal-cerrar" data-cerrar="capaFormulario" aria-label="Cerrar">&#10005;</button>
     </div>
     <div class="modal-cuerpo forma">
-      <p class="modal-nota forma-nota" id="formularioSub"></p>
+      <p class="modal-nota forma-nota" id="formularioSub">Idioma, plataforma, país, género, año, calificación — y buscar por actor o trama.</p>
 
-      <!-- Método 1: buscar por título, actor o trama -->
+      <!-- Modo de búsqueda: título ya se escribe en la barra fija de arriba;
+           aquí se elige actor/director o trama/tema, que usan ese mismo
+           campo (cambia su marcador de posición según el modo). -->
       <div class="panel-buscar" id="panelBuscar">
         <label class="filtro filtro-por">
           <span class="filtro-etiqueta">Buscar por</span>
@@ -1421,21 +1450,11 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
             <option value="trama">Trama / tema</option>
           </select>
         </label>
-        <div class="campo" id="campoTexto">
-          <div class="campo-caja">
-            <span class="campo-lupa" aria-hidden="true">&#128269;</span>
-            <input class="campo-entrada" id="entrada" type="text" autocomplete="off"
-                   spellcheck="false" placeholder="Ej. Interestelar, El Padrino, Parásitos…"
-                   aria-label="Término de búsqueda">
-            <button class="campo-limpiar oculto" id="btnLimpiar" title="Limpiar">&#10005;</button>
-          </div>
-          <div class="sugerencias oculto" id="sugerencias"></div>
-        </div>
       </div>
 
-      <!-- Método 2: descubrir por género, intervalo de años, nota y orden
-           (el tipo lo manda el interruptor de arriba) -->
-      <div class="descubrir oculto" id="descubrir">
+      <!-- Descubrir por género, intervalo de años, nota y orden (el tipo lo
+           manda el interruptor de la barra) -->
+      <div class="descubrir" id="descubrir">
         <label class="filtro">
           <span class="filtro-etiqueta">Género</span>
           <select id="selGenero"></select>
@@ -1460,9 +1479,9 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
         </div>
       </div>
 
-      <!-- Filtros comunes a los dos métodos. El idioma va primero: es el que da
-           sentido a la app, no un añadido. -->
-      <div class="filtros oculto" id="filtros">
+      <!-- Filtros comunes. El idioma va primero: es el que da sentido a la
+           app, no un añadido. -->
+      <div class="filtros" id="filtros">
         <label class="filtro">
           <span class="filtro-etiqueta">Idioma</span>
           <select id="selIdioma"></select>
@@ -1480,11 +1499,6 @@ a.plataforma:hover { border-color: #2ee6a8; transform: translateY(-1px); text-de
       <div class="chips" id="chips">
         <span class="chips-titulo">Prueba con:</span>
       </div>
-
-      <!-- Pasar al otro método sin cerrar: los dos botones del inicio quedan
-           detrás del velo del modal, y cerrar para volver a abrir sería un
-           camino absurdo para algo tan corriente. -->
-      <button class="cambiar-metodo" id="btnCambiarMetodo"></button>
     </div>
     <div class="modal-pie centrado">
       <button class="boton-buscar" id="btnBuscar">Buscar</button>
@@ -4113,8 +4127,12 @@ GMM.app = (function () {
 
   var estado = {
     tipo: "movie",        // interruptor global: películas o series
-    metodo: "",           // "" (ninguno, arranque) | "buscar" | "descubrir": cada panel se abre al pulsar su botón
-    busquedaPor: "titulo",// dentro de buscar: "titulo" | "actor" | "trama"
+    /* "" (nada buscado aún) | "buscar" | "descubrir": desde V GMM 0044 ya no
+       lo fija un botón de método — lo marca buscar()/hacerDescubrir() según
+       qué se acaba de lanzar, y relanzarSiProcede() lo lee para repetir lo
+       mismo al cambiar de película a serie (o viceversa). */
+    metodo: "",
+    busquedaPor: "titulo",// "titulo" | "actor" | "trama" — se elige en el panel de filtros
     plataforma: "",
     pais: "",
     idioma: "es",
@@ -4128,6 +4146,7 @@ GMM.app = (function () {
     disponibilidad: {},   // "tipo:id" -> respuesta de proveedores
     catalogoServidor: null,
     servidorPorId: {},
+    servidorIndice: null, // { porId, porTitulo } — para la insignia "Te la tengo" de las sugerencias
     marcada: -1,          // sugerencia resaltada con el teclado
     /* Método Descubrir */
     genero: "",           // id de género de TMDB
@@ -4170,10 +4189,12 @@ GMM.app = (function () {
   function cargarPrefs() {
     var p = GMM.util.leerJSON(GMM.config.CLAVE_PREFS, {});
     if (p.tipo === "movie" || p.tipo === "tv") estado.tipo = p.tipo;
-    /* El método NO se restaura: la app arranca siempre en "Buscar una en
-       concreto", con los controles de "Descubrir por género" ocultos hasta que
-       se pulsa su botón. (Antes se recordaba, y usar "Ver más" dejaba Descubrir
-       abierto al recargar.) */
+    /* El método NO se restaura (desde V GMM 0021): la app arranca siempre
+       lista para buscar por título, sin arrastrar que la última visita
+       terminara en un "Ver más" de Descubrir. Desde la 0044 ya no lo fija
+       ningún botón — es solo la etiqueta interna de qué produjo la vista
+       actual (ver estado.metodo) —, pero el criterio de no restaurarlo al
+       recargar sigue siendo el mismo. */
     if (GMM.config.BUSQUEDA_POR.indexOf(p.busquedaPor) !== -1) estado.busquedaPor = p.busquedaPor;
     if (typeof p.plataforma === "string") estado.plataforma = p.plataforma;
     if (typeof p.pais === "string") estado.pais = p.pais;
@@ -4334,8 +4355,8 @@ GMM.app = (function () {
   /* Vuelca el estado en la interfaz: interruptor, método, forma de búsqueda,
      colores de acento, marcador y chips. Un solo sitio que manda. */
   function reflejar() {
-    /* interruptor peli/serie: color de acento y opción marcada. El modal del
-       formulario lo lleva también, porque el botón Buscar vive en su pie y se
+    /* interruptor peli/serie: color de acento y opción marcada. El panel de
+       filtros lo lleva también, porque el botón Buscar vive en su pie y se
        tiñe con el color del tipo. */
     $("buscador").setAttribute("data-tipo", estado.tipo);
     $("descubrimiento").setAttribute("data-tipo", estado.tipo);
@@ -4344,37 +4365,13 @@ GMM.app = (function () {
       b.classList.toggle("activa", b.getAttribute("data-tipo") === estado.tipo);
     });
 
-    /* método activo */
-    Array.prototype.forEach.call($("metodos").children, function (b) {
-      b.classList.toggle("activa", b.getAttribute("data-metodo") === estado.metodo);
-    });
-
-    /* Paneles del modal-formulario: cada método enseña sus controles SOLO
-       cuando está elegido, y los filtros comunes salen con cualquiera de los
-       dos. Al arrancar no hay método y el modal no está abierto. */
-    var esBuscar = estado.metodo === "buscar";
-    var esDescubrir = estado.metodo === "descubrir";
-    var hayMetodo = esBuscar || esDescubrir;
-    $("panelBuscar").classList.toggle("oculto", !esBuscar);
-    $("descubrir").classList.toggle("oculto", !esDescubrir);
-    $("filtros").classList.toggle("oculto", !hayMetodo);
-    $("chips").classList.toggle("oculto", !esBuscar);
-
-    /* Título y explicación del modal, según el método elegido. El título nombra
-       también el tipo: con el modal abierto, el interruptor peli/serie queda
-       detrás del velo, así que decirlo aquí evita que se pierda de vista qué se
-       está buscando (para cambiarlo se cierra el modal, y el interruptor sigue
-       en su barra de siempre). */
-    var esSerie = estado.tipo === "tv";
-    $("tituloFormulario").textContent = esDescubrir
-      ? (esSerie ? "Descubrir series por género" : "Descubrir películas por género")
-      : (esSerie ? "Buscar una serie en concreto" : "Buscar una película en concreto");
-    $("formularioSub").textContent = esDescubrir
-      ? "Elige género e intervalo de años, y cómo quieres ordenarlo."
-      : "Busca por título, por actor o director, o por su trama.";
-    $("btnCambiarMetodo").textContent = esDescubrir
-      ? "¿Prefieres buscar una en concreto?"
-      : "¿Prefieres descubrir por género?";
+    /* Desde V GMM 0044 ya no hay dos métodos que alternar: #panelBuscar
+       (el modo actor/trama), #descubrir y #filtros se ven siempre juntos
+       dentro del panel de filtros, así que no hace falta ocultar nada aquí.
+       El título del panel solo nombra el tipo — con el panel abierto, el
+       interruptor peli/serie queda detrás del velo, así que decirlo aquí
+       evita que se pierda de vista qué se está buscando. */
+    $("tituloFormulario").textContent = estado.tipo === "tv" ? "Filtros — series" : "Filtros — películas";
 
     /* forma de búsqueda y su marcador */
     $("selBusquedaPor").value = estado.busquedaPor;
@@ -4383,10 +4380,6 @@ GMM.app = (function () {
 
     /* interruptores de orden de Descubrir */
     reflejarOrden();
-
-    /* El subtítulo del inicio invita a elegir método: es lo único que queda a
-       la vista, porque los controles se han mudado al modal. */
-    $("buscadorSub").textContent = "Elige cómo empezar: busca una en concreto o descubre por género.";
   }
 
   /* ---------------------------------------------------------------- */
@@ -4415,9 +4408,17 @@ GMM.app = (function () {
       var img = url
         ? '<img class="sugerencia-img" src="' + url + '" alt="" loading="lazy">'
         : '<span class="sugerencia-caratula">' + GMM.util.esc(titulo.charAt(0)) + '</span>';
+      /* Insignia "la tienes en Te la tengo" (V GMM 0044): flecha verde en la
+         esquina inferior izquierda de la carátula cuando esta sugerencia
+         coincide con una película ya disponible en el GMM Server. */
+      var enServidor = buscarEnServidor(item);
+      var insignia = enServidor
+        ? '<span class="sugerencia-servidor" title="La tienes en Te la tengo" aria-label="Disponible en Te la tengo">&#9654;</span>'
+        : "";
 
       return '<button class="sugerencia" data-indice="' + indice + '" data-id="' + item.id + '" ' +
-             'data-nombre="' + GMM.util.esc(titulo) + '">' + img +
+             'data-nombre="' + GMM.util.esc(titulo) + '">' +
+             '<span class="sugerencia-caratula-envoltorio">' + img + insignia + '</span>' +
              '<span class="sugerencia-txt">' +
                '<span class="sugerencia-tit">' + GMM.util.esc(titulo) + '</span><br>' +
                '<span class="sugerencia-meta">' + GMM.util.esc(meta) + '</span>' +
@@ -5076,6 +5077,44 @@ GMM.app = (function () {
     });
   }
 
+  /* Índice del catálogo de GMM Server, para la insignia verde de las
+     sugerencias de la barra de búsqueda (V GMM 0044): por id de TMDB, cuando
+     el propio catálogo ya lo trae (enriquecerServidor usa el mismo dato), y
+     por título normalizado como reserva, para cuando el archivo no está
+     validado contra TMDB todavía. Solo entran las que ya se pueden
+     reproducir (mismo filtro que accionesServidorHtml). */
+  function indexarCatalogoServidor(catalogo) {
+    var porId = {}, porTitulo = {};
+    (catalogo && catalogo.peliculas || []).forEach(function (item) {
+      if (!item.disponible || item.estadoArchivo !== "disponible") return;
+      if (item.tmdb && item.tmdb.id) porId[(item.tmdb.tipo || "movie") + ":" + item.tmdb.id] = item;
+      var titulo = item.tituloDetectado || item.nombreArchivo || "";
+      if (!titulo) return;
+      var clave = GMM.util.normalizar(titulo);
+      (porTitulo[clave] = porTitulo[clave] || []).push(item);
+    });
+    estado.servidorIndice = { porId: porId, porTitulo: porTitulo };
+  }
+
+  /* Busca una sugerencia (resultado de TMDB) en el catálogo ya indexado.
+     Solo aplica a título de película: el catálogo de GMM Server hoy solo
+     guarda películas, y buscar por actor/trama no trae un título concreto
+     con el que emparejar. Devuelve la entrada del catálogo, o null. */
+  function buscarEnServidor(item) {
+    if (estado.tipo !== "movie" || estado.busquedaPor !== "titulo" || !estado.servidorIndice) return null;
+    var directo = estado.servidorIndice.porId[estado.tipo + ":" + item.id];
+    if (directo) return directo;
+    var candidatos = estado.servidorIndice.porTitulo[GMM.util.normalizar(item.title || item.name || "")];
+    if (!candidatos || !candidatos.length) return null;
+    var ano = GMM.util.ano(item.release_date || item.first_air_date);
+    var elegido = null;
+    candidatos.forEach(function (c) {
+      if (elegido) return;
+      if (!ano || !c.anioDetectado || String(c.anioDetectado) === String(ano)) elegido = c;
+    });
+    return elegido;
+  }
+
   function pintarServidor() {
     estado.vista = "servidor";
     estado.ctxPagina = null;
@@ -5094,6 +5133,7 @@ GMM.app = (function () {
       estado.catalogoServidor = catalogo;
       estado.servidorPorId = {};
       (catalogo.peliculas || []).forEach(function (item) { estado.servidorPorId[item.id] = item; });
+      indexarCatalogoServidor(catalogo);
       GMM.ui.refrescarCabecera();
       return enriquecerServidor(catalogo.peliculas || []).then(function (entradas) {
         if (estado.vista !== "servidor") return;
@@ -5461,6 +5501,7 @@ GMM.app = (function () {
 
   /* Sección Descubrir: no hay texto, se busca por criterios. Paginada. */
   function hacerDescubrir() {
+    estado.metodo = "descubrir";
     guardarPrefs();
     estado.mostrarTodos = false;
     $("btnBuscar").disabled = true;
@@ -5518,13 +5559,27 @@ GMM.app = (function () {
   }
 
   function buscar() {
-    if (estado.metodo === "descubrir") { cerrarCapa("capaFormulario"); hacerDescubrir(); return; }
-
     var texto = $("entrada").value.trim();
-    /* El aviso de campo vacío se da con el modal AÚN abierto: cerrarlo antes
-       dejaría el mensaje señalando un campo que ya no se ve. */
-    if (!texto) { GMM.ui.aviso("Escribe algo para buscar", "error"); $("entrada").focus(); return; }
 
+    /* Con "Buscar por: Título" y un género elegido en el panel de filtros, el
+       género manda: es el "Descubrir por género" de siempre, ahora sin su
+       propio botón — alcanza con tenerlo puesto para que "Buscar" descubra
+       en vez de buscar un título. */
+    if (estado.busquedaPor === "titulo" && estado.genero) {
+      cerrarCapa("capaFormulario");
+      hacerDescubrir();
+      return;
+    }
+
+    /* El aviso de campo vacío se da con el panel AÚN abierto: cerrarlo antes
+       dejaría el mensaje señalando un campo que ya no se ve. */
+    if (!texto) {
+      GMM.ui.aviso(estado.busquedaPor === "titulo" ? "Escribe algo para buscar, o elige un género" : "Escribe algo para buscar", "error");
+      $("entrada").focus();
+      return;
+    }
+
+    estado.metodo = "buscar";
     cerrarCapa("capaFormulario");
     cerrarSugerencias();
     guardarPrefs();
@@ -5656,32 +5711,17 @@ GMM.app = (function () {
       }
     });
 
-    /* --- selector de método: buscar en concreto / descubrir --- */
-    /* Cada método abre su formulario en el modal, con sus controles ya
-       preparados. El campo se vacía al cambiar de método porque lo escrito para
-       buscar un título no sirve para buscar por trama. */
-    function elegirMetodo(cual) {
-      estado.metodo = cual === "descubrir" ? "descubrir" : "buscar";
-      $("entrada").value = "";
-      $("btnLimpiar").classList.add("oculto");
-      cerrarSugerencias();
-      reflejar();
-      guardarPrefs();
-      GMM.ui.bienvenida();
+    /* --- icono de filtro: abre el panel de idioma/plataforma/país/género/
+       año/calificación y el modo actor/trama --- */
+    $("btnFiltros").addEventListener("click", function () {
       abrirCapa("capaFormulario");
-      if (estado.metodo === "buscar") $("entrada").focus();
-    }
-    $("metodos").addEventListener("click", function (e) {
-      var boton = e.target.closest("[data-metodo]");
-      if (!boton) return;
-      elegirMetodo(boton.getAttribute("data-metodo"));
-    });
-    /* El enlace del pie del modal: cambia al otro método sin cerrarlo. */
-    $("btnCambiarMetodo").addEventListener("click", function () {
-      elegirMetodo(estado.metodo === "descubrir" ? "buscar" : "descubrir");
     });
 
     /* --- forma de búsqueda: título / actor / trama --- */
+    /* El campo se vacía al cambiar de modo porque lo escrito para buscar un
+       título no sirve para buscar por trama. No se enfoca aquí: el campo
+       vive en la barra fija, detrás del velo del panel mientras este está
+       abierto — se escribe al cerrarlo. */
     $("selBusquedaPor").addEventListener("change", function () {
       estado.busquedaPor = this.value;
       $("entrada").value = "";
@@ -5690,7 +5730,6 @@ GMM.app = (function () {
       reflejar();
       guardarPrefs();
       GMM.ui.bienvenida();
-      $("entrada").focus();
     });
 
     /* --- controles de la sección Descubrir --- */
@@ -5805,7 +5844,9 @@ GMM.app = (function () {
       $("entrada").value = boton.getAttribute("data-nombre");
       $("btnLimpiar").classList.remove("oculto");
       cerrarSugerencias();
-      /* Elegir una sugerencia ES la búsqueda: el modal ya no hace falta. */
+      /* Elegir una sugerencia ES la búsqueda: el panel de filtros, si estaba
+         abierto, ya no hace falta. */
+      estado.metodo = "buscar";
       cerrarCapa("capaFormulario");
       guardarPrefs();
       if (estado.busquedaPor === "actor") abrirPersona(id); else abrirFicha(id, estado.tipo);
@@ -6453,6 +6494,18 @@ GMM.app = (function () {
     GMM.ui.bienvenida();
     fijarPantalla();
     refrescarCarrusel();  // los cinco, en paralelo
+
+    /* Catálogo de GMM Server, en segundo plano (V GMM 0044): antes solo se
+       pedía al entrar en "Te la tengo" o al probar la conexión en Ajustes,
+       pero la insignia verde de las sugerencias de la barra de búsqueda lo
+       necesita en memoria desde el primer tecleo. Si falla o no hay
+       servidor configurado, no pasa nada — sencillamente no habrá insignia. */
+    if (GMM.servidor.conectado()) {
+      GMM.servidor.catalogo().then(function (catalogo) {
+        estado.catalogoServidor = catalogo;
+        indexarCatalogoServidor(catalogo);
+      }).catch(function () {});
+    }
 
     if (!GMM.tmdb.hayClave()) {
       setTimeout(function () {

@@ -94,16 +94,24 @@ puedes reordenarla sin volver atrás, con el botón **Ordenar** que hay junto a 
 ## Cómo se busca
 
 Arriba hay un **interruptor Película / Serie** (naranja / azul) que decide qué estás
-buscando. Debajo, **dos formas de llegar al mismo resultado —dónde verla—**, cada una en su
-botón. Al pulsar uno se abre una **ventana con su formulario**: los campos van de dos en dos,
-con la **✕** arriba a la derecha para cerrar y el botón **Buscar** abajo, centrado. Si te
-equivocaste de forma, un enlace dentro de la misma ventana te lleva a la otra sin cerrarla.
+buscando. A su izquierda, una **barra de búsqueda fija**, siempre a la vista: escribe un
+título y aparecen sugerencias (carátula + título) según tecleas; elige una y va directa a su
+ficha, sin abrir nada de por medio. Si una sugerencia coincide con una película que ya tienes
+en tu **GMM Server** («Te la tengo»), su carátula lleva una **flecha verde** en la esquina —
+ya la puedes ver, sin buscarla en ningún sitio. La barra se queda fija arriba al hacer scroll,
+igual que la cabecera.
 
-**1 · Buscar una en concreto.** Un desplegable elige cómo:
+A la derecha de la barra, un **icono de filtro** abre una ventana con todo lo demás: idioma,
+plataforma, país, género, intervalo de años, calificación, y el modo *actor/director* o
+*trama/tema* (que reutiliza la misma barra de arriba para escribir — solo cambia el ejemplo del
+campo). Los campos van de dos en dos, con la **✕** arriba a la derecha para cerrar y el botón
+**Buscar** abajo, centrado.
+
+**1 · Buscar por actor o trama.** Dentro del filtro, cambia el desplegable «Buscar por»:
 
 | Por | Qué hace |
 |---|---|
-| **Título** | Busca por nombre y muestra su ficha con todos los países donde está. |
+| **Título** | El de siempre, ya en la barra de arriba: busca por nombre y muestra su ficha con todos los países donde está. |
 | **Actor / actriz** | Muestra su filmografía; el botón *¿Dónde puedo ver sus…?* consulta la disponibilidad de los 24 títulos más populares. |
 | **Trama / tema** | Busca por concepto ("viajes en el tiempo", "atraco") con las palabras clave de TMDB. |
 
@@ -121,20 +129,21 @@ te dice en qué año estás («2026 · página 2 de 5») y al terminar un año s
 Sin encender ninguno, salen las más populares, como siempre. El texto bajo el título del
 resultado te recuerda siempre cómo está ordenada la lista.
 
-**El orden también se cambia sobre los resultados**, sin volver al formulario: junto a la
+**El orden también se cambia sobre los resultados**, sin abrir el filtro: junto a la
 flecha ←, el botón **Ordenar** despliega esos mismos tres interruptores.
 
 El interruptor peli/serie afecta a las dos formas y a las tres búsquedas: puedes buscar una
 serie por su nombre, ver la filmografía en TV de un actor o descubrir series por género. Vive
-en la barra de arriba, así que para cambiarlo con el formulario abierto hay que cerrarlo; para
-que no te pierdas, **el título de la ventana te dice siempre qué estás buscando** («Buscar una
-serie en concreto»).
+en la barra de arriba, así que para cambiarlo con el filtro abierto hay que cerrarlo primero;
+para que no te pierdas, **el título de la ventana te dice siempre qué tipo estás buscando**
+(«Filtros — series»).
 
-Los filtros de **idioma**, **plataforma** y **país** se eligen **antes de buscar**, dentro de
-esa misma ventana; el resultado ya llega filtrado. Cuando aparecen resultados, el formulario se
-oculta para que veas las carátulas sin estorbos, y una flecha **←** te devuelve a la búsqueda.
-La calificación con la que se filtra en Descubrir es la de **TMDB** (de 0 a 10), no un promedio
-de otras webs.
+Los filtros de **idioma**, **plataforma** y **país** se eligen dentro de esa misma ventana, y
+**también se pueden cambiar mirando un resultado**, sin volver antes a la pantalla de
+búsqueda: al cerrar el filtro, el resultado se refina al instante. La barra de búsqueda y su
+icono de filtro se quedan siempre a la vista, incluso con resultados en pantalla; una flecha
+**←** te devuelve a la pantalla de inicio (carruseles) cuando quieras. La calificación con la
+que se filtra en Descubrir es la de **TMDB** (de 0 a 10), no un promedio de otras webs.
 
 ---
 
