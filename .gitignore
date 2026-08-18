@@ -31,6 +31,13 @@ gmm-server/*.log
 gmm-server/build/salida/
 GMM-Server-para-instalar/*.exe
 
+# Excepción pedida por el usuario (2026-08-17): los dos .exe propios de GMM
+# Server SÍ se publican, para que un usuario final los descargue del repo sin
+# tener que compilarlos. El instalador de VLC (de terceros, ~45 MB) sigue
+# fuera por la regla de arriba — no se toca.
+!GMM-Server-para-instalar/GMM-Server.exe
+!GMM-Server-para-instalar/GMM-Instalar.exe
+
 # Copia histórica local previa; la fuente activa vive en la raíz
 Por Codex/
 
